@@ -74,7 +74,7 @@
             sidebar.classList.toggle('active');
         };
 
-        // Function to remove the active class from all links
+     
         function removeActiveClasses() {
             const activeLinks = document.querySelectorAll(".nav__link.active");
             activeLinks.forEach(link => {
@@ -82,7 +82,7 @@
             });
         }
 
-        // Add click event listener to each link
+      
         document.querySelectorAll(".nav__link").forEach(link => {
             link.addEventListener("click", function() {
                 removeActiveClasses();
