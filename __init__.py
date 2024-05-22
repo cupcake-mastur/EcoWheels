@@ -37,5 +37,19 @@ def confirmation():
     return "Thank you for your order!"
 
 
+# NEED TO METHOD = 'POST' THESE ADMIN PAGES
+@app.route('/dashboard')
+def dashboard():
+    return render_template('admin/dashboard.html')
+
+@app.route('/manageCustomers')
+def MCustomers():
+    return render_template('admin/manageCustomers.html')
+
+@app.route('/manageVehicles')
+def MVehicles():
+    return render_template('admin/manageVehicles.html')
+
+
 if __name__ == '__main__':
     app.run(debug=True)
