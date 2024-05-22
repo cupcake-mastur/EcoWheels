@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoWheels Admin</title>
+    <link rel="stylesheet" type="text/css" href="../static/style.css">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="top">
+            <div class="logo">
+                <!-- <img src="../static/images/EcoWheels Logo.jpeg" alt="Img" class="org-img"> -->
+                <i class='bx bx-car'></i>
+                <span>EcoWheels</span>
+            </div>
+            <i class="bx bx-menu" id="btn"></i>
+        </div>
+        <div class="user">
+
+            <div>
+                <p class="bold">Name</p>
+                <p>Admin</p>
+            </div>
+        </div>
+        <ul>
+            <li>
+                <a href="/dashboard" class="nav__link">
+                    <i class="bx bxs-grid-alt"></i>
+                    <span class="nav-item">Dashboard</span>
+                </a>
+                <span class="tooltip">Dashboard</span>
+            </li>
+            <li>
+                <a href="#" class="nav__link active">
+                    <i class="bx bxs-car"></i>
+                    <span class="nav-item">Vehicles</span>
+                </a>
+                <span class="tooltip">Vehicles</span>
+            </li>
+            <li>
+                <a href="/manageCustomers" class="nav__link">
+                    <i class="bx bx-body"></i>
+                    <span class="nav-item">Customers</span>
+                </a>
+                <span class="tooltip">Customers</span>
+            </li>
+            <li>
+                <a href="#">
+                    <i class="bx bx-log-out"></i>
+                    <span class="nav-item">Logout</span>
+                </a>
+                <span class="tooltip">Logout</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <h1>EcoWheels Management System</h1>
+            <h2>Vehicles</h2>
+        </div>
+    </div>
+</body>
+
+    <script>
+
+        let btn = document.querySelector("#btn");
+        let sidebar = document.querySelector(".sidebar");
+
+        btn.onclick = function () {
+            sidebar.classList.toggle('active');
+        };
+
+        // Function to remove the active class from all links
+        function removeActiveClasses() {
+            const activeLinks = document.querySelectorAll(".nav__link.active");
+            activeLinks.forEach(link => {
+                link.classList.remove("active");
+            });
+        }
+
+        // Add click event listener to each link
+        document.querySelectorAll(".nav__link").forEach(link => {
+            link.addEventListener("click", function() {
+                removeActiveClasses();
+                link.classList.add("active");
+            });
+        });
+
+    </script>
+
+</html>
