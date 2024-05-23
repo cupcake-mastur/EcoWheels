@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sign_up.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sign_up.css') }}" xmlns="http://www.w3.org/1999/html">
 <div class="container">
         <div class="title">
             <p>Registration</p>
@@ -30,6 +30,10 @@
                     <label for="confirmPass">Confirm Password</label>
                     <input type="password" id="confirmPass" placeholder="Confirm your password" required>
                 </div>
+            </div>
+            <div>
+                <input type="checkbox" class="checkbox">
+                <span>I agree to the Terms and Privacy Policy</span>
             </div>
             <div class="reg_btn">
                 <input type="submit" value="Register">
