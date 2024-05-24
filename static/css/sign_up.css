@@ -15,6 +15,10 @@ body{
     font-family: 'Poppins', sans-serif;
 }
 
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+    display: none;
+}
+
 .container{
     max-width: 700px;
     width: 100%;
@@ -38,14 +42,14 @@ body{
     position: relative;
 }
 
-.container .title p::before{
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 30px;
-    height: 3px;
-    background-color: green;
+.login-link {
+    color: #007bff;
+    text-decoration: none;
+    margin-top: 0px;
+}
+
+.login-link:hover {
+    text-decoration: underline;
 }
 
 .user_details{
@@ -113,7 +117,6 @@ div span {
     width: 100%;
     border: none;
     font-size: 18px;
-    font-weight: 500;
     cursor: pointer;
     background-color: green;
     border-radius: 5px;
