@@ -49,6 +49,10 @@ def admin_log_in():
     # check whether input is correct with db
     return render_template('admin/admin_log_in.html')
     
+@app.route('/createVehicle')
+def createVehicle():
+    return render_template('admin/createVehicleForm.html')
+    
 @app.route('/dashboard')
 def dashboard():
     return render_template('admin/dashboard.html')
