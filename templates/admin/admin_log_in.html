@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="../static/css/admin_log_in.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In System</title>
+</head>
+<body>
+
+    <div class="container">
+        <img src="../static/images/EcoWheels Logo.jpeg" alt="EcoWheels">
+         <form action="#" method="post" autocomplete="off" class="form" id="login", enctype="multipart/form-data">
+            <h1 class="form__title">Login</h1>
+            <div class="form__message form__message--error"></div>
+            <div class="form__input-group">
+                <label for="Username">Username</label>
+                <input type="text" class="form__input" id="Username" autofocus placeholder="Enter Username"   minlength="8" maxlength="30" required>
+                <div class="form__input--error-message"></div>
+            </div>
+            <div class="form__input-group">
+                <label for="Password">Password</label>
+                <input type="password" class="form__input" id="Password" autofocus placeholder="Enter Password" required  pattern="^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.*['\x22]).{8,}$" 
+                title="Password must contain at least 8 characters, including at least one number, one uppercase letter, one lowercase letter, and cannot contain ' or &quot;">
+                <div class="form__input-error-message"></div>
+            </div>
+            <br>
+            <button class="form__button" type="submit">Continue</button>
+         </form>   
+    </div>
+
+</body>
+</html>
