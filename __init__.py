@@ -7,12 +7,12 @@ def home():
     return render_template("homepage/homepage.html")
 
 
-@app.route('/sign_up')
+@app.route('/sign_up', methods=['GET', 'POST'])
 def sign_up():
     return render_template("customer/sign_up.html")
 
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     return render_template("customer/login.html")
 
