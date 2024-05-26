@@ -11,6 +11,12 @@ def home():
 def sign_up():
     return render_template("customer/sign_up.html")
 
+
+@app.route('/login')
+def login():
+    return render_template("customer/login.html")
+
+
 @app.route('/payment')
 def payment():
     return render_template("customer/payment.html")
