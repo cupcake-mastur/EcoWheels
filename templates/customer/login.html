@@ -15,7 +15,8 @@
                 </div>
                 <div class="input_box">
                     <label for="pass">Password</label>
-                    <input type="password" id="pass" pattern="^(?=.*[A-Z])(?=.*[!@#$%^&*()_+])[a-zA-Z0-9!@#$%^&*()_+]{8,}$" placeholder="Enter your password" required>
+                    <input type="password" id="pass" pattern="^(?=.*[A-Z])(?=.*[\W_]).{8,}$" placeholder="Enter your password" required
+                    title="Password must contain at least 8 characters, including at least one special character and one uppercase letter.">
                 </div>
             </div>
             <div class="reg_btn">
