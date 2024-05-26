@@ -19,7 +19,7 @@
             <i class="bx bx-menu" id="btn"></i>
         </div>
         <div class="user">
-
+            
             <div>
                 <p class="bold">Name</p>
                 <p>Admin</p>
@@ -27,7 +27,7 @@
         </div>
         <ul>
             <li>
-                <a href="/dashboard" class="nav__link">
+                <a href="dashboard.html" class="nav__link">
                     <i class="bx bxs-grid-alt"></i>
                     <span class="nav-item">Dashboard</span>
                 </a>
@@ -41,14 +41,14 @@
                 <span class="tooltip">Vehicles</span>
             </li>
             <li>
-                <a href="/manageCustomers" class="nav__link">
+                <a href="manageCustomers.html" class="nav__link">
                     <i class="bx bx-body"></i>
                     <span class="nav-item">Customers</span>
                 </a>
                 <span class="tooltip">Customers</span>
             </li>
             <li>
-                <a href="#">
+                <a href="../admin/admin_log_in.html">
                     <i class="bx bx-log-out"></i>
                     <span class="nav-item">Logout</span>
                 </a>
@@ -56,16 +56,18 @@
             </li>
         </ul>
     </div>
-
+    
     <div class="main-content">
         <div class="container">
             <h1>EcoWheels Management System</h1>
             <h2>Vehicles</h2>
         </div>
+
+        <a href="../admin/createVehicleForm.html"><button id="createVehicle">Add Vehicle</button></a>
     </div>
 </body>
 
-    <script>
+    <script>  
 
         let btn = document.querySelector("#btn");
         let sidebar = document.querySelector(".sidebar");
@@ -74,7 +76,7 @@
             sidebar.classList.toggle('active');
         };
 
-     
+        // Function to remove the active class from all links
         function removeActiveClasses() {
             const activeLinks = document.querySelectorAll(".nav__link.active");
             activeLinks.forEach(link => {
@@ -82,7 +84,7 @@
             });
         }
 
-      
+        // Add click event listener to each link
         document.querySelectorAll(".nav__link").forEach(link => {
             link.addEventListener("click", function() {
                 removeActiveClasses();
