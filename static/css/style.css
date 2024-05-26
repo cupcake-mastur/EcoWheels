@@ -176,6 +176,20 @@ a.nav__link.active {
 }
 
 
+#createVehicle {
+    margin: 50px;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #ffffff;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background:rgb(7, 165, 96) ;
+}
+
+
 
 
 
