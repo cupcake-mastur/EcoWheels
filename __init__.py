@@ -44,7 +44,7 @@ def confirmation():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-@app.route('/admin_log_in')
+@app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
     # check whether input is correct with db
     return render_template('admin/admin_log_in.html')
