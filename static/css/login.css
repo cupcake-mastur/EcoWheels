@@ -15,10 +15,6 @@ body{
     font-family: 'Poppins', sans-serif;
 }
 
-input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
-    display: none;
-}
-
 .container{
     max-width: 700px;
     width: 100%;
@@ -58,6 +54,7 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
     flex-wrap: wrap;
     gap: 20px;
     padding: 25px;
+    margin-top: 30px;
 }
 
 .user_details .input_box{

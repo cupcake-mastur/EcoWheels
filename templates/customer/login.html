@@ -1,0 +1,28 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}" xmlns="http://www.w3.org/1999/html">
+<a href="/">
+    <img src="{{ url_for('static', filename='images/EcoWheels Logo.jpeg') }}" alt="EcoWheels Logo" style="width: 500px;">
+</a>
+<div class="container">
+        <div class="title">
+            <p>Login</p>
+        </div>
+
+        <form method="POST" action="#" autocomplete="off">
+            <div class="user_details">
+                <div class="input_box">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="example@gmail.com" required>
+                </div>
+                <div class="input_box">
+                    <label for="pass">Password</label>
+                    <input type="password" id="pass" pattern="^(?=.*[A-Z])(?=.*[\W_]).{8,}$" placeholder="Enter your password" required
+                    title="Password must contain at least 8 characters, including at least one special character and one uppercase letter.">
+                </div>
+            </div>
+            <div class="reg_btn">
+                <input type="submit" value="Login">
+            </div>
+             <p class="info" style="margin-left: 28px; margin-bottom: 20px;">Forgot Password? Reset it <a href="#" class="login-link">here</a></p>
+            <p class="info" style="margin-left: 28px; margin-bottom: 20px;">Don't have an account? Sign Up <a href="/sign_up" class="login-link">here</a></p>
+        </form>
+    </div>
