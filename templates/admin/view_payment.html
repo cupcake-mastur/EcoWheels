@@ -9,27 +9,12 @@
             border-collapse: collapse;
         }
         th, td {
-            border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
+            border-bottom: 1px solid #ddd;
         }
         th {
             background-color: #f2f2f2;
-        }
-        .button {
-            background-color: #4CAF50; /* Green */
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-        }
-        .button-red {
-            background-color: red;
         }
     </style>
 </head>
@@ -37,23 +22,20 @@
     <h2>Payment Details</h2>
     <table>
         <tr>
-            <th>Order ID</th>
             <th>Full Name</th>
             <th>Email</th>
             <th>Address</th>
             <th>City</th>
             <th>State</th>
-            <th>Zip Code</th>
+            <th>Zip</th>
             <th>Card Name</th>
             <th>Card Number</th>
             <th>Exp Month</th>
             <th>Exp Year</th>
             <th>CVV</th>
-            <th>Actions</th>
         </tr>
         {% for order in orders %}
         <tr>
-            <td>{{ order.order_id }}</td>
             <td>{{ order.fullname }}</td>
             <td>{{ order.email }}</td>
             <td>{{ order.address }}</td>
@@ -65,13 +47,6 @@
             <td>{{ order.exp_month }}</td>
             <td>{{ order.exp_year }}</td>
             <td>{{ order.cvv }}</td>
-            <td>
-                <a href="{{ url_for('update_payment', id=order.order_id) }}" class="button">Update</a>
-                <form action="{{ url_for('delete_payment', id=order.order_id) }}" method="post" style="display: inline;">
-                    <input type="hidden" name="_method" value="DELETE">
-                    <button type="submit" class="button button-red" onclick="return confirm('Are you sure?');">Delete</button>
-                </form>
-            </td>
         </tr>
         {% endfor %}
     </table>
