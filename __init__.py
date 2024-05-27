@@ -33,7 +33,9 @@ with app.app_context():
 @app.route('/')
 def home():
     return render_template("homepage/homepage.html")
-
+@app.route('/models')
+def models():
+    return render_template("homepage/models.html")
 
 @app.route('/sign_up', methods=['GET', 'POST'])
 def sign_up():
