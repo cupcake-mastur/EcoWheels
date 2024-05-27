@@ -1,7 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for
+from Forms import CreateUserForm
+import hashlib
 from flask_sqlalchemy import SQLAlchemy
+<<<<<<< HEAD
 import mysql.connector
+=======
+from sqlalchemy import exists
+>>>>>>> e85281fa0f0aece7a95b21da5a552944c61b25f2
 
+app = Flask(__name__)
 db = SQLAlchemy()
 db_2 = mysql.connector.connect(
     host="localhost",  
@@ -10,20 +17,21 @@ db_2 = mysql.connector.connect(
     database="eco_wheels"  
 )
 
-def create_app():
-    app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:EcoWheels123@127.0.0.1:3306/eco_wheels"
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = "mysecret"   
+# def create_app():
+#     app = Flask(__name__)
+#     app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:EcoWheels123@127.0.0.1:3306/eco_wheels"
+#     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+#     app.config['SECRET_KEY'] = "mysecret"
+#
+#     db.init_app(app)
+#
+#     with app.app_context():
+#         db.create_all()  # Create sql tables if they don't already exist
+#
+#     return app
+#
+# app = create_app()
 
-    db.init_app(app)
-
-    with app.app_context():
-        db.create_all()  # Create sql tables if they don't already exist
-
-    return app
-
-app = create_app()
 # def create_app():
 #     app = Flask(__name__)
 #     app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
@@ -38,8 +46,16 @@ app = create_app()
 #
 #     return app
 
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SECRET_KEY"] = "mysecret"
 
+db.init_app(app)
 
+with app.app_context():
+    import model
+
+    db.create_all()
 
 @app.route('/')
 def home():
@@ -53,7 +69,47 @@ def models():
 
 @app.route('/sign_up', methods=['GET', 'POST'])
 def sign_up():
-    return render_template("customer/sign_up.html")
+    error = None
+    create_user_form = CreateUserForm(request.form)
+    if request.method == 'POST' and create_user_form.validate():
+        # Extract data from form submission
+        full_name = create_user_form.full_name.data
+        username = create_user_form.username.data
+        email = create_user_form.email.data
+        phone_number = create_user_form.phone_number.data
+        password = create_user_form.password.data
+        password_bytes = password.encode('utf-8')
+        hashed_password = hashlib.sha256(password_bytes).hexdigest()
+        confirm_password = create_user_form.confirm_password.data
+
+        user_exists = db.session.query(exists().where(model.User.username == username)).scalar()
+        email_exists = db.session.query(exists().where(model.User.email == email)).scalar()
+        phone_number_exists = db.session.query(exists().where(model.User.phone_number == phone_number)).scalar()
+
+        if user_exists:
+            error = "Username already exists!"
+        elif email_exists:
+            error = "Email is already registered!"
+        elif phone_number_exists:
+            error = "Phone number is already registered!"
+        elif password != confirm_password:
+            error = "Passwords do not match!"
+        else:
+            # Create a new user
+            new_user = model.User(full_name=full_name, username=username, email=email, phone_number=phone_number, password_hash=hashed_password)
+            db.session.add(new_user)
+            db.session.commit()
+            print("User created!")
+            return redirect(url_for('login'))
+    return render_template("customer/sign_up.html", form=create_user_form, error=error)
+
+
+@app.route('/test_sign_up')
+def test_create_user():
+    new_user = model.User(id=1, full_name="John Doe", username="johndoe", email="johndoe@gmail.com", phone_number="12345678", password_hash="password")
+    db.session.add(new_user)
+    db.session.commit()
+    return "User created!"
 
 
 @app.route('/login', methods=['GET', 'POST'])

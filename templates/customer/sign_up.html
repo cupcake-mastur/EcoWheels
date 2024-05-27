@@ -1,3 +1,5 @@
+{% from "_formHelper.html" import render_field %}
+
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sign_up.css') }}" xmlns="http://www.w3.org/1999/html">
 <a href="/">
     <img src="{{ url_for('static', filename='images/EcoWheels Logo.jpeg') }}" alt="EcoWheels Logo" style="width: 500px;">
@@ -6,35 +8,30 @@
         <div class="title">
             <p>Sign Up</p>
         </div>
-    
-        <form method="POST" action="#" autocomplete="off">
+
+      {% if error %}
+        <p style="color: red; text-align: center;">{{ error }}</p>
+      {% endif %}
+
+        <form method="POST" action="" autocomplete="off">
             <div class="user_details">
                 <div class="input_box">
-                    <label for="name">Full Name</label>
-                    <input type="text" id="name" placeholder="Enter your name" required>
+                    {{ render_field(form.full_name, class="form-control", id="name", placeholder="Enter your name") }}
                 </div>
                 <div class="input_box">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" placeholder="Enter your username" required>
+                    {{ render_field(form.username, class="form-control", id="username", placeholder="Enter your username") }}
                 </div>
                 <div class="input_box">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="example@gmail.com" required>
+                    {{ render_field(form.email, class="form-control", id="email", placeholder="example@gmail.com") }}
                 </div>
                 <div class="input_box">
-                    <label for="phone">Phone Number</label>
-                    <input type="text" id="phone" placeholder="8 digits phone number" required pattern="^\d{8}$"
-                    title="Phone number must contain 8 digits">
+                    {{ render_field(form.phone_number, class="form-control", id="phone", placeholder="8 digits phone number") }}
                 </div>
                 <div class="input_box">
-                    <label for="pass">Password</label>
-                    <input type="password" id="pass" placeholder="Enter your password" required pattern="^(?=.*[A-Z])(?=.*[\W_]).{8,}$"
-                    title="Password must contain at least 8 characters, including at least one special character and one uppercase letter">
+                    {{ render_field(form.password, class="form-control", id="pass", placeholder="Enter your password") }}
                 </div>
                 <div class="input_box">
-                    <label for="confirmPass">Confirm Password</label>
-                    <input type="password" id="confirmPass" placeholder="Confirm your password" required pattern="^(?=.*[A-Z])(?=.*[\W_]).{8,}$"
-                    title="Password must contain at least 8 characters, including at least one special character and one uppercase letter">
+                    {{ render_field(form.confirm_password, class="form-control", id="confirmPass", placeholder="Confirm your password") }}
                 </div>
             </div>
             <div style="margin-left: -139px;">
