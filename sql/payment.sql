@@ -1,4 +1,3 @@
--- setup.sql
 CREATE DATABASE IF NOT EXISTS eco_wheels;
 
 USE eco_wheels;
