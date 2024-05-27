@@ -4,10 +4,27 @@ db = SQLAlchemy()
 
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:123456@localhost/ASPJ"
+
+# def create_app():
+#     app = Flask(__name__)
+#     app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
+#     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+#     app.config["SECRET_KEY"] = "mysecret"
+#
+#     db.init_app(app)
+#
+#     with app.app_context():
+#         import model
+#         db.create_all()  # Create sql tables
+#
+#     return app
+
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "mysecret"
+
 db.init_app(app)
+
 with app.app_context():
     import model
     db.create_all()
