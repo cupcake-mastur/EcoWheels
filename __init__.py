@@ -1,7 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+import mysql.connector
 
 db = SQLAlchemy()
+db_2 = mysql.connector.connect(
+    host="localhost",  
+    user="root",  
+    password="EcoWheels123",  
+    database="eco_wheels"  
+)
 
 def create_app():
     app = Flask(__name__)
@@ -68,52 +75,76 @@ def confirmation():
 @app.route('/process_payment', methods=['POST'])
 def process_payment():
     try:
-        # your existing code
-        db.session.commit()
+        fullname = request.form['firstname']
+        email = request.form['email']
+        address = request.form['address']
+        city = request.form['city']
+        state = request.form['state']
+        zip_code = request.form['zip']
+        card_name = request.form['cardname']
+        card_number = request.form['cardnumber']
+        exp_month = request.form['expmonth']
+        exp_year = request.form['expyear']
+        cvv = request.form['cvv']
+        cursor = db_2.cursor()
+        query = "INSERT INTO orders (fullname, email, address, city, state, zip_code, card_name, card_number, exp_month, exp_year, cvv) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        values = (fullname, email, address, city, state, zip_code, card_name, card_number, exp_month, exp_year, cvv)
+        print(query)
+        print(values)
+        cursor.execute(query, values)
+        db_2.commit()
     except Exception as e:
-        db.session.rollback()
+        db_2.session.rollback()
         print("Failed to process payment:", e)  # Log the error or use a logging framework
         return "Error processing payment", 500
     return redirect(url_for('confirmation'))
 
+@app.route('/view_payment')
+def view_payment():
+    cursor = db_2.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM orders")
+    orders = cursor.fetchall()
+    cursor.close()
+    return render_template("admin/view_payment.html", orders=orders)
 
-@app.route('/update_payment/<int:order_id>', methods=['GET', 'POST'])
-def update_payment(order_id):
-    from model import Order
-    order = Order.query.get_or_404(order_id)
+
+@app.route('/update_payment/<int:id>', methods=['GET', 'POST'])
+def update_payment(id):
     if request.method == 'POST':
-        # update fields
-        order.fullname = request.form['fullname']
-        order.email = request.form['email']
-        order.address = request.form['address']
-        order.city = request.form['city']
-        order.state = request.form['state']
-        order.zip_code = request.form['zip']
-        order.card_name = request.form['cardname']
-        order.card_number = request.form['cardnumber']
-        order.exp_month = request.form['expmonth']
-        order.exp_year = request.form['expyear']
-        order.cvv = request.form['cvv']
-        db.session.commit()
+        fullname = request.form['fullname']
+        email = request.form['email']
+        address = request.form['address']
+        city = request.form['city']
+        state = request.form['state']
+        zip_code = request.form['zip']
+        card_name = request.form['cardname']
+        card_number = request.form['cardnumber']
+        exp_month = request.form['expmonth']
+        exp_year = request.form['expyear']
+        cvv = request.form['cvv']
+
+        cursor = db_2.cursor()
+        cursor.execute("""
+            UPDATE orders SET fullname=%s, email=%s, address=%s, city=%s, state=%s, zip_code=%s, card_name=%s, card_number=%s, exp_month=%s, exp_year=%s, cvv=%s
+            WHERE order_id=%s
+        """, (fullname, email, address, city, state, zip_code, card_name, card_number, exp_month, exp_year, cvv, id))
+        db_2.commit()
+        cursor.close()
         return redirect(url_for('view_payment'))
     else:
+        cursor = db_2.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM orders WHERE order_id = %s", (id,))
+        order = cursor.fetchone()
+        cursor.close()
         return render_template('admin/update_payment.html', order=order)
-    
-@app.route('/view_payment')
-def view_payments():
-    from model import Order  # Local import to avoid circular import issues
-    orders = Order.query.all()  # Fetch all orders from the database
-    return render_template('admin/view_payment.html', orders=orders)
 
-
-@app.route('/delete_payment/<int:order_id>', methods=['POST'])
-def delete_payment(order_id):
-    from model import Order
-    order = Order.query.get_or_404(order_id)
-    db.session.delete(order)
-    db.session.commit()
-    return redirect(url_for('admin/view_payment.html'))
-
+@app.route('/delete_payment/<int:id>', methods=['POST'])
+def delete_payment(id):
+    cursor = db_2.cursor()
+    cursor.execute("DELETE FROM orders WHERE order_id = %s", (id,))
+    db_2.commit()
+    cursor.close()
+    return redirect(url_for('view_payment'))
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES

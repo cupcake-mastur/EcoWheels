@@ -16,6 +16,22 @@
         th {
             background-color: #f2f2f2;
         }
+        .button {
+            text-decoration: none;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            background-color: #4CAF50; /* Green background for update */
+            cursor: pointer;
+            display: inline-block;
+        }
+        .button-red {
+            background-color: #f44336; /* Red background for delete */
+        }
+        .button:hover {
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -33,6 +49,7 @@
             <th>Exp Month</th>
             <th>Exp Year</th>
             <th>CVV</th>
+            <th>Actions</th>
         </tr>
         {% for order in orders %}
         <tr>
@@ -47,6 +64,13 @@
             <td>{{ order.exp_month }}</td>
             <td>{{ order.exp_year }}</td>
             <td>{{ order.cvv }}</td>
+            <td>
+                <a href="{{ url_for('update_payment', id=order.order_id) }}" class="button">Update</a>
+                <form action="{{ url_for('delete_payment', id=order.order_id) }}" method="post" style="display: inline;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="button button-red" onclick="return confirm('Are you sure?');">Delete</button>
+                </form>
+            </td>
         </tr>
         {% endfor %}
     </table>
