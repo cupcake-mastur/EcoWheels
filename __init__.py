@@ -74,7 +74,7 @@ def process_payment():
         db.session.rollback()
         print("Failed to process payment:", e)  # Log the error or use a logging framework
         return "Error processing payment", 500
-    return redirect(url_for('customer/confirmation.html'))
+    return redirect(url_for('confirmation'))
 
 
 @app.route('/update_payment/<int:order_id>', methods=['GET', 'POST'])
