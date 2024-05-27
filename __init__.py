@@ -5,7 +5,9 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     return render_template("homepage/homepage.html")
-
+@app.route('/models')
+def models():
+    return render_template("homepage/models.html")
 
 @app.route('/sign_up')
 def sign_up():
