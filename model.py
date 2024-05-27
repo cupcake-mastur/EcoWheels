@@ -11,6 +11,7 @@ class User(db.Model):
     full_name = db.Column(db.String(64), nullable=False)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    phone_number = db.Column(db.String(8), nullable=False)
     phone_number = db.Column(db.String(8), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
 

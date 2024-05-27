@@ -1,14 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for
 from Forms import CreateUserForm
+from werkzeug.security import generate_password_hash
 import hashlib
 from flask_sqlalchemy import SQLAlchemy
-<<<<<<< HEAD
 import mysql.connector
-=======
-from sqlalchemy import exists
->>>>>>> e85281fa0f0aece7a95b21da5a552944c61b25f2
 
-app = Flask(__name__)
 db = SQLAlchemy()
 db_2 = mysql.connector.connect(
     host="localhost",  
@@ -17,21 +13,19 @@ db_2 = mysql.connector.connect(
     database="eco_wheels"  
 )
 
-# def create_app():
-#     app = Flask(__name__)
-#     app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:EcoWheels123@127.0.0.1:3306/eco_wheels"
-#     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-#     app.config['SECRET_KEY'] = "mysecret"
-#
-#     db.init_app(app)
-#
-#     with app.app_context():
-#         db.create_all()  # Create sql tables if they don't already exist
-#
-#     return app
-#
-# app = create_app()
+def create_app():
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:EcoWheels123@127.0.0.1:3306/eco_wheels"
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SECRET_KEY'] = "mysecret"   
 
+    db.init_app(app)
+
+    with app.app_context():
+        db.create_all()  # Create sql tables if they don't already exist
+
+    return app
+app = create_app()
 # def create_app():
 #     app = Flask(__name__)
 #     app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
@@ -46,16 +40,18 @@ db_2 = mysql.connector.connect(
 #
 #     return app
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SECRET_KEY"] = "mysecret"
+#JIAYINGG the following 4 lines of commented code is ursss! 
+# app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
+# app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+# app.config["SECRET_KEY"] = "mysecret"
 
-db.init_app(app)
+# db.init_app(app)
 
 with app.app_context():
     import model
 
     db.create_all()
+
 
 @app.route('/')
 def home():
@@ -78,15 +74,19 @@ def sign_up():
         email = create_user_form.email.data
         phone_number = create_user_form.phone_number.data
         password = create_user_form.password.data
+        password_hash = generate_password_hash(password)
         password_bytes = password.encode('utf-8')
         hashed_password = hashlib.sha256(password_bytes).hexdigest()
         confirm_password = create_user_form.confirm_password.data
 
+        # Check if the user already exists (This is called IntegrityError)
         user_exists = db.session.query(exists().where(model.User.username == username)).scalar()
         email_exists = db.session.query(exists().where(model.User.email == email)).scalar()
         phone_number_exists = db.session.query(exists().where(model.User.phone_number == phone_number)).scalar()
 
         if user_exists:
+            error = "User already exists!"
+        # Check if the passwords match
             error = "Username already exists!"
         elif email_exists:
             error = "Email is already registered!"
@@ -96,10 +96,11 @@ def sign_up():
             error = "Passwords do not match!"
         else:
             # Create a new user
+            new_user = model.User(full_name=full_name, username=username, email=email, phone_number=phone_number, password_hash=password_hash)
             new_user = model.User(full_name=full_name, username=username, email=email, phone_number=phone_number, password_hash=hashed_password)
             db.session.add(new_user)
             db.session.commit()
-            print("User created!")
+            print("User created!")    
             return redirect(url_for('login'))
     return render_template("customer/sign_up.html", form=create_user_form, error=error)
 
@@ -110,7 +111,6 @@ def test_create_user():
     db.session.add(new_user)
     db.session.commit()
     return "User created!"
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -145,8 +145,6 @@ def process_payment():
         cursor = db_2.cursor()
         query = "INSERT INTO orders (fullname, email, address, city, state, zip_code, card_name, card_number, exp_month, exp_year, cvv) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         values = (fullname, email, address, city, state, zip_code, card_name, card_number, exp_month, exp_year, cvv)
-        print(query)
-        print(values)
         cursor.execute(query, values)
         db_2.commit()
     except Exception as e:
