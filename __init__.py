@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-db = SQLAlchemy()
 
+db = SQLAlchemy()
 
 app = Flask(__name__)
 
@@ -27,15 +27,19 @@ db.init_app(app)
 
 with app.app_context():
     import model
+
     db.create_all()
 
 
 @app.route('/')
 def home():
     return render_template("homepage/homepage.html")
+
+
 @app.route('/models')
 def models():
     return render_template("homepage/models.html")
+
 
 @app.route('/sign_up', methods=['GET', 'POST'])
 def sign_up():
@@ -50,6 +54,7 @@ def login():
 @app.route('/payment')
 def payment():
     return render_template("customer/payment.html")
+
 
 @app.route('/process_payment', methods=['POST'])
 def process_payment():
@@ -67,6 +72,7 @@ def process_payment():
     cvv = request.form['cvv']
     return redirect(url_for('confirmation'))
 
+
 @app.route('/confirmation')
 def confirmation():
     # Render a simple confirmation page
@@ -78,18 +84,22 @@ def confirmation():
 def admin_log_in():
     # check whether input is correct with db
     return render_template('admin/admin_log_in.html')
-    
+
+
 @app.route('/createVehicle')
 def createVehicle():
     return render_template('admin/createVehicleForm.html')
-    
+
+
 @app.route('/dashboard')
 def dashboard():
     return render_template('admin/dashboard.html')
 
+
 @app.route('/manageCustomers')
 def MCustomers():
     return render_template('admin/manageCustomers.html')
+
 
 @app.route('/manageVehicles')
 def MVehicles():
