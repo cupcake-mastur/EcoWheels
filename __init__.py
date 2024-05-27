@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for
+from Forms import CreateUserForm
+from werkzeug.security import generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from sqlalchemy import exists
 
 app = Flask(__name__)
+db = SQLAlchemy()
 
 # def create_app():
 #     app = Flask(__name__)
@@ -43,7 +45,41 @@ def models():
 
 @app.route('/sign_up', methods=['GET', 'POST'])
 def sign_up():
-    return render_template("customer/sign_up.html")
+    error = None
+    create_user_form = CreateUserForm(request.form)
+    if request.method == 'POST' and create_user_form.validate():
+        # Extract data from form submission
+        full_name = create_user_form.full_name.data
+        username = create_user_form.username.data
+        email = create_user_form.email.data
+        phone_number = create_user_form.phone_number.data
+        password = create_user_form.password.data
+        password_hash = generate_password_hash(password)
+        confirm_password = create_user_form.confirm_password.data
+
+        # Check if the user already exists (This is called IntegrityError)
+        user_exists = db.session.query(exists().where(model.User.username == username)).scalar()
+        if user_exists:
+            error = "User already exists!"
+        # Check if the passwords match
+        elif password != confirm_password:
+            error = "Passwords do not match!"
+        else:
+            # Create a new user
+            new_user = model.User(full_name=full_name, username=username, email=email, phone_number=phone_number, password_hash=password_hash)
+            db.session.add(new_user)
+            db.session.commit()
+            print("User created!")
+            return redirect(url_for('login'))
+    return render_template("customer/sign_up.html", form=create_user_form, error=error)
+
+
+@app.route('/test_sign_up')
+def test_create_user():
+    new_user = model.User(id=1, full_name="John Doe", username="johndoe", email="johndoe@gmail.com", phone_number="12345678", password_hash="password")
+    db.session.add(new_user)
+    db.session.commit()
+    return "User created!"
 
 
 @app.route('/login', methods=['GET', 'POST'])
