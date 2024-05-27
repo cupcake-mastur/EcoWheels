@@ -1,14 +1,17 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-app = Flask(__name__)
-
 db = SQLAlchemy()
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@localhost/ASPJ"
+
+
+app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:123456@localhost/ASPJ"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SECRET_KEY"] = "mysecret"
 db.init_app(app)
 with app.app_context():
-
+    import model
     db.create_all()
+
 
 @app.route('/')
 def home():
