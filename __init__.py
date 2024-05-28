@@ -3,21 +3,23 @@ from Forms import CreateUserForm
 from werkzeug.security import generate_password_hash
 import hashlib
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import exists
 import mysql.connector
 
+app = Flask(__name__)
 db = SQLAlchemy()
 db_2 = mysql.connector.connect(
-    host="localhost",  
-    user="root",  
-    password="EcoWheels123",  
-    database="eco_wheels"  
+    host="localhost",
+    user="root",
+    password="EcoWheels123",
+    database="eco_wheels"
 )
 
 def create_app():
     app = Flask(__name__)
     app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:EcoWheels123@127.0.0.1:3306/eco_wheels"
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = "mysecret"   
+    app.config['SECRET_KEY'] = "mysecret"
 
     db.init_app(app)
 
@@ -41,11 +43,11 @@ app = create_app()
 #     return app
 
 #JIAYINGG the following 4 lines of commented code is ursss! 
-# app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
-# app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-# app.config["SECRET_KEY"] = "mysecret"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SECRET_KEY"] = "mysecret"
 
-# db.init_app(app)
+db.init_app(app)
 
 with app.app_context():
     import model

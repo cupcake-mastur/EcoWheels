@@ -1,3 +1,7 @@
+{% extends "base.html" %}
+{% block title %}EcoWheels{% endblock %}
+
+{% block content %}
 {% from "_formHelper.html" import render_field %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sign_up.css') }}" xmlns="http://www.w3.org/1999/html">
@@ -44,3 +48,5 @@
             <p class="info" style="margin-left: 28px; margin-bottom: 20px;">Already have an account? Login <a href="/login" class="login-link">here</a></p>
         </form>
     </div>
+
+{% endblock %}

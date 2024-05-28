@@ -1,3 +1,8 @@
+{% extends "base.html" %}
+{% block title %}EcoWheels{% endblock %}
+
+{% block content %}
+
 <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}" xmlns="http://www.w3.org/1999/html">
 <a href="/">
     <img src="{{ url_for('static', filename='images/EcoWheels Logo.jpeg') }}" alt="EcoWheels Logo" style="width: 500px;">
@@ -26,3 +31,5 @@
             <p class="info" style="margin-left: 28px; margin-bottom: 20px;">Don't have an account? Sign Up <a href="/sign_up" class="login-link">here</a></p>
         </form>
     </div>
+
+{% endblock %}
