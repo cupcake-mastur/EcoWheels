@@ -17,13 +17,20 @@ db_2 = mysql.connector.connect(
 
 def create_app():
     app = Flask(__name__)
+
     app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:EcoWheels123@127.0.0.1:3306/eco_wheels"
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = "mysecret"
 
+    app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["SECRET_KEY"] = "mysecret"
+
+
     db.init_app(app)
 
     with app.app_context():
+
         db.create_all()  # Create sql tables if they don't already exist
 
     return app
@@ -42,9 +49,16 @@ app = create_app()
 #
 #     return app
 
+        import model
+        db.create_all()  # Create sql tables
+
+    return app
+
+
 #JIAYINGG the following 4 lines of commented code is ursss! 
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://JY:123456@127.0.0.1:3306/ASPJ"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+# SQL here
 app.config["SECRET_KEY"] = "mysecret"
 
 db.init_app(app)
