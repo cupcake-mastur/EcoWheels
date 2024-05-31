@@ -13,23 +13,18 @@ from sqlalchemy import exists
 #     database="eco_wheels"
 # )
 from model import *
+
 load_dotenv(find_dotenv())
 db = SQLAlchemy()
-
-
-
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
-
-
 with app.app_context():
     db.init_app(app)
     db.create_all()  # Create sql tables
-
 
 
 @app.route('/')
@@ -80,7 +75,7 @@ def sign_up():
         if error is None:
             # Create a new user
             new_user = User(full_name=full_name, username=username, email=email, phone_number=phone_number,
-                                  password_hash=hashed_password)
+                            password_hash=hashed_password)
             db.session.add(new_user)
             db.session.commit()
             print("User created!")
