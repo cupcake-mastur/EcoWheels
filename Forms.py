@@ -1,8 +1,9 @@
-from wtforms import Form, EmailField, validators, PasswordField, StringField, IntegerField
+from wtforms import Form, validators
+from wtforms.fields import PasswordField,StringField, IntegerField 
 
 
 class CreateUserForm(Form):
-    email = EmailField('Email', [validators.DataRequired(), validators.Email()])
+    email = StringField('Email', [validators.DataRequired(), validators.Email()])
     full_name = StringField('Full Name', validators=[validators.DataRequired()])
     username = StringField('Username', validators=[validators.DataRequired()])
     phone_number = IntegerField('Phone Number', [validators.DataRequired(),
@@ -12,5 +13,5 @@ class CreateUserForm(Form):
 
 
 class LoginForm(Form):
-    email = EmailField('Email', [validators.DataRequired(), validators.Email()])
+    email = StringField('Email', [validators.DataRequired(), validators.Email()])
     password = PasswordField('Password', [validators.DataRequired(), validators.length(min=8, max=30)])

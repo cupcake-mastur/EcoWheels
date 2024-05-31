@@ -3,7 +3,6 @@ from Forms import CreateUserForm, LoginForm
 import hashlib
 from dotenv import load_dotenv, find_dotenv
 import os
-import model
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists
 # import mysql.connector
@@ -15,10 +14,11 @@ from sqlalchemy import exists
 # )
 
 load_dotenv(find_dotenv())
-
+db = SQLAlchemy()
 
 def create_app():
-    db = SQLAlchemy()
+    
+
     app = Flask(__name__)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
@@ -32,10 +32,10 @@ def create_app():
         import model
         db.create_all()  # Create sql tables
 
-    return app, db
+    return app 
 
 
-app, db = create_app()
+app = create_app()
 
 
 @app.route('/')
