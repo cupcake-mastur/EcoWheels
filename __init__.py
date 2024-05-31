@@ -15,29 +15,18 @@ from sqlalchemy import exists
 # )
 
 from model import *
+
 load_dotenv(find_dotenv())
+db = SQLAlchemy()
 
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
-def create_app():
-    db = SQLAlchemy()
-    app = Flask(__name__)
-
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
-
-
-    with app.app_context():
-        db.init_app(app)
-
-    with app.app_context():
-        import model
-        db.create_all()  # Create sql tables
-
-    return app, db
-
-
-app, db = create_app()
+with app.app_context():
+    db.init_app(app)
+    db.create_all()  # Create sql tables
 
 @app.route('/')
 def home():
@@ -65,9 +54,9 @@ def sign_up():
         confirm_password = create_user_form.confirm_password.data
 
         # Check if the user already exists (This is called IntegrityError)
-        user_exists = db.session.query(exists().where(model.User.username == username)).scalar()
-        email_exists = db.session.query(exists().where(model.User.email == email)).scalar()
-        phone_number_exists = db.session.query(exists().where(model.User.phone_number == phone_number)).scalar()
+        user_exists = db.session.query(exists().where(User.username == username)).scalar()
+        email_exists = db.session.query(exists().where(User.email == email)).scalar()
+        phone_number_exists = db.session.query(exists().where(User.phone_number == phone_number)).scalar()
 
         if user_exists:
             error = "Username already exists!"
