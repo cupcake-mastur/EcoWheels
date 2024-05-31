@@ -14,6 +14,7 @@ from sqlalchemy import exists
 #     database="eco_wheels"
 # )
 
+from model import *
 load_dotenv(find_dotenv())
 
 
@@ -26,7 +27,8 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
 
-    db.init_app(app)
+    with app.app_context():
+        db.init_app(app)
 
     with app.app_context():
         import model
@@ -36,7 +38,6 @@ def create_app():
 
 
 app, db = create_app()
-
 
 @app.route('/')
 def home():
@@ -85,8 +86,8 @@ def sign_up():
 
         if error is None:
             # Create a new user
-            new_user = model.User(full_name=full_name, username=username, email=email, phone_number=phone_number,
-                                  password_hash=hashed_password)
+            new_user = User(full_name=full_name, username=username, email=email, phone_number=phone_number,
+                            password_hash=hashed_password)
             db.session.add(new_user)
             db.session.commit()
             print("User created!")
@@ -103,7 +104,7 @@ def login():
         password = login_form.password.data
         password_bytes = password.encode('utf-8')
         entered_password_hash = hashlib.sha256(password_bytes).hexdigest()
-        user = model.User.query.filter_by(email=email).first()
+        user = db.session.query(User).filter_by(email=email).first()
 
         if user and user.password_hash == entered_password_hash:
             session['user_id'] = user.id
