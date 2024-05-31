@@ -26,16 +26,17 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
 
-    db.init_app(app)
+    
 
     with app.app_context():
+        db.init_app(app)
         import model
         db.create_all()  # Create sql tables
 
-    return app 
+    return app , model
 
 
-app = create_app()
+app , model = create_app()
 
 
 @app.route('/')
