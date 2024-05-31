@@ -1,51 +1,41 @@
-from flask import Flask, render_template, request, redirect, url_for
-from Forms import CreateUserForm
+from flask import Flask, render_template, request, session, redirect, url_for
+from Forms import CreateUserForm, LoginForm
 import hashlib
 from dotenv import load_dotenv, find_dotenv
 import os
+import model
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists
-import mysql.connector
+# import mysql.connector
+# db_2 = mysql.connector.connect(
+#     host="localhost",
+#     user="root",
+#     password="EcoWheels123",
+#     database="eco_wheels"
+# )
 
-app = Flask(__name__)
-db = SQLAlchemy()
 load_dotenv(find_dotenv())
-db_2 = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="EcoWheels123",
-    database="eco_wheels"
-)
-
-# def create_app():
-#     app = Flask(__name__)
-#
-#     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI2")
-#     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-#     app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
-#
-#
-#     db.init_app(app)
-#
-#     with app.app_context():
-#         import model
-#         db.create_all()  # Create sql tables
-#
-#     return app
-# app = create_app()
 
 
-#JIAYINGG the following 4 lines of commented code is ursss! 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URI")
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+def create_app():
+    db = SQLAlchemy()
+    app = Flask(__name__)
 
-db.init_app(app)
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
-with app.app_context():
-    import model
 
-    db.create_all()
+    db.init_app(app)
+
+    with app.app_context():
+        import model
+        db.create_all()  # Create sql tables
+
+    return app, db
+
+
+app, db = create_app()
 
 
 @app.route('/')
@@ -95,29 +85,39 @@ def sign_up():
 
         if error is None:
             # Create a new user
-            new_user = model.User(full_name=full_name, username=username, email=email, phone_number=phone_number, password_hash=hashed_password)
+            new_user = model.User(full_name=full_name, username=username, email=email, phone_number=phone_number,
+                                  password_hash=hashed_password)
             db.session.add(new_user)
             db.session.commit()
-            print("User created!")    
+            print("User created!")
             return redirect(url_for('login'))
     return render_template("customer/sign_up.html", form=create_user_form, error=error)
 
 
-@app.route('/test_sign_up')
-def test_create_user():
-    new_user = model.User(id=1, full_name="John Doe", username="johndoe", email="johndoe@gmail.com", phone_number="12345678", password_hash="password")
-    db.session.add(new_user)
-    db.session.commit()
-    return "User created!"
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    return render_template("customer/login.html")
+    error = None
+    login_form = LoginForm(request.form)
+    if request.method == 'POST' and login_form.validate():
+        email = login_form.email.data
+        password = login_form.password.data
+        password_bytes = password.encode('utf-8')
+        entered_password_hash = hashlib.sha256(password_bytes).hexdigest()
+        user = model.User.query.filter_by(email=email).first()
+
+        if user and user.password_hash == entered_password_hash:
+            session['user_id'] = user.id
+            return redirect(url_for('home'))
+        else:
+            error = "Invalid email or password. Please try again."
+
+    return render_template("customer/login.html", form=login_form, error=error)
 
 
 @app.route('/payment')
 def payment():
     return render_template("customer/payment.html")
+
 
 @app.route('/confirmation')
 def confirmation():
