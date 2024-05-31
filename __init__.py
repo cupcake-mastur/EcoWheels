@@ -12,31 +12,24 @@ from sqlalchemy import exists
 #     password="EcoWheels123",
 #     database="eco_wheels"
 # )
-
+from model import *
 load_dotenv(find_dotenv())
 db = SQLAlchemy()
 
-def create_app():
-    
-
-    app = Flask(__name__)
-
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
 
-    
 
-    with app.app_context():
-        db.init_app(app)
-        import model
-        db.create_all()  # Create sql tables
-
-    return app , model
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
 
-app , model = create_app()
+
+with app.app_context():
+    db.init_app(app)
+    db.create_all()  # Create sql tables
+
 
 
 @app.route('/')
@@ -65,9 +58,9 @@ def sign_up():
         confirm_password = create_user_form.confirm_password.data
 
         # Check if the user already exists (This is called IntegrityError)
-        user_exists = db.session.query(exists().where(model.User.username == username)).scalar()
-        email_exists = db.session.query(exists().where(model.User.email == email)).scalar()
-        phone_number_exists = db.session.query(exists().where(model.User.phone_number == phone_number)).scalar()
+        user_exists = db.session.query(exists().where(User.username == username)).scalar()
+        email_exists = db.session.query(exists().where(User.email == email)).scalar()
+        phone_number_exists = db.session.query(exists().where(User.phone_number == phone_number)).scalar()
 
         if user_exists:
             error = "Username already exists!"
@@ -86,7 +79,7 @@ def sign_up():
 
         if error is None:
             # Create a new user
-            new_user = model.User(full_name=full_name, username=username, email=email, phone_number=phone_number,
+            new_user = User(full_name=full_name, username=username, email=email, phone_number=phone_number,
                                   password_hash=hashed_password)
             db.session.add(new_user)
             db.session.commit()
@@ -104,7 +97,7 @@ def login():
         password = login_form.password.data
         password_bytes = password.encode('utf-8')
         entered_password_hash = hashlib.sha256(password_bytes).hexdigest()
-        user = model.User.query.filter_by(email=email).first()
+        user = db.session.query(User).filter_by(email=email).first()
 
         if user and user.password_hash == entered_password_hash:
             session['user_id'] = user.id
