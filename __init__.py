@@ -114,6 +114,31 @@ def confirmation():
     # Render a simple confirmation page
     return "Thank you for your order!"
 
+@app.route('/process_payment', methods=['POST'])
+def process_payment():
+    try:
+        fullname = request.form['firstname']
+        email = request.form['email']
+        address = request.form['address']
+        city = request.form['city']
+        state = request.form['state']
+        zip_code = request.form['zip']
+        card_name = request.form['cardname']
+        card_number = request.form['cardnumber']
+        exp_month = request.form['expmonth']
+        exp_year = request.form['expyear']
+        cvv = request.form['cvv']
+        
+        new_order = Order(fullname=fullname, email=email, address=address, city=city, state=state,
+                          zip_code=zip_code, card_name=card_name, card_number=card_number,
+                          exp_month=exp_month, exp_year=exp_year, cvv=cvv)
+        db.session.add(new_order)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print("Failed to process payment:", e)  # Log the error or use a logging framework
+        return "Error processing payment", 500
+    return redirect(url_for('confirmation'))
 
 # @app.route('/process_payment', methods=['POST'])
 # def process_payment():
