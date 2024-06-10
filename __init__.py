@@ -1,3 +1,5 @@
+import html
+import re
 from flask import Flask, render_template, request, session, redirect, url_for, flash
 from Forms import CreateUserForm, LoginForm, AdminLoginForm, CreateVehicleForm
 import hashlib
@@ -215,15 +217,30 @@ def process_payment():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-@app.route('/admin_log_in', methods=['GET','POST'])
+@app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
     form = AdminLoginForm()
     if form.validate_on_submit():
-        # Example: check username and password against stored credentials
-        username = form.username.data
-        password = form.password.data
-        # Implement your authentication logic here
-        if username == 'adminuser' and password == 'AdminPass1':  # Replace with your own logic
+        username = html.escape(form.username.data)  # Escape HTML characters
+        password = html.escape(form.password.data)
+
+        # Manually trigger field validation
+        if not form.username.validate(form) or not form.password.validate(form):
+            flash('Invalid characters in username or password', 'danger')
+            return render_template('admin/admin_log_in.html', form=form)
+
+        # Check for disallowed characters in username and password
+        if not is_valid_input(username) or not is_valid_input(password):
+            flash('Invalid characters in username or password', 'danger')
+            return render_template('admin/admin_log_in.html', form=form)
+
+        # Hash the input password using hashlib
+        hashed_password_input = hashlib.sha256(password.encode()).hexdigest()
+
+        admin = db.session.query(Admin).filter_by(username=username).first()
+
+        # Compare the hashed input password with the hashed password in the database
+        if admin and admin.password_hash == hashed_password_input:
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid username or password', 'danger')
@@ -231,8 +248,16 @@ def admin_log_in():
         for field, errors in form.errors.items():
             for error in errors:
                 flash(f"Error in {getattr(form, field).label.text}: {error}", 'danger')
+
     return render_template('admin/admin_log_in.html', form=form)
 
+def is_valid_input(input_str):
+    """
+    Check if the input string contains only allowed characters.
+    """
+    # Define a regular expression to match allowed characters
+    allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
+    return bool(allowed_chars_pattern.match(input_str))
 
 @app.route('/createVehicle', methods=['GET', 'POST'])
 def createVehicle():
@@ -247,7 +272,7 @@ def createVehicle():
     return render_template('admin/createVehicleForm.html', form=form)
 
 
-@app.route('/dashboard', methods=['GET','POST'])
+@app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     return render_template('admin/dashboard.html')
 
