@@ -33,7 +33,7 @@ class AdminLoginForm(FlaskForm):
         Regexp(
             r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.*['\x22]).{8,}$",
             message=("Password must contain at least 8 characters, including at least one number, "
-                     "one uppercase letter, one lowercase letter, and cannot contain ' or \" characters.")
+                     "one uppercase letter, one lowercase letter, and cannot contain ', \" characters or special characters.")
         )
     ])
     submit = SubmitField('Continue')
