@@ -1,4 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String
 from __init__ import db
 
 
@@ -28,3 +32,10 @@ class Order(db.Model):
     exp_month = db.Column(db.String(20), nullable=False)
     exp_year = db.Column(db.String(4), nullable=False)
     cvv = db.Column(db.String(5), nullable=False)
+
+
+class Admin(db.Model):
+    __tablename__ = 'admins'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
