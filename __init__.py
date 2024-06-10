@@ -224,6 +224,11 @@ def admin_log_in():
         username = html.escape(form.username.data)  # Escape HTML characters
         password = html.escape(form.password.data)
 
+        # Manually trigger field validation
+        if not form.username.validate(form) or not form.password.validate(form):
+            flash('Invalid characters in username or password', 'danger')
+            return render_template('admin/admin_log_in.html', form=form)
+
         # Check for disallowed characters in username and password
         if not is_valid_input(username) or not is_valid_input(password):
             flash('Invalid characters in username or password', 'danger')
@@ -254,7 +259,6 @@ def is_valid_input(input_str):
     allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
     return bool(allowed_chars_pattern.match(input_str))
 
-
 @app.route('/createVehicle', methods=['GET', 'POST'])
 def createVehicle():
     form = CreateVehicleForm()
@@ -268,7 +272,7 @@ def createVehicle():
     return render_template('admin/createVehicleForm.html', form=form)
 
 
-@app.route('/dashboard', methods=['GET','POST'])
+@app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     return render_template('admin/dashboard.html')
 
