@@ -214,10 +214,23 @@ def process_payment():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-@app.route('/admin_log_in', methods=['GET', 'POST'])
+@app.route('/admin_log_in', methods=['GET','POST'])
 def admin_log_in():
-    # check whether input is correct with db
-    return render_template('admin/admin_log_in.html')
+    form = AdminLoginForm()
+    if form.validate_on_submit():
+        # Example: check username and password against stored credentials
+        username = form.username.data
+        password = form.password.data
+        # Implement your authentication logic here
+        if username == 'adminuser' and password == 'AdminPass1':  # Replace with your own logic
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid username or password', 'danger')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f"Error in {getattr(form, field).label.text}: {error}", 'danger')
+    return render_template('admin/admin_log_in.html', form=form)
 
 
 @app.route('/createVehicle')
@@ -225,7 +238,7 @@ def createVehicle():
     return render_template('admin/createVehicleForm.html')
 
 
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET','POST'])
 def dashboard():
     return render_template('admin/dashboard.html')
 
