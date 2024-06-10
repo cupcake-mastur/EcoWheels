@@ -234,9 +234,17 @@ def admin_log_in():
     return render_template('admin/admin_log_in.html', form=form)
 
 
-@app.route('/createVehicle')
+@app.route('/createVehicle', methods=['GET', 'POST'])
 def createVehicle():
-    return render_template('admin/createVehicleForm.html')
+    form = CreateVehicleForm()
+    if form.validate_on_submit():
+        # Logic for form submission (e.g., saving data to the database)
+        flash('Vehicle created successfully!', 'success')
+        return redirect(url_for('dashboard'))  # Redirect to the 'dashboard' route upon successful form submission
+    elif request.method == 'POST':
+        # If it's a POST request but form validation fails, it means there are errors
+        flash('There were errors in the form. Please correct them.', 'danger')
+    return render_template('admin/createVehicleForm.html', form=form)
 
 
 @app.route('/dashboard', methods=['GET','POST'])
