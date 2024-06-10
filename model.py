@@ -43,7 +43,7 @@ class Admin(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
 
 
-# Vehicle table in db is created
+
 
 
 
