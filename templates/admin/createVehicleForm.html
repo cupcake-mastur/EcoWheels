@@ -10,45 +10,54 @@
     </div>
 
     <div class="arrow">
-        <a <a id="arrow-back" href="{{url_for('MVehicles')}}"><i class='bx bx-arrow-back'></i></a>
+        <a id="arrow-back" href="{{url_for('MVehicles')}}"><i class='bx bx-arrow-back'></i></a>
     </div>
     
     <form action="#" method="POST" autocomplete="off" class="form" id="createVehicle">
+
         <h1 class="form__title">Create Vehicle</h1>
-    
+
         <div class="form__input-group">
             <label for="v-brand">Brand</label>
-            <input type="text" class="form__input" name="brand" id="v-brand" autofocus placeholder="Enter Brand" pattern="[A-Za-z0-9\s]+" minlength="2" maxlength="30" required>
-            <!-- Pattern allows only alphanumeric characters and spaces -->
+            {{ form.brand(class="form__input", id="v-brand", autofocus=true, placeholder="Enter Brand") }}
+            {% if form.brand.errors and form.brand.errors|length > 0 and form.brand.touched %}
+                <div class="form__input--error-message">{{ form.brand.errors[0] }}</div>
+            {% endif %}
         </div>
-    
+
         <div class="form__input-group">
             <label for="v-model">Model</label>
-            <input type="text" class="form__input" name="model" id="v-model" autofocus placeholder="Enter Model" pattern="[A-Za-z0-9\s]+" minlength="2" maxlength="30" required>
+            {{ form.model(class="form__input", id="v-model", autofocus=true, placeholder="Enter Model") }}
+            {% if form.model.errors and form.model.errors|length > 0 and form.model.touched %}
+                <div class="form__input--error-message">{{ form.model.errors[0] }}</div>
+            {% endif %}
         </div>
-    
+
         <div class="form__input-group">
             <label for="v-sp">Selling Price in SGD ($)</label>
-            <input type="number" min="0" id="v-sp" class="form__input" name="price" value="20000" required>
+            {{ form.price(class="form__input", id="v-sp", value=20000) }}
+            {% if form.price.errors and form.price.errors|length > 0 and form.price.touched %}
+                <div class="form__input--error-message">{{ form.price.errors[0] }}</div>
+            {% endif %}
         </div>
-    
+
         <div class="form__input-group">
             <label for="v-image" >Image</label>
-            <input type="file" name="file" id="v-image"  class="form-control form__input" accept="image/*" autocomplete="off" required>
-            <!-- Example accepts only image files -->
+            {{ form.file(class="form-control form__input", id="v-image", accept="image/*", autocomplete="off") }}
+            {% if form.file.errors and form.file.errors|length > 0 and form.file.touched %}
+                <div class="form__input--error-message">{{ form.file.errors[0] }}</div>
+            {% endif %}
         </div>
-    
+
         <div class="form__input-group">
             <label for="v-des">Description</label>
-            <textarea class="form__input" id="v-des" name="description" rows="5" cols="40" placeholder="Enter Description" maxlength="500" minlength="30" required></textarea>
-            <!-- Max length set to 500 characters -->
+            {{ form.description(class="form__input", id="v-des", rows=5, cols=40, placeholder="Enter Description") }}
+            {% if form.description.errors and form.description.errors|length > 0 and form.description.touched %}
+                <div class="form__input--error-message">{{ form.description.errors[0] }}</div>
+            {% endif %}
         </div>
-    
+
         <button class="form__button" type="submit">Submit</button>
     </form>
-    
-
-
-</body>
 </head>
 </html>
