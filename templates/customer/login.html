@@ -17,7 +17,7 @@
         <p style="color: red; text-align: center;">{{ error }}</p>
         {% endif %}
 
-        <form method="POST" action="" autocomplete="off">
+        <form method="POST" action="{{ url_for('login') }}" autocomplete="off">
             <div class="user_details">
                 <div class="input_box">
                     {{ render_field(form.email, class="form-control", id="email", placeholder="example@gmail.com") }}

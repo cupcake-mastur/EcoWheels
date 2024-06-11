@@ -13,7 +13,7 @@ body{
     font-weight: bold;
   }
   p{
-    font-size: 12px;
+    font-size: 16px;
     color: #118a44;
     &.msg{
       color: initial;
@@ -60,3 +60,18 @@ body{
     }
   }
 }
+
+#verify {
+  background-color: #2f8f1f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 40px;
+  margin-left: 437px;
+  width: 406px;
+  &:hover{
+    background-color: darken(#2f8f1f, 5%);
+  }
