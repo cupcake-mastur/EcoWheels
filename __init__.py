@@ -290,6 +290,7 @@ def admin_log_in():
 
         # Compare the hashed input password with the hashed password in the database
         if admin and admin.password_hash == hashed_password_input:
+            session['admin_username'] = username  # Store the username in the session
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid username or password', 'danger')
@@ -323,18 +324,18 @@ def createVehicle():
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    return render_template('admin/dashboard.html')
-
+    admin_username = session.get('admin_username')
+    return render_template('admin/dashboard.html', admin_username=admin_username)
 
 @app.route('/manageCustomers')
 def MCustomers():
-    return render_template('admin/manageCustomers.html')
-
+    admin_username = session.get('admin_username')
+    return render_template('admin/manageCustomers.html', admin_username=admin_username)
 
 @app.route('/manageVehicles')
 def MVehicles():
-    return render_template('admin/manageVehicles.html')
-
+    admin_username = session.get('admin_username')
+    return render_template('admin/manageVehicles.html', admin_username=admin_username)
 
 if __name__ == '__main__':
     app.run(debug=True)
