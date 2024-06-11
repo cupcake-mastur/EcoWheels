@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/verify_otp.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP</title>
+</head>
+<body>
+    <form method="post" class="otp-form" name="otp-form">
+        <div class="title">
+            <h3>OTP VERIFICATION</h3>
+            <p class="info">An otp has been sent to ********k876@gmail.com</p>
+            <p class="msg">Please enter OTP to verify</p>
+        </div>
+          <div class="otp-input-fields" id="otp">
+            <input type="number" class="otp__digit otp__field__1" maxlength="1" name="otp">
+            <input type="number" class="otp__digit otp__field__2" maxlength="1" name="otp">
+            <input type="number" class="otp__digit otp__field__3" maxlength="1" name="otp">
+            <input type="number" class="otp__digit otp__field__4" maxlength="1" name="otp">
+            <input type="number" class="otp__digit otp__field__5" maxlength="1" name="otp">
+            <input type="number" class="otp__digit otp__field__6" maxlength="1" name="otp">
+          </div>
+        {% if error %}
+            <p style="color: red; text-align: center;">{{ error }}</p>
+        {% endif %}
+        <button type="submit">Verify OTP</button>
+    </form>
+
+    <script>
+        // Get all input fields
+        var otpFields = document.querySelectorAll('.otp-input-fields input');
+
+        // Add event listeners to each input field
+        otpFields.forEach(function(field, index) {
+            field.addEventListener('input', function() {
+                // Move focus to the next input field if current input has a value
+                if (this.value.length === this.maxLength) {
+                    var nextIndex = index + 1;
+                    if (nextIndex < otpFields.length) {
+                        otpFields[nextIndex].focus();
+                    }
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

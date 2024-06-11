@@ -1,11 +1,14 @@
 import html
 import re
-from flask import Flask, render_template, request, session, redirect, url_for, flash
+from flask import Flask, render_template, request, session, redirect, url_for, flash, jsonify
+from flask_mail import Mail, Message
 from Forms import CreateUserForm, LoginForm, AdminLoginForm, CreateVehicleForm
 import hashlib
 from dotenv import load_dotenv, find_dotenv
 import os
 import model
+import random
+import string
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists
 # import mysql.connector
@@ -26,6 +29,16 @@ app.config['SECRET_KEY'] = 'your_secret_key_here'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = os.getenv('EMAIL_USER')
+app.config['MAIL_PASSWORD'] = os.getenv('EMAIL_PASS')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('EMAIL_USER')
+mail = Mail(app)
+otp_store = {}
 
 with app.app_context():
     db.init_app(app)
@@ -87,6 +100,10 @@ def sign_up():
     return render_template("customer/sign_up.html", form=create_user_form, error=error)
 
 
+def generate_otp(length=6):
+    return ''.join(random.choices(string.digits, k=length))
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
@@ -99,12 +116,44 @@ def login():
         user = db.session.query(User).filter_by(email=email).first()
 
         if user and user.password_hash == entered_password_hash:
-            session['user_id'] = user.id
-            return redirect(url_for('home'))
+            otp = generate_otp()
+            session['otp'] = otp
+            send_otp_email(user.email, otp)
+            print("OTP sent!")
+            return redirect(url_for('verify_otp'))
         else:
             error = "Invalid email or password. Please try again."
 
     return render_template("customer/login.html", form=login_form, error=error)
+
+
+def send_otp_email(email, otp):
+    msg = Message('Your OTP Code', recipients=[email])
+    msg.body = f'Your OTP code is: {otp}'
+    mail.send(msg)
+
+
+@app.route('/verify_otp', methods=['GET', 'POST'])
+def verify_otp():
+    error = None
+    if request.method == 'POST':
+        # Get OTP entered by user
+        entered_otp = request.form.get('otp')
+
+        # Get OTP from session
+        otp = session.get('otp')
+
+        # Compare OTPs
+        if entered_otp == otp:
+            # Clear OTP from session
+            session.pop('otp', None)
+
+            # Log user in or redirect to home page
+            return redirect(url_for('home'))
+        else:
+            error = "Invalid OTP. Please try again."
+
+    return render_template('customer/verify_otp.html', error=error)
 
 
 @app.route('/payment')
