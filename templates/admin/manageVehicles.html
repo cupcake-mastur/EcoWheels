@@ -119,7 +119,7 @@
                     <th class="v-tablehead">Vehicle id</th>
                     <th class="v-tablehead">Brand</th>
                     <th class="v-tablehead">Model</th>
-                    <th class="v-tablehead">Selling Price</th>
+                    <th class="v-tablehead">$SGD Selling Price</th>
                     <th class="v-tablehead">Image</th>
                     <th class="v-tablehead">Description</th>
                     <th class="v-tablehead">Actions</th> <!-- New column for actions -->
@@ -179,9 +179,7 @@
         });
 
          function confirmDelete(vehicleId, brand, model) {
-        // Display confirmation dialog
         if (confirm(`Are you sure you want to delete Vehicle id: ${vehicleId}, ${brand} ${model}?`)) {
-            // If user clicks OK, submit the form
             document.getElementById(`deleteForm${vehicleId}`).submit();
         }
     }
