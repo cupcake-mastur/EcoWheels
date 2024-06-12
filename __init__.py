@@ -365,7 +365,6 @@ def admin_log_in():
 
     return render_template('admin/admin_log_in.html', form=form)
 
-
 def is_valid_input(input_str):
     """
     Check if the input string contains only allowed characters.
@@ -373,7 +372,6 @@ def is_valid_input(input_str):
     # Define a regular expression to match allowed characters
     allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
     return bool(allowed_chars_pattern.match(input_str))
-
 
 @app.route('/createVehicle', methods=['GET', 'POST'])
 def createVehicle():
@@ -393,17 +391,34 @@ def dashboard():
     admin_username = session.get('admin_username')
     return render_template('admin/dashboard.html', admin_username=admin_username)
 
-
 @app.route('/manageCustomers')
 def MCustomers():
     admin_username = session.get('admin_username')
-    return render_template('admin/manageCustomers.html', admin_username=admin_username)
-
+    customers = db.session.User.query.all()
+    return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
 
 @app.route('/manageVehicles')
 def MVehicles():
     admin_username = session.get('admin_username')
-    return render_template('admin/manageVehicles.html', admin_username=admin_username)
+    vehicles = db.session.query(Vehicle).all()
+    return render_template('admin/manageVehicles.html', admin_username=admin_username, vehicles=vehicles)
+
+
+@app.route('/delete_vehicle/<int:id>', methods=['POST'])
+def delete_vehicle(id):
+    # Retrieve the vehicle from the database
+    vehicle = db.session.query(Vehicle).get(id)
+
+    if vehicle:
+        # Delete the vehicle from the database
+        db.session.delete(vehicle)
+        db.session.commit()
+        flash('Vehicle deleted successfully!', 'success')
+    else:
+        flash('Vehicle not found!', 'danger')
+
+    # Redirect back to the manageVehicles page
+    return redirect(url_for('MVehicles'))
 
 
 if __name__ == '__main__':
