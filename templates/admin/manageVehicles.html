@@ -179,9 +179,7 @@
         });
 
          function confirmDelete(vehicleId, brand, model) {
-        // Display confirmation dialog
         if (confirm(`Are you sure you want to delete Vehicle id: ${vehicleId}, ${brand} ${model}?`)) {
-            // If user clicks OK, submit the form
             document.getElementById(`deleteForm${vehicleId}`).submit();
         }
     }
