@@ -6,6 +6,53 @@
     <title>EcoWheels Admin</title>
     <link rel="stylesheet" type="text/css" href="../static/css/style.css">
 <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+      <style>
+
+        #v-table {
+            margin: 0 auto;
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 1.05rem;
+        }
+
+        th.v-tablehead {
+            background-color: #eee;
+            padding: 20px; /* Adjust spacing */        }
+
+        tr:last-child td {
+            border-bottom: #12171e;
+        }
+
+        td {
+            text-align: center;
+            padding: 5px;
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: #D3D3D3;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #eee;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+    </style>
+
 </head>
 <body>
 
@@ -64,10 +111,49 @@
         </div>
 
         <a href="{{ url_for('createVehicle') }}"><button id="createVehicle">Add Vehicle</button></a>
+        <br>
+        <br>
+       <table id="v-table" border="0">
+            <thead>
+                <tr>
+                    <th class="v-tablehead">Vehicle id</th>
+                    <th class="v-tablehead">Brand</th>
+                    <th class="v-tablehead">Model</th>
+                    <th class="v-tablehead">Selling Price</th>
+                    <th class="v-tablehead">Image</th>
+                    <th class="v-tablehead">Description</th>
+                    <th class="v-tablehead">Actions</th> <!-- New column for actions -->
+                </tr>
+                <tr> <!-- Add a new row for the line below the header -->
+                    <th colspan="7" style="border-bottom: 2px solid #000000;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vehicle in vehicles %}
+                <tr>
+                    <td>{{ vehicle.idvehicles }}</td>
+                    <td>{{ vehicle.brand }}</td>
+                    <td>{{ vehicle.model }}</td>
+                    <td>{{ '{:,.2f}'.format(vehicle.selling_price) }}</td> <!-- Format selling price to 2 decimal places -->
+                    <td>{{ vehicle.image }}</td> <!-- Assuming you have logic to display images -->
+                    <td>{{ vehicle.description }}</td>
+                   <td>
+    <!-- Form for delete button -->
+                        <form id="deleteForm{{ vehicle.idvehicles }}" action="{{ url_for('delete_vehicle', id=vehicle.idvehicles) }}" method="post">
+                            <button class="delete-button" type="button" onclick="confirmDelete({{ vehicle.idvehicles }}, '{{ vehicle.brand }}', '{{ vehicle.model }}')">Delete</button>
+                        </form>
+                   </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+    </table>
     </div>
+
+
+
 </body>
 
-    <script>  
+    <script>
 
         let btn = document.querySelector("#btn");
         let sidebar = document.querySelector(".sidebar");
@@ -91,6 +177,14 @@
                 link.classList.add("active");
             });
         });
+
+         function confirmDelete(vehicleId, brand, model) {
+        // Display confirmation dialog
+        if (confirm(`Are you sure you want to delete Vehicle id: ${vehicleId}, ${brand} ${model}?`)) {
+            // If user clicks OK, submit the form
+            document.getElementById(`deleteForm${vehicleId}`).submit();
+        }
+    }
 
     </script>
 

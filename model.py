@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Float, LargeBinary, Text
 from werkzeug.security import check_password_hash
 
 from __init__ import db
@@ -18,10 +18,10 @@ class User(db.Model):
     phone_number = db.Column(db.String(8), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
 
-    
+
 class Order(db.Model):
     __tablename__ = 'orders'
-    
+
     order_id = db.Column(db.Integer, primary_key=True)
     fullname = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False)
@@ -41,6 +41,17 @@ class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
+
+
+class Vehicle(db.Model):
+    __tablename__ = 'vehicles'
+    idvehicles = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    brand = db.Column(db.String(50), nullable=False)
+    model = db.Column(db.String(50), nullable=False)
+    selling_price = db.Column(db.Float, nullable=False)
+    image = db.Column(db.LargeBinary, nullable=True)
+    description = db.Column(db.Text, nullable=True)
+
 
 
 

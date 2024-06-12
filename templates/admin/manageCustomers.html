@@ -62,6 +62,33 @@
             <h1>EcoWheels Management System</h1>
             <h2>Customers</h2>
         </div>
+        <table id="u-table" border="1">
+            <thead>
+                  <tr>
+                    <th class="u-tablehead">Customer id</th>
+                    <th class="u-tablehead">Full Name</th>
+                    <th class="u-tablehead">Username</th>
+                    <th class="u-tablehead">Email</th>
+                    <th class="u-tablehead">Phone Number</th>
+                  </tr>
+                  <tr> <!-- Add a new row for the line below the header -->
+                    <th colspan="6" style="border-bottom: 2px solid #ddd;"></th>
+                  </tr>
+          </thead>
+           <tbody>
+                {% for vehicle in vehicles %}
+                <tr>
+                    <td>{{ vehicle.idvehicles }}</td>
+                    <td>{{ vehicle.brand }}</td>
+                    <td>{{ vehicle.model }}</td>
+                    <td>{{ vehicle.selling_price }}</td>
+                    <td>{{ vehicle.image }}</td> <!-- Assuming you have logic to display images -->
+                    <td>{{ vehicle.description }}</td>
+                </tr>
+                {% endfor %}
+           </tbody>
+
+        </table>
     </div>
 </body>
 
