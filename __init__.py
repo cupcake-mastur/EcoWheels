@@ -6,6 +6,7 @@ from flask_mail import Mail, Message
 from Forms import CreateUserForm, LoginForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
+from datetime import datetime, timedelta
 import hashlib
 import os
 import model
@@ -123,13 +124,33 @@ def login():
         password = login_form.password.data
         user = db.session.query(User).filter_by(email=email).first()
 
-        if user and check_password_hash(user.password_hash, password):
-            otp = generate_otp()
-            session['otp'] = otp
-            session['user_email'] = email
-            send_otp_email(user.email, otp)
-            app.logger.info(f"OTP sent to {user.email}")
-            return redirect(url_for('verify_otp'))
+        if user:
+            if user.lockout_until and user.lockout_until > datetime.utcnow():
+                error = "Account is locked. Please try again later."
+                app.logger.warning(f"Locked account login attempt for {email}")
+            else:
+                if check_password_hash(user.password_hash, password):
+                    user.failed_attempts = 0
+                    user.lockout_until = None
+                    db.session.commit()
+
+                    otp = generate_otp()
+                    session['otp'] = otp
+                    session['user_email'] = email
+                    send_otp_email(user.email, otp)
+                    app.logger.info(f"OTP sent to {user.email}")
+                    return redirect(url_for('verify_otp'))
+                else:
+                    user.failed_attempts += 1
+                    if user.failed_attempts >= 3:
+                        user.lockout_until = datetime.utcnow() + timedelta(minutes=15)
+                        error = "Too many failed attempts. Account is locked for 15 minutes."
+                        app.logger.warning(f"Account locked for {email} after 3 failed attempts.")
+                    else:
+                        error = "Invalid email or password. Please try again."
+                        app.logger.warning(f"Failed login attempt for {email}")
+
+                    db.session.commit()
         else:
             error = "Invalid email or password. Please try again."
             app.logger.warning(f"Failed login attempt for {email}")
