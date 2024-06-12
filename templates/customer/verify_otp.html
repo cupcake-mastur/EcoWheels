@@ -7,43 +7,47 @@
     <title>Verify OTP</title>
 </head>
 <body>
-    <form method="post" class="otp-form" name="otp-form">
+    <form method="post" class="otp-form" name="otp-form" autocomplete="off">
         <div class="title">
-            <h3>OTP VERIFICATION</h3>
-            <p class="info">An otp has been sent to ********k876@gmail.com</p>
-            <p class="msg">Please enter OTP to verify</p>
+            <h3 style="font-size: 30px;">OTP VERIFICATION</h3>
+            <p class="info">An otp has been sent to {{ user_email|hide_email }}</p>
+            <p class="msg" style="margin-top: 45px; text-align: center;">Please enter OTP to verify</p>
         </div>
           <div class="otp-input-fields" id="otp">
-            <input type="number" class="otp__digit otp__field__1" maxlength="1" name="otp">
-            <input type="number" class="otp__digit otp__field__2" maxlength="1" name="otp">
-            <input type="number" class="otp__digit otp__field__3" maxlength="1" name="otp">
-            <input type="number" class="otp__digit otp__field__4" maxlength="1" name="otp">
-            <input type="number" class="otp__digit otp__field__5" maxlength="1" name="otp">
-            <input type="number" class="otp__digit otp__field__6" maxlength="1" name="otp">
+            <input type="number" class="otp__digit otp__field__1" name="otp1" onpaste="return false;" required>
+            <input type="number" class="otp__digit otp__field__2" name="otp2" onpaste="return false;" required>
+            <input type="number" class="otp__digit otp__field__3" name="otp3" onpaste="return false;" required>
+            <input type="number" class="otp__digit otp__field__4" name="otp4" onpaste="return false;" required>
+            <input type="number" class="otp__digit otp__field__5" name="otp5" onpaste="return false;" required>
+            <input type="number" class="otp__digit otp__field__6" name="otp6" onpaste="return false;" required>
           </div>
         {% if error %}
             <p style="color: red; text-align: center;">{{ error }}</p>
         {% endif %}
-        <button type="submit">Verify OTP</button>
+        <button type="submit" id="verify">Verify OTP</button>
     </form>
 
-    <script>
-        // Get all input fields
-        var otpFields = document.querySelectorAll('.otp-input-fields input');
+<script>
+    // Get all input fields
+    var otpFields = document.querySelectorAll('#otp input');
 
-        // Add event listeners to each input field
-        otpFields.forEach(function(field, index) {
-            field.addEventListener('input', function() {
-                // Move focus to the next input field if current input has a value
-                if (this.value.length === this.maxLength) {
-                    var nextIndex = index + 1;
-                    if (nextIndex < otpFields.length) {
-                        otpFields[nextIndex].focus();
-                    }
+    // Add event listeners to each input field
+    otpFields.forEach(function(field, index) {
+        field.addEventListener('input', function() {
+            // Limit input to one character
+            if (this.value.length > 1) {
+                this.value = this.value.slice(0, 1);
+            }
+            // Move focus to the next input field if current input has a value
+            if (this.value.length === 1) {
+                var nextIndex = index + 1;
+                if (nextIndex < otpFields.length) {
+                    otpFields[nextIndex].focus();
                 }
-            });
+            }
         });
-    </script>
+    });
+</script>
 
 </body>
 </html>

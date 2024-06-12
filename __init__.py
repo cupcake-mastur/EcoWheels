@@ -1,23 +1,20 @@
 import html
+import logging
 import re
 from flask import Flask, render_template, request, session, redirect, url_for, flash, jsonify
 from flask_mail import Mail, Message
 from Forms import CreateUserForm, LoginForm, AdminLoginForm, CreateVehicleForm
-import hashlib
+from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
+from datetime import datetime, timedelta
+from functools import wraps
+import hashlib
 import os
 import model
 import random
 import string
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists
-# import mysql.connector
-# db_2 = mysql.connector.connect(
-#     host="localhost",
-#     user="root",
-#     password="EcoWheels123",
-#     database="eco_wheels"
-# )
 
 from model import *
 
@@ -25,10 +22,19 @@ load_dotenv(find_dotenv())
 db = SQLAlchemy()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key_here'
+
+logging.basicConfig(filename='app.log', level=logging.DEBUG,
+                    format=f'%(asctime)s %(levelname)s: %(message)s')
+
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
+
+app.config.update(
+    SESSION_COOKIE_SECURE=True,  # Only send cookie over HTTPS
+    SESSION_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to cookies
+    SESSION_COOKIE_SAMESITE='Lax',  # Helps mitigate CSRF
+)
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -43,6 +49,7 @@ otp_store = {}
 with app.app_context():
     db.init_app(app)
     db.create_all()  # Create sql tables
+
 
 @app.route('/')
 def home():
@@ -65,11 +72,9 @@ def sign_up():
         email = create_user_form.email.data
         phone_number = create_user_form.phone_number.data
         password = create_user_form.password.data
-        password_bytes = password.encode('utf-8')
-        hashed_password = hashlib.sha256(password_bytes).hexdigest()
         confirm_password = create_user_form.confirm_password.data
 
-        # Check if the user already exists (This is called IntegrityError)
+        # Check if the user already exists
         user_exists = db.session.query(exists().where(User.username == username)).scalar()
         email_exists = db.session.query(exists().where(User.email == email)).scalar()
         phone_number_exists = db.session.query(exists().where(User.phone_number == phone_number)).scalar()
@@ -90,14 +95,23 @@ def sign_up():
                 error = "Special characters are not allowed in the full name."
 
         if error is None:
-            # Create a new user
+            hashed_password = generate_password_hash(password)
             new_user = User(full_name=full_name, username=username, email=email, phone_number=phone_number,
                             password_hash=hashed_password)
             db.session.add(new_user)
             db.session.commit()
-            print("User created!")
+            app.logger.info(f"User {email} added to database.")
             return redirect(url_for('login'))
     return render_template("customer/sign_up.html", form=create_user_form, error=error)
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_email' not in session:
+            return redirect(url_for('login'))  # Redirect to login if user is not authenticated
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def generate_otp(length=6):
@@ -111,18 +125,44 @@ def login():
     if request.method == 'POST' and login_form.validate():
         email = login_form.email.data
         password = login_form.password.data
-        password_bytes = password.encode('utf-8')
-        entered_password_hash = hashlib.sha256(password_bytes).hexdigest()
         user = db.session.query(User).filter_by(email=email).first()
 
-        if user and user.password_hash == entered_password_hash:
-            otp = generate_otp()
-            session['otp'] = otp
-            send_otp_email(user.email, otp)
-            print("OTP sent!")
-            return redirect(url_for('verify_otp'))
+        if user:
+            current_time = datetime.utcnow()
+            if user.lockout_until and user.lockout_until > current_time:
+                error = "Account is locked. Please try again later."
+                app.logger.warning(f"Locked account login attempt for {email}")
+            else:
+                if user.lockout_until and user.lockout_until <= current_time:
+                    user.failed_attempts = 0
+                    user.lockout_until = None
+                    db.session.commit()
+
+                if check_password_hash(user.password_hash, password):
+                    user.failed_attempts = 0
+                    user.lockout_until = None
+                    db.session.commit()
+
+                    otp = generate_otp()
+                    session['otp'] = otp
+                    session['user_email'] = email
+                    send_otp_email(user.email, otp)
+                    app.logger.info(f"OTP sent to {user.email}")
+                    return redirect(url_for('verify_otp'))
+                else:
+                    user.failed_attempts += 1
+                    if user.failed_attempts >= 3:
+                        user.lockout_until = current_time + timedelta(minutes=15)
+                        error = "Too many failed attempts. Account is locked for 15 minutes."
+                        app.logger.warning(f"Account locked for {email} after 3 failed attempts.")
+                    else:
+                        error = "Invalid email or password. Please try again."
+                        app.logger.warning(f"Failed login attempt for {email}")
+
+                    db.session.commit()
         else:
             error = "Invalid email or password. Please try again."
+            app.logger.warning(f"Failed login attempt for {email}")
 
     return render_template("customer/login.html", form=login_form, error=error)
 
@@ -133,27 +173,49 @@ def send_otp_email(email, otp):
     mail.send(msg)
 
 
+def hide_email(email):
+    parts = email.split('@')
+    return parts[0][:2] + '****' + parts[0][-2:] + '@' + parts[1]
+
+
+app.jinja_env.filters['hide_email'] = hide_email
+
+
 @app.route('/verify_otp', methods=['GET', 'POST'])
+@login_required
 def verify_otp():
     error = None
+    user_email = session.get('user_email')
+
     if request.method == 'POST':
-        # Get OTP entered by user
-        entered_otp = request.form.get('otp')
-
-        # Get OTP from session
+        entered_otp_digits = [request.form.get(f'otp{i}') for i in range(1, 7)]
+        print("Entered OTP digits:", entered_otp_digits)
+        entered_otp = ''.join(entered_otp_digits)
         otp = session.get('otp')
+        print("OTP from session:", otp)
 
-        # Compare OTPs
         if entered_otp == otp:
             # Clear OTP from session
             session.pop('otp', None)
 
-            # Log user in or redirect to home page
-            return redirect(url_for('home'))
+            if user_email:
+                session['user'] = user_email  # Set user in session
+                app.logger.info(f"User {user_email} logged in successfully.")
+                return redirect(url_for('home'))
         else:
             error = "Invalid OTP. Please try again."
 
-    return render_template('customer/verify_otp.html', error=error)
+    return render_template('customer/verify_otp.html', error=error, user_email=user_email)
+
+
+@app.route('/user/logout')
+def logout():
+    user_email = session.pop('user_email', None)
+    if user_email:
+        app.logger.info(f"User {user_email} logged out successfully.")
+    session.clear()  # Clear all session data
+    return redirect(url_for('home'))
+
 
 
 @app.route('/payment')
@@ -165,6 +227,7 @@ def payment():
 def confirmation():
     # Render a simple confirmation page
     return "Thank you for your order!"
+
 
 @app.route('/process_payment', methods=['POST'])
 def process_payment():
@@ -180,7 +243,7 @@ def process_payment():
         exp_month = request.form['expmonth']
         exp_year = request.form['expyear']
         cvv = request.form['cvv']
-        
+
         new_order = Order(fullname=fullname, email=email, address=address, city=city, state=state,
                           zip_code=zip_code, card_name=card_name, card_number=card_number,
                           exp_month=exp_month, exp_year=exp_year, cvv=cvv)
@@ -191,6 +254,7 @@ def process_payment():
         print("Failed to process payment:", e)  # Log the error or use a logging framework
         return "Error processing payment", 500
     return redirect(url_for('confirmation'))
+
 
 # @app.route('/process_payment', methods=['POST'])
 # def process_payment():
@@ -290,6 +354,7 @@ def admin_log_in():
 
         # Compare the hashed input password with the hashed password in the database
         if admin and admin.password_hash == hashed_password_input:
+            session['admin_username'] = username  # Store the username in the session
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid username or password', 'danger')
@@ -300,6 +365,7 @@ def admin_log_in():
 
     return render_template('admin/admin_log_in.html', form=form)
 
+
 def is_valid_input(input_str):
     """
     Check if the input string contains only allowed characters.
@@ -307,6 +373,7 @@ def is_valid_input(input_str):
     # Define a regular expression to match allowed characters
     allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
     return bool(allowed_chars_pattern.match(input_str))
+
 
 @app.route('/createVehicle', methods=['GET', 'POST'])
 def createVehicle():
@@ -323,17 +390,20 @@ def createVehicle():
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    return render_template('admin/dashboard.html')
+    admin_username = session.get('admin_username')
+    return render_template('admin/dashboard.html', admin_username=admin_username)
 
 
 @app.route('/manageCustomers')
 def MCustomers():
-    return render_template('admin/manageCustomers.html')
+    admin_username = session.get('admin_username')
+    return render_template('admin/manageCustomers.html', admin_username=admin_username)
 
 
 @app.route('/manageVehicles')
 def MVehicles():
-    return render_template('admin/manageVehicles.html')
+    admin_username = session.get('admin_username')
+    return render_template('admin/manageVehicles.html', admin_username=admin_username)
 
 
 if __name__ == '__main__':
