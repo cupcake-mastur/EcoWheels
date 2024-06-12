@@ -1,4 +1,5 @@
 import html
+import logging
 import re
 from flask import Flask, render_template, request, session, redirect, url_for, flash, jsonify
 from flask_mail import Mail, Message
@@ -26,10 +27,13 @@ load_dotenv(find_dotenv())
 db = SQLAlchemy()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key_here'
+
+logging.basicConfig(filename='app.log', level=logging.DEBUG,
+                    format=f'%(asctime)s %(levelname)s: %(message)s')
+
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Only send cookie over HTTPS
@@ -101,7 +105,7 @@ def sign_up():
                             password_hash=hashed_password)
             db.session.add(new_user)
             db.session.commit()
-            print("User created!")
+            app.logger.info(f"User {email} added to database.")
             return redirect(url_for('login'))
     return render_template("customer/sign_up.html", form=create_user_form, error=error)
 
@@ -121,14 +125,14 @@ def login():
 
         if user and check_password_hash(user.password_hash, password):
             otp = generate_otp()
-            print("Generated OTP:", otp)
             session['otp'] = otp
             session['user_email'] = email
             send_otp_email(user.email, otp)
-            print("OTP sent!")
+            app.logger.info(f"OTP sent to {user.email}")
             return redirect(url_for('verify_otp'))
         else:
             error = "Invalid email or password. Please try again."
+            app.logger.warning(f"Failed login attempt for {email}")
 
     return render_template("customer/login.html", form=login_form, error=error)
 
@@ -141,7 +145,7 @@ def send_otp_email(email, otp):
 
 def hide_email(email):
     parts = email.split('@')
-    return parts[0][:2] + '****' + parts[0][-1] + '@' + parts[1]
+    return parts[0][:2] + '****' + parts[0][-2:] + '@' + parts[1]
 
 
 app.jinja_env.filters['hide_email'] = hide_email
@@ -166,7 +170,7 @@ def verify_otp():
 
             if user_email:
                 session['user'] = user_email  # Set user in session
-                print(f"User {user_email} logged in!")
+                app.logger.info(f"User {user_email} logged in successfully.")
                 return redirect(url_for('home'))
         else:
             error = "Invalid OTP. Please try again."
