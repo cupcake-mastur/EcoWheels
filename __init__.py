@@ -7,6 +7,7 @@ from Forms import CreateUserForm, LoginForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta
+from functools import wraps
 import hashlib
 import os
 import model
@@ -14,13 +15,6 @@ import random
 import string
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists
-# import mysql.connector
-# db_2 = mysql.connector.connect(
-#     host="localhost",
-#     user="root",
-#     password="EcoWheels123",
-#     database="eco_wheels"
-# )
 
 from model import *
 
@@ -80,7 +74,7 @@ def sign_up():
         password = create_user_form.password.data
         confirm_password = create_user_form.confirm_password.data
 
-        # Check if the user already exists (This is called IntegrityError)
+        # Check if the user already exists
         user_exists = db.session.query(exists().where(User.username == username)).scalar()
         email_exists = db.session.query(exists().where(User.email == email)).scalar()
         phone_number_exists = db.session.query(exists().where(User.phone_number == phone_number)).scalar()
@@ -111,6 +105,15 @@ def sign_up():
     return render_template("customer/sign_up.html", form=create_user_form, error=error)
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_email' not in session:
+            return redirect(url_for('login'))  # Redirect to login if user is not authenticated
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def generate_otp(length=6):
     return ''.join(random.choices(string.digits, k=length))
 
@@ -125,10 +128,16 @@ def login():
         user = db.session.query(User).filter_by(email=email).first()
 
         if user:
-            if user.lockout_until and user.lockout_until > datetime.utcnow():
+            current_time = datetime.utcnow()
+            if user.lockout_until and user.lockout_until > current_time:
                 error = "Account is locked. Please try again later."
                 app.logger.warning(f"Locked account login attempt for {email}")
             else:
+                if user.lockout_until and user.lockout_until <= current_time:
+                    user.failed_attempts = 0
+                    user.lockout_until = None
+                    db.session.commit()
+
                 if check_password_hash(user.password_hash, password):
                     user.failed_attempts = 0
                     user.lockout_until = None
@@ -143,7 +152,7 @@ def login():
                 else:
                     user.failed_attempts += 1
                     if user.failed_attempts >= 3:
-                        user.lockout_until = datetime.utcnow() + timedelta(minutes=15)
+                        user.lockout_until = current_time + timedelta(minutes=15)
                         error = "Too many failed attempts. Account is locked for 15 minutes."
                         app.logger.warning(f"Account locked for {email} after 3 failed attempts.")
                     else:
@@ -172,8 +181,8 @@ def hide_email(email):
 app.jinja_env.filters['hide_email'] = hide_email
 
 
-# To be implemented: Access Control to ensure only authenticated users can access this route
 @app.route('/verify_otp', methods=['GET', 'POST'])
+@login_required
 def verify_otp():
     error = None
     user_email = session.get('user_email')
@@ -197,6 +206,16 @@ def verify_otp():
             error = "Invalid OTP. Please try again."
 
     return render_template('customer/verify_otp.html', error=error, user_email=user_email)
+
+
+@app.route('/user/logout')
+def logout():
+    user_email = session.pop('user_email', None)
+    if user_email:
+        app.logger.info(f"User {user_email} logged out successfully.")
+    session.clear()  # Clear all session data
+    return redirect(url_for('home'))
+
 
 
 @app.route('/payment')
