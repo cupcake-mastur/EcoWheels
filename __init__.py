@@ -347,13 +347,11 @@ def admin_log_in():
             flash('Invalid characters in username or password', 'danger')
             return render_template('admin/admin_log_in.html', form=form)
 
-        # Hash the input password using hashlib
-        hashed_password_input = hashlib.sha256(password.encode()).hexdigest()
-
-        admin = db.session.query(Admin).filter_by(username=username).first()
+        # Perform case-sensitive query for the admin with the given username
+        admin = db.session.query(Admin).filter(func.binary(Admin.username) == username).first()
 
         # Compare the hashed input password with the hashed password in the database
-        if admin and admin.password_hash == hashed_password_input:
+        if admin and admin.check_password(password):
             session['admin_username'] = username  # Store the username in the session
             return redirect(url_for('dashboard'))
         else:
@@ -364,6 +362,14 @@ def admin_log_in():
                 flash(f"Error in {getattr(form, field).label.text}: {error}", 'danger')
 
     return render_template('admin/admin_log_in.html', form=form)
+
+def is_valid_input(input_str):
+    """
+    Check if the input string contains only allowed characters.
+    """
+    # Define a regular expression to match allowed characters
+    allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
+    return bool(allowed_chars_pattern.match(input_str))
 
 def is_valid_input(input_str):
     """
