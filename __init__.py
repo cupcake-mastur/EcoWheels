@@ -394,7 +394,7 @@ def dashboard():
 @app.route('/manageCustomers')
 def MCustomers():
     admin_username = session.get('admin_username')
-    customers = db.session.User.query.all()
+    customers = db.session.query(User).all()  # Retrieve all users from the database
     return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
 
 @app.route('/manageVehicles')
@@ -420,6 +420,17 @@ def delete_vehicle(id):
     # Redirect back to the manageVehicles page
     return redirect(url_for('MVehicles'))
 
+@app.route('/delete_customer/<int:id>', methods=['POST'])
+def delete_customer(id):
+    user = db.session.query(User).get(id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+        flash('Customer deleted successfully!', 'success')
+    else:
+        flash('Customer not found!', 'danger')
+
+    return redirect(url_for('MCustomers'))
 
 if __name__ == '__main__':
     app.run(debug=True)
