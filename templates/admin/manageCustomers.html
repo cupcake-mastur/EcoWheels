@@ -5,21 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoWheels Admin</title>
     <link rel="stylesheet" type="text/css" href="../static/css/style.css">
-<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        #u-table {
+            margin: 0 auto;
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 1.05rem;
+        }
+
+        th.u-tablehead {
+            background-color: #eee;
+            padding: 20px; /* Adjust spacing */
+        }
+
+        tr:last-child td {
+            border-bottom: #12171e;
+        }
+
+        td {
+            text-align: center;
+            padding: 5px;
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: #D3D3D3;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #eee;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+
+        .container {
+            padding-bottom: 3rem;
+        }
+    </style>
+
 </head>
 <body>
 
     <div class="sidebar">
         <div class="top">
             <div class="logo">
-                <!-- <img src="../static/images/EcoWheels Logo.jpeg" alt="Img" class="org-img"> -->
                 <i class='bx bx-car'></i>
                 <span>EcoWheels</span>
             </div>
             <i class="bx bx-menu" id="btn"></i>
         </div>
         <div class="user">
-
             <div>
                 <p class="bold">{{ admin_username }}</p>
                 <p>Admin</p>
@@ -27,14 +76,14 @@
         </div>
         <ul>
             <li>
-                <a href="{{url_for('dashboard')}}" class="nav__link">
+                <a href="{{ url_for('dashboard') }}" class="nav__link">
                     <i class="bx bxs-grid-alt"></i>
                     <span class="nav-item">Dashboard</span>
                 </a>
                 <span class="tooltip">Dashboard</span>
             </li>
             <li>
-                <a href="{{url_for('MVehicles')}}" class="nav__link">
+                <a href="{{ url_for('MVehicles') }}" class="nav__link">
                     <i class="bx bxs-car"></i>
                     <span class="nav-item">Vehicles</span>
                 </a>
@@ -48,7 +97,7 @@
                 <span class="tooltip">Customers</span>
             </li>
             <li>
-                <a href="{{url_for('admin_log_in')}}">
+                <a href="{{ url_for('admin_log_in') }}">
                     <i class="bx bx-log-out"></i>
                     <span class="nav-item">Logout</span>
                 </a>
@@ -62,38 +111,40 @@
             <h1>EcoWheels Management System</h1>
             <h2>Customers</h2>
         </div>
-        <table id="u-table" border="1">
+        <table id="u-table" border="0">
             <thead>
-                  <tr>
-                    <th class="u-tablehead">Customer id</th>
+                <tr>
+                    <th class="u-tablehead">Customer ID</th>
                     <th class="u-tablehead">Full Name</th>
                     <th class="u-tablehead">Username</th>
                     <th class="u-tablehead">Email</th>
                     <th class="u-tablehead">Phone Number</th>
-                  </tr>
-                  <tr> <!-- Add a new row for the line below the header -->
-                    <th colspan="6" style="border-bottom: 2px solid #ddd;"></th>
-                  </tr>
-          </thead>
-           <tbody>
-                {% for vehicle in vehicles %}
+                    <th class="u-tablehead">Actions</th>
+                </tr>
                 <tr>
-                    <td>{{ vehicle.idvehicles }}</td>
-                    <td>{{ vehicle.brand }}</td>
-                    <td>{{ vehicle.model }}</td>
-                    <td>{{ vehicle.selling_price }}</td>
-                    <td>{{ vehicle.image }}</td> <!-- Assuming you have logic to display images -->
-                    <td>{{ vehicle.description }}</td>
+                    <th colspan="6" style="border-bottom: 2px solid #000000;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td>{{ customer.id }}</td>
+                    <td>{{ customer.full_name }}</td>
+                    <td>{{ customer.username }}</td>
+                    <td>{{ customer.email }}</td>
+                    <td>{{ customer.phone_number }}</td>
+                    <td>
+                        <form action="{{ url_for('delete_customer', id=customer.id) }}" method="post">
+                            <button class="delete-button" type="submit">Delete</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
-           </tbody>
-
+            </tbody>
         </table>
     </div>
-</body>
 
     <script>
-
         let btn = document.querySelector("#btn");
         let sidebar = document.querySelector(".sidebar");
 
@@ -114,7 +165,7 @@
                 link.classList.add("active");
             });
         });
-
     </script>
 
+</body>
 </html>
