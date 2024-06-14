@@ -1,7 +1,7 @@
 import html
 import logging
 import re
-from flask import Flask, render_template, request, session, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app
 from flask_mail import Mail, Message
 from Forms import CreateUserForm, LoginForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -9,6 +9,7 @@ from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta
 from functools import wraps
 import hashlib
+import hmac
 import os
 import model
 import random
@@ -114,6 +115,11 @@ def login_required(f):
     return decorated_function
 
 
+def generate_user_id_hash(user_id):
+    secret_key = current_app.config['SECRET_KEY']
+    return hmac.new(secret_key.encode(), str(user_id).encode(), hashlib.sha256).hexdigest()
+
+
 def generate_otp(length=6):
     return ''.join(random.choices(string.digits, k=length))
 
@@ -146,9 +152,12 @@ def login():
                     otp = generate_otp()
                     session['otp'] = otp
                     session['user_email'] = email
+
+                    user_id_hash = generate_user_id_hash(user.id)
+                    session['user_id_hash'] = user_id_hash
                     send_otp_email(user.email, otp)
                     app.logger.info(f"OTP sent to {user.email}")
-                    return redirect(url_for('verify_otp'))
+                    return redirect(url_for('verify_otp', user_id_hash=user_id_hash))
                 else:
                     user.failed_attempts += 1
                     if user.failed_attempts >= 3:
@@ -181,11 +190,16 @@ def hide_email(email):
 app.jinja_env.filters['hide_email'] = hide_email
 
 
-@app.route('/verify_otp', methods=['GET', 'POST'])
+@app.route('/<user_id_hash>/verify_otp', methods=['GET', 'POST'])
 @login_required
-def verify_otp():
+def verify_otp(user_id_hash):
     error = None
     user_email = session.get('user_email')
+
+    user = db.session.query(User).filter_by(email=user_email).first()
+    if not user or user_id_hash != session['user_id_hash']:
+        app.logger.warning(f"Invalid user_id_hash for {user_email}")
+        return redirect(url_for('login'))
 
     if request.method == 'POST':
         entered_otp_digits = [request.form.get(f'otp{i}') for i in range(1, 7)]
@@ -197,25 +211,24 @@ def verify_otp():
         if entered_otp == otp:
             # Clear OTP from session
             session.pop('otp', None)
-
-            if user_email:
-                session['user'] = user_email  # Set user in session
-                app.logger.info(f"User {user_email} logged in successfully.")
-                return redirect(url_for('home'))
+            session['user'] = user_email  # Set user in session
+            app.logger.info(f"User {user_email} logged in successfully.")
+            return redirect(url_for('home'))
         else:
             error = "Invalid OTP. Please try again."
+            app.logger.warning(f"Invalid OTP attempt for {user_email}")
 
     return render_template('customer/verify_otp.html', error=error, user_email=user_email)
 
 
-@app.route('/user/logout')
-def logout():
+# Implement session timeouts
+@app.route('/<user_id_hash>/user/logout')
+def logout(user_id_hash):
     user_email = session.pop('user_email', None)
     if user_email:
         app.logger.info(f"User {user_email} logged out successfully.")
     session.clear()  # Clear all session data
     return redirect(url_for('home'))
-
 
 
 @app.route('/payment')
