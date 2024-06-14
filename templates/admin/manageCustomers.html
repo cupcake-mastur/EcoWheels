@@ -119,7 +119,7 @@
                     <th class="u-tablehead">Username</th>
                     <th class="u-tablehead">Email</th>
                     <th class="u-tablehead">Phone Number</th>
-                    <th class="u-tablehead">Actions</th>
+
                 </tr>
                 <tr>
                     <th colspan="6" style="border-bottom: 2px solid #000000;"></th>
@@ -133,11 +133,6 @@
                     <td>{{ customer.username }}</td>
                     <td>{{ customer.email }}</td>
                     <td>{{ customer.phone_number }}</td>
-                    <td>
-                        <form action="{{ url_for('delete_customer', id=customer.id) }}" method="post">
-                            <button class="delete-button" type="submit">Delete</button>
-                        </form>
-                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
