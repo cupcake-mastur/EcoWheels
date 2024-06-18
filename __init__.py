@@ -6,7 +6,7 @@ from flask_mail import Mail, Message
 from Forms import CreateUserForm, LoginForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 import hashlib
 import hmac
@@ -30,6 +30,8 @@ logging.basicConfig(filename='app.log', level=logging.DEBUG,
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_PERMANENT'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session timeout after 30 minutes
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Only send cookie over HTTPS
@@ -47,6 +49,8 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('EMAIL_USER')
 mail = Mail(app)
 otp_store = {}
 
+user_logged_in = False
+
 with app.app_context():
     db.init_app(app)
     db.create_all()  # Create sql tables
@@ -60,6 +64,17 @@ def home():
 @app.route('/models')
 def models():
     return render_template("homepage/models.html")
+
+
+@app.before_request
+def before_request():
+    if 'user_email' in session:
+        session['expiry_time'] = session.get('expiry_time', datetime.utcnow().replace(tzinfo=timezone.utc)) + timedelta(minutes=5)
+
+    if 'expiry_time' in session and datetime.utcnow().replace(tzinfo=timezone.utc) > session['expiry_time']:
+        session.pop('user_email', None)
+        app.logger.info("Session expired, user logged out automatically.")
+        return redirect(url_for('login'))
 
 
 @app.route('/sign_up', methods=['GET', 'POST'])
@@ -127,6 +142,8 @@ def generate_otp(length=6):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
+    if session.get('user_logged_in'):
+        return "You are already logged in."
     login_form = LoginForm(request.form)
     if request.method == 'POST' and login_form.validate():
         email = login_form.email.data
@@ -212,6 +229,9 @@ def verify_otp(user_id_hash):
             # Clear OTP from session
             session.pop('otp', None)
             session['user'] = user_email  # Set user in session
+            session.permanent = True  # Make the session permanent to use the lifetime defined
+            session['expiry_time'] = datetime.utcnow() + app.config['PERMANENT_SESSION_LIFETIME']
+            session['user_logged_in'] = True
             app.logger.info(f"User {user_email} logged in successfully.")
             return redirect(url_for('home'))
         else:
@@ -221,7 +241,21 @@ def verify_otp(user_id_hash):
     return render_template('customer/verify_otp.html', error=error, user_email=user_email)
 
 
-# Implement session timeouts
+@app.route('/<user_id_hash>/profile')
+@login_required
+def profile(user_id_hash):
+    # Assuming you have stored user_id in the session after login
+    user_email = session.get('user_email')
+
+    if user_email:
+        user = db.session.query(User).filter_by(email=user_email).first()
+        if user and user_id_hash == session['user_id_hash']:
+            return render_template('customer/profile_page.html', user=user)
+        else:
+            flash('User not found!', 'error')
+            return redirect(url_for('login'))  # Redirect to login page if user not found
+
+
 @app.route('/<user_id_hash>/user/logout')
 def logout(user_id_hash):
     user_email = session.pop('user_email', None)
