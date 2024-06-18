@@ -1,7 +1,7 @@
 import html
 import logging
 import re
-from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app
+from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify
 from flask_mail import Mail, Message
 from Forms import CreateUserForm, LoginForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -30,8 +30,7 @@ logging.basicConfig(filename='app.log', level=logging.DEBUG,
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SESSION_PERMANENT'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session timeout after 30 minutes
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=40)  # Session timeout after 30 minutes
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Only send cookie over HTTPS
@@ -66,15 +65,20 @@ def models():
     return render_template("homepage/models.html")
 
 
-@app.before_request
-def before_request():
-    if 'user_email' in session:
-        session['expiry_time'] = session.get('expiry_time', datetime.utcnow().replace(tzinfo=timezone.utc)) + timedelta(minutes=5)
-
-    if 'expiry_time' in session and datetime.utcnow().replace(tzinfo=timezone.utc) > session['expiry_time']:
-        session.pop('user_email', None)
-        app.logger.info("Session expired, user logged out automatically.")
-        return redirect(url_for('login'))
+@app.route('/check_session')
+def check_session():
+    if 'expiry_time' in session:
+        current_time = datetime.now(timezone.utc)
+        expiry_time = datetime.fromtimestamp(session['expiry_time'], tz=timezone.utc)
+        app.logger.info("Current time: %s", current_time)
+        app.logger.info("Session expiry time: %s", expiry_time)
+        if current_time > expiry_time:
+            app.logger.info("Session expired: True")
+            session.clear()
+            session.modified = True
+            return jsonify(expired=True)
+    app.logger.info("Session expired: False")
+    return jsonify(expired=False)
 
 
 @app.route('/sign_up', methods=['GET', 'POST'])
@@ -144,14 +148,17 @@ def login():
     error = None
     if session.get('user_logged_in'):
         return "You are already logged in."
+
     login_form = LoginForm(request.form)
+
     if request.method == 'POST' and login_form.validate():
         email = login_form.email.data
         password = login_form.password.data
         user = db.session.query(User).filter_by(email=email).first()
 
         if user:
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)
+
             if user.lockout_until and user.lockout_until > current_time:
                 error = "Account is locked. Please try again later."
                 app.logger.warning(f"Locked account login attempt for {email}")
@@ -167,16 +174,21 @@ def login():
                     db.session.commit()
 
                     otp = generate_otp()
+                    session.clear()  # Clear existing session data
                     session['otp'] = otp
                     session['user_email'] = email
+                    session['expiry_time'] = (datetime.now(timezone.utc) + timedelta(seconds=40)).timestamp()
+                    session['user_logged_in'] = True
 
                     user_id_hash = generate_user_id_hash(user.id)
                     session['user_id_hash'] = user_id_hash
                     send_otp_email(user.email, otp)
                     app.logger.info(f"OTP sent to {user.email}")
+
                     return redirect(url_for('verify_otp', user_id_hash=user_id_hash))
                 else:
                     user.failed_attempts += 1
+
                     if user.failed_attempts >= 3:
                         user.lockout_until = current_time + timedelta(minutes=15)
                         error = "Too many failed attempts. Account is locked for 15 minutes."
@@ -220,17 +232,14 @@ def verify_otp(user_id_hash):
 
     if request.method == 'POST':
         entered_otp_digits = [request.form.get(f'otp{i}') for i in range(1, 7)]
-        print("Entered OTP digits:", entered_otp_digits)
         entered_otp = ''.join(entered_otp_digits)
         otp = session.get('otp')
-        print("OTP from session:", otp)
 
         if entered_otp == otp:
             # Clear OTP from session
             session.pop('otp', None)
             session['user'] = user_email  # Set user in session
-            session.permanent = True  # Make the session permanent to use the lifetime defined
-            session['expiry_time'] = datetime.utcnow() + app.config['PERMANENT_SESSION_LIFETIME']
+            session['expiry_time'] = (datetime.now(timezone.utc) + timedelta(seconds=40)).timestamp()
             session['user_logged_in'] = True
             app.logger.info(f"User {user_email} logged in successfully.")
             return redirect(url_for('home'))
@@ -244,16 +253,24 @@ def verify_otp(user_id_hash):
 @app.route('/<user_id_hash>/profile')
 @login_required
 def profile(user_id_hash):
-    # Assuming you have stored user_id in the session after login
     user_email = session.get('user_email')
+    user_id_hash_session = session.get('user_id_hash')
 
-    if user_email:
-        user = db.session.query(User).filter_by(email=user_email).first()
-        if user and user_id_hash == session['user_id_hash']:
-            return render_template('customer/profile_page.html', user=user)
-        else:
-            flash('User not found!', 'error')
-            return redirect(url_for('login'))  # Redirect to login page if user not found
+    if not user_email or user_id_hash != user_id_hash_session:
+        return redirect(url_for('login'))  # Redirect to login if user not authenticated or session mismatch
+
+    user = db.session.query(User).filter_by(email=user_email).first()
+    if not user:
+        return redirect(url_for('login'))  # Redirect to login if user not found in the database
+
+    # Check if the session has expired
+    if 'expiry_time' in session and datetime.now(timezone.utc) > datetime.fromtimestamp(session['expiry_time'],
+                                                                                        tz=timezone.utc):
+        session.clear()  # Clear session data
+        app.logger.info("Session expired: True")
+        return jsonify(expired=True)  # Return JSON indicating session expiry
+
+    return render_template('customer/profile_page.html', user=user)
 
 
 @app.route('/<user_id_hash>/user/logout')
@@ -263,6 +280,15 @@ def logout(user_id_hash):
         app.logger.info(f"User {user_email} logged out successfully.")
     session.clear()  # Clear all session data
     return redirect(url_for('home'))
+
+
+@app.before_request
+def before_request():
+    if 'user_email' in session:
+        if 'expiry_time' in session and datetime.now(timezone.utc).timestamp() > session['expiry_time']:
+            session.clear()
+            session.modified = True
+            return redirect(url_for('login'))
 
 
 @app.route('/payment')
