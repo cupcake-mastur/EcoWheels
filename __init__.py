@@ -1,6 +1,7 @@
 import html
 import logging
 import re
+
 from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify
 from flask_mail import Mail, Message
 from Forms import CreateUserForm, LoginForm, AdminLoginForm, CreateVehicleForm
@@ -67,18 +68,24 @@ def models():
 
 @app.route('/check_session')
 def check_session():
+    # Log the current state of the session for debugging
+    app.logger.info("Session data: %s", session)
+
     if 'expiry_time' in session:
-        current_time = datetime.now(timezone.utc)
-        expiry_time = datetime.fromtimestamp(session['expiry_time'], tz=timezone.utc)
+        current_time = datetime.now(timezone.utc).timestamp()
+        expiry_time = session['expiry_time']
+
         app.logger.info("Current time: %s", current_time)
         app.logger.info("Session expiry time: %s", expiry_time)
+
         if current_time > expiry_time:
             app.logger.info("Session expired: True")
             session.clear()
             session.modified = True
-            return jsonify(expired=True)
+            return jsonify(expired=True), 200
+
     app.logger.info("Session expired: False")
-    return jsonify(expired=False)
+    return jsonify(expired=False), 200
 
 
 @app.route('/sign_up', methods=['GET', 'POST'])
@@ -177,7 +184,6 @@ def login():
                     session.clear()  # Clear existing session data
                     session['otp'] = otp
                     session['user_email'] = email
-                    session['expiry_time'] = (datetime.now(timezone.utc) + timedelta(seconds=40)).timestamp()
                     session['user_logged_in'] = True
 
                     user_id_hash = generate_user_id_hash(user.id)
@@ -241,6 +247,7 @@ def verify_otp(user_id_hash):
             session['user'] = user_email  # Set user in session
             session['expiry_time'] = (datetime.now(timezone.utc) + timedelta(seconds=40)).timestamp()
             session['user_logged_in'] = True
+            session.permanent = True
             app.logger.info(f"User {user_email} logged in successfully.")
             return redirect(url_for('home'))
         else:
@@ -263,13 +270,6 @@ def profile(user_id_hash):
     if not user:
         return redirect(url_for('login'))  # Redirect to login if user not found in the database
 
-    # Check if the session has expired
-    if 'expiry_time' in session and datetime.now(timezone.utc) > datetime.fromtimestamp(session['expiry_time'],
-                                                                                        tz=timezone.utc):
-        session.clear()  # Clear session data
-        app.logger.info("Session expired: True")
-        return jsonify(expired=True)  # Return JSON indicating session expiry
-
     return render_template('customer/profile_page.html', user=user)
 
 
@@ -278,7 +278,8 @@ def logout(user_id_hash):
     user_email = session.pop('user_email', None)
     if user_email:
         app.logger.info(f"User {user_email} logged out successfully.")
-    session.clear()  # Clear all session data
+    session.clear()
+    session.modified = True
     return redirect(url_for('home'))
 
 
@@ -286,9 +287,9 @@ def logout(user_id_hash):
 def before_request():
     if 'user_email' in session:
         if 'expiry_time' in session and datetime.now(timezone.utc).timestamp() > session['expiry_time']:
-            session.clear()
             session.modified = True
-            return redirect(url_for('login'))
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify(expired=True), 401  # Return JSON for the AJAX request
 
 
 @app.route('/payment')

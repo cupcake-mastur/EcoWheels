@@ -1,20 +1,33 @@
-$(document).ready(function() {
-  function checkSession() {
-    $.ajax({
-      type: 'GET',
-      url: '/check_session',
-      dataType: 'json',
-      success: function(data) {
-        if (data.expired) {
-          $('#sessionExpiredModal').modal('show');
-        }
-      },
-      error: function(xhr, status, error) {
-        console.error('Error checking session:', error);
-      }
-    });
-  }
+function showSessionExpiredModal() {
+    var modal = document.getElementById('session-expired-modal');
+    modal.style.display = 'block';
 
-  // Set the interval to check the session status every 10 seconds
-  setInterval(checkSession, 10000);
-});
+    // Close the modal when the user clicks the close (x) button
+    var closeButton = modal.querySelector('.close');
+    closeButton.onclick = function() {
+        modal.style.display = 'none';
+    }
+
+
+    closeButton.onclick = function() {
+        modal.style.display = 'none';
+        window.location.href = '/login';  // Adjust URL as per your routes
+    }
+}
+
+// Function to check session status
+function checkSession() {
+    fetch('/check_session')
+        .then(response => response.json())
+        .then(data => {
+            if (data.expired) {
+                showSessionExpiredModal();
+            }
+        })
+        .catch(error => {
+            console.error('Error checking session status:', error);
+        });
+}
+
+// Polling to check session status periodically
+setInterval(checkSession, 10000);
