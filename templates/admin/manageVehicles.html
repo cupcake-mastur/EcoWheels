@@ -6,6 +6,7 @@
     <title>EcoWheels Admin</title>
     <link rel="stylesheet" type="text/css" href="../static/css/style.css">
 <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
 
       <style>
 
@@ -139,8 +140,21 @@
                     <td>{{ vehicle.description }}</td>
                    <td>
     <!-- Form for delete button -->
-                        <form id="deleteForm{{ vehicle.idvehicles }}" action="{{ url_for('delete_vehicle', id=vehicle.idvehicles) }}" method="post">
-                            <button class="delete-button" type="button" onclick="confirmDelete({{ vehicle.idvehicles }}, '{{ vehicle.brand }}', '{{ vehicle.model }}')">Delete</button>
+                        <form id="deleteForm{{ vehicle.idvehicles }}, open-popup" action="{{ url_for('delete_vehicle', id=vehicle.idvehicles) }}" method="post">
+                            <div>
+                                <button class="delete-button" type="button" onclick="openPopup()">Delete</button>
+                            </div>
+                            <div class="popup" id="popup">
+                                <div class="overlay"></div>
+                                <div class="popup-content">
+                                    <h2>Are you sure you want to delete this vehicle ?</h2>
+                                    <p>{{ vehicle.idvehicles}}  {{vehicle.brand}} {{vehicle.model}}</p>
+                                    <div class="controls">
+                                        <button class="close-btn" type="button">Close</button>
+                                        <button class="submit-btn" type="submit">Submit</button>
+                                    </div>
+                                </div>
+                            </div>
                         </form>
                    </td>
                 </tr>
@@ -183,6 +197,20 @@
             document.getElementById(`deleteForm${vehicleId}`).submit();
         }
     }
+
+          function openPopup() {
+            const popupNode = document.getElementById('popup');
+            const overlay = popupNode.querySelector('.overlay');
+            const closeBtn = popupNode.querySelector('.close-btn');
+
+            function closePopup() {
+                popupNode.classList.remove('active');
+            }
+
+            popupNode.classList.add('active');
+            overlay.addEventListener('click', closePopup);
+            closeBtn.addEventListener('click', closePopup);
+        }
 
     </script>
 
