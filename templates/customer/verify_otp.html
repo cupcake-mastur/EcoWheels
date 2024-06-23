@@ -1,12 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+{% extends "base.html" %}
+{% block title %}Verify OTP{% endblock %}
+
+{% block content %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/verify_otp.css') }}">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify OTP</title>
-</head>
-<body>
+
     <form method="post" class="otp-form" name="otp-form" autocomplete="off">
         <div class="title">
             <h3 style="font-size: 30px;">OTP VERIFICATION</h3>
@@ -49,5 +46,4 @@
     });
 </script>
 
-</body>
-</html>
+{% endblock %}
