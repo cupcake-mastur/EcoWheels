@@ -4,7 +4,7 @@ import re
 
 from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify
 from flask_mail import Mail, Message
-from Forms import CreateUserForm, LoginForm, AdminLoginForm, CreateVehicleForm
+from Forms import CreateUserForm, UpdateProfileForm, LoginForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta, timezone
@@ -15,6 +15,7 @@ import os
 import model
 import random
 import string
+import secrets
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists
 
@@ -31,7 +32,7 @@ logging.basicConfig(filename='app.log', level=logging.DEBUG,
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)  # Session timeout after 30 minutes
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=20)  # Session timeout after 30 minutes
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Only send cookie over HTTPS
@@ -58,7 +59,12 @@ with app.app_context():
 
 @app.route('/')
 def home():
-    return render_template("homepage/homepage.html")
+    token = request.args.get('token')
+    stored_token = session.get('token')
+
+    if token != stored_token:
+        return "Sorry, an unexpected error occurred. :("
+    return render_template("homepage/homepage.html", token=token)
 
 
 @app.route('/models')
@@ -186,12 +192,13 @@ def login():
                     session['user_email'] = email
                     session['user_logged_in'] = True
 
-                    user_id_hash = generate_user_id_hash(user.id)
-                    session['user_id_hash'] = user_id_hash
+                    token = secrets.token_urlsafe(16)
+                    session['token'] = token
+
                     send_otp_email(user.email, otp)
                     app.logger.info(f"OTP sent to {user.email}")
 
-                    return redirect(url_for('verify_otp', user_id_hash=user_id_hash))
+                    return redirect(url_for('verify_otp', token=token))
                 else:
                     user.failed_attempts += 1
 
@@ -225,15 +232,16 @@ def hide_email(email):
 app.jinja_env.filters['hide_email'] = hide_email
 
 
-@app.route('/<user_id_hash>/verify_otp', methods=['GET', 'POST'])
+@app.route('/verify_otp', methods=['GET', 'POST'])
 @login_required
-def verify_otp(user_id_hash):
+def verify_otp():
     error = None
     user_email = session.get('user_email')
+    token = request.args.get('token')
+    stored_token = session.get('token')
 
     user = db.session.query(User).filter_by(email=user_email).first()
-    if not user or user_id_hash != session['user_id_hash']:
-        app.logger.warning(f"Invalid user_id_hash for {user_email}")
+    if not user:
         return redirect(url_for('login'))
 
     if request.method == 'POST':
@@ -241,15 +249,15 @@ def verify_otp(user_id_hash):
         entered_otp = ''.join(entered_otp_digits)
         otp = session.get('otp')
 
-        if entered_otp == otp:
+        if entered_otp == otp and stored_token == token:
             # Clear OTP from session
             session.pop('otp', None)
             session['user'] = user_email  # Set user in session
-            session['expiry_time'] = (datetime.now(timezone.utc) + timedelta(minutes=10)).timestamp()
+            session['expiry_time'] = (datetime.now(timezone.utc) + timedelta(minutes=20)).timestamp()
             session['user_logged_in'] = True
             session.permanent = True
             app.logger.info(f"User {user_email} logged in successfully.")
-            return redirect(url_for('home'))
+            return redirect(url_for('home', token=token))
         else:
             error = "Invalid OTP. Please try again."
             app.logger.warning(f"Invalid OTP attempt for {user_email}")
@@ -257,46 +265,84 @@ def verify_otp(user_id_hash):
     return render_template('customer/verify_otp.html', error=error, user_email=user_email)
 
 
-@app.route('/<user_id_hash>/profile')
+@app.route('/profile')
 @login_required
-def profile(user_id_hash):
+def profile():
     user_email = session.get('user_email')
-    user_id_hash_session = session.get('user_id_hash')
+    token = request.args.get('token')
+    stored_token = session.get('token')
 
-    if not user_email or user_id_hash != user_id_hash_session:
-        return redirect(url_for('login'))  # Redirect to login if user not authenticated or session mismatch
+    if token != stored_token:
+        return "Sorry, an unexpected error occurred. :("
+
+    if not user_email:
+        return redirect(url_for('login'))  # Redirect to login if user email is not found in session
 
     user = db.session.query(User).filter_by(email=user_email).first()
+
+    if not user:
+        return redirect(url_for('login'))
+
+    return render_template('customer/profile_page.html', user=user, token=token)
+
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    error = None
+    user_email = session.get('user_email')
+    token = request.args.get('token')
+    stored_token = session.get('token')
+    user = db.session.query(User).filter_by(email=user_email).first()
+
     if not user:
         return redirect(url_for('login'))  # Redirect to login if user not found in the database
 
-    return render_template('customer/profile_page.html', user=user)
+    if token != stored_token:
+        return "Sorry, an unexpected error occurred. :("
+
+    edit_profile_form = UpdateProfileForm(request.form, obj=user)
+
+    if request.method == 'POST' and edit_profile_form.validate():
+        current_password = edit_profile_form.current_password.data
+        new_password = edit_profile_form.new_password.data
+        confirm_new_password = edit_profile_form.confirm_new_password.data
+
+        # Verify current password
+        if not check_password_hash(user.password_hash, current_password):
+            error = 'Current password is incorrect.'
+        elif new_password and new_password != confirm_new_password:
+            error = 'New passwords do not match.'
+
+        if error:
+            return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, token=token, error=error)
+
+        # Update user details
+        user.full_name = edit_profile_form.full_name.data
+        user.username = edit_profile_form.username.data
+        user.email = edit_profile_form.email.data
+        user.phone_number = edit_profile_form.phone_number.data
+
+        # Update password if new password is provided and matches confirmation
+        if new_password == confirm_new_password:
+            user.password_hash = generate_password_hash(new_password)
+
+        db.session.commit()
+        error = 'Profile updated successfully.'
+
+    return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, token=token, error=error)
 
 
-@app.route('/<user_id_hash>/edit_profile')
-@login_required
-def edit_profile(user_id_hash):
-    user_email = session.get('user_email')
-    user_id_hash_session = session.get('user_id_hash')
-
-    # if not user_email or user_id_hash != user_id_hash_session:
-    #     return redirect(url_for('login'))  # Redirect to login if user not authenticated or session mismatch
-    #
-    # user = db.session.query(User).filter_by(email=user_email).first()
-    # if not user:
-    #     return redirect(url_for('login'))  # Redirect to login if user not found in the database
-
-    return render_template('customer/edit_profile.html', user=user_id_hash_session, form=CreateUserForm())
-
-
-@app.route('/<user_id_hash>/user/logout')
-def logout(user_id_hash):
-    user_email = session.pop('user_email', None)
-    if user_email:
+@app.route('/user/logout')
+def logout():
+    if 'user_email' in session:
+        user_email = session.pop('user_email', None)
         app.logger.info(f"User {user_email} logged out successfully.")
-    session.clear()
-    session.modified = True
-    return redirect(url_for('home'))
+        session.clear()
+        session.modified = True
+        return redirect(url_for('home'))
+    else:
+        return "You are not logged in."
 
 
 @app.before_request

@@ -20,6 +20,17 @@ class LoginForm(Form):
     password = PasswordField('Password', [validators.DataRequired(), validators.length(min=8, max=30)])
 
 
+class UpdateProfileForm(Form):
+    email = EmailField('Email', [validators.DataRequired(), validators.Email()])
+    full_name = StringField('Full Name', validators=[validators.DataRequired()])
+    username = StringField('Username', validators=[validators.DataRequired()])
+    phone_number = IntegerField('Phone Number', [validators.DataRequired(),
+                                                 validators.NumberRange(min=00000000, max=99999999)])
+    current_password = PasswordField('Current Password', [validators.DataRequired(), validators.length(min=8, max=30)])
+    new_password = PasswordField('New Password', [validators.Optional(), validators.length(min=8, max=30)])
+    confirm_new_password = PasswordField('Confirm New Password', [validators.Optional(), validators.length(min=8, max=30)])
+
+
 class AdminLoginForm(FlaskForm):
     class Meta:
         csrf = True
