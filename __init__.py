@@ -31,7 +31,7 @@ logging.basicConfig(filename='app.log', level=logging.DEBUG,
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=40)  # Session timeout after 30 minutes
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)  # Session timeout after 30 minutes
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Only send cookie over HTTPS
@@ -245,7 +245,7 @@ def verify_otp(user_id_hash):
             # Clear OTP from session
             session.pop('otp', None)
             session['user'] = user_email  # Set user in session
-            session['expiry_time'] = (datetime.now(timezone.utc) + timedelta(seconds=40)).timestamp()
+            session['expiry_time'] = (datetime.now(timezone.utc) + timedelta(minutes=10)).timestamp()
             session['user_logged_in'] = True
             session.permanent = True
             app.logger.info(f"User {user_email} logged in successfully.")
@@ -271,6 +271,22 @@ def profile(user_id_hash):
         return redirect(url_for('login'))  # Redirect to login if user not found in the database
 
     return render_template('customer/profile_page.html', user=user)
+
+
+@app.route('/<user_id_hash>/edit_profile')
+@login_required
+def edit_profile(user_id_hash):
+    user_email = session.get('user_email')
+    user_id_hash_session = session.get('user_id_hash')
+
+    # if not user_email or user_id_hash != user_id_hash_session:
+    #     return redirect(url_for('login'))  # Redirect to login if user not authenticated or session mismatch
+    #
+    # user = db.session.query(User).filter_by(email=user_email).first()
+    # if not user:
+    #     return redirect(url_for('login'))  # Redirect to login if user not found in the database
+
+    return render_template('customer/edit_profile.html', user=user_id_hash_session, form=CreateUserForm())
 
 
 @app.route('/<user_id_hash>/user/logout')

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}EcoWheels{% endblock %}
+
+{% block content %}
+{% from "_formHelper.html" import render_field %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sign_up.css') }}">
+<div class="container">
+
+      {% if error %}
+        <p style="color: red; text-align: center;">{{ error }}</p>
+      {% endif %}
+
+        <form method="POST" action="{{ url_for('edit_profile', user_id_hash=user) }}" autocomplete="off">
+            <div class="user_details">
+                <div class="input_box">
+                    {{ render_field(form.full_name, class="form-control", id="name", placeholder="Enter your name") }}
+                </div>
+                <div class="input_box">
+                    {{ render_field(form.username, class="form-control", id="username", placeholder="Enter your username") }}
+                </div>
+                <div class="input_box">
+                    {{ render_field(form.email, class="form-control", id="email", placeholder="example@gmail.com") }}
+                </div>
+                <div class="input_box">
+                    {{ render_field(form.phone_number, class="form-control", id="phone", placeholder="8 digits phone number") }}
+                </div>
+                <div class="input_box">
+                    {{ render_field(form.password, class="form-control", id="pass", placeholder="Enter your password") }}
+                </div>
+                <div class="input_box">
+                    {{ render_field(form.confirm_password, class="form-control", id="confirmPass", placeholder="Confirm your password") }}
+                </div>
+            </div>
+        </form>
+    </div>
+
+{% endblock %}
