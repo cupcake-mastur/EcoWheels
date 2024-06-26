@@ -490,12 +490,10 @@ def admin_log_in():
 
         # Manually trigger field validation
         if not form.username.validate(form) or not form.password.validate(form):
-            flash('Invalid characters in username or password', 'danger')
             return render_template('admin/admin_log_in.html', form=form)
 
         # Check for disallowed characters in username and password
         if not is_valid_input(username) or not is_valid_input(password):
-            flash('Invalid characters in username or password', 'danger')
             return render_template('admin/admin_log_in.html', form=form)
 
         # Perform case-sensitive query for the admin with the given username
@@ -505,12 +503,6 @@ def admin_log_in():
         if admin and admin.check_password(password):
             session['admin_username'] = username  # Store the username in the session
             return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid username or password', 'danger')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f"Error in {getattr(form, field).label.text}: {error}", 'danger')
 
     return render_template('admin/admin_log_in.html', form=form)
 
@@ -562,9 +554,6 @@ def delete_vehicle(id):
         # Delete the vehicle from the database
         db.session.delete(vehicle)
         db.session.commit()
-        flash('Vehicle deleted successfully!', 'success')
-    else:
-        flash('Vehicle not found!', 'danger')
 
     # Redirect back to the manageVehicles page
     return redirect(url_for('MVehicles'))
