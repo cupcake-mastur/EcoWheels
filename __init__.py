@@ -484,6 +484,7 @@ def create_payment_intent():
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
     form = AdminLoginForm()
+    error_message = None  # Initialize the error message
     if form.validate_on_submit():
         username = html.escape(form.username.data)  # Escape HTML characters
         password = html.escape(form.password.data)
@@ -503,8 +504,10 @@ def admin_log_in():
         if admin and admin.check_password(password):
             session['admin_username'] = username  # Store the username in the session
             return redirect(url_for('dashboard'))
+        else:
+            error_message = "Incorrect Username or Password"  # Set the error message
 
-    return render_template('admin/admin_log_in.html', form=form)
+    return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
 def is_valid_input(input_str):
     """
