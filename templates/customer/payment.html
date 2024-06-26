@@ -110,13 +110,58 @@ span.price {
 </style>
 </head>
 <body>
+<script>
+function validatePayment() {
+    // Get form inputs
+    var cardName = document.getElementById('cname').value.trim();
+    var cardNumber = document.getElementById('ccnum').value.trim();
+    var expMonth = document.getElementById('expmonth').value.trim();
+    var expYear = document.getElementById('expyear').value.trim();
+    var cvv = document.getElementById('cvv').value.trim();
+
+    // Regular expressions for validation
+    var cardNameRegex = /^[a-zA-Z]+(([',. -][a-zA-Z ])?[a-zA-Z]*)*$/;
+    var cardNumberRegex = /^[0-9]{4}-?[0-9]{4}-?[0-9]{4}-?[0-9]{4}$/;
+    var expMonthRegex = /^(0?[1-9]|1[012])$/;
+    var expYearRegex = /^[0-9]{4}$/;
+    var cvvRegex = /^[0-9]{3}$/;
+    // Validation checks
+    if (!cardNameRegex.test(cardName)) {
+        alert('Please enter a valid name on card.');
+        return false;
+    }
+
+    if (!cardNumberRegex.test(cardNumber)) {
+        alert('Please enter a valid credit card number.');
+        return false;
+    }
+
+    if (!expMonthRegex.test(expMonth)) {
+        alert('Please enter a valid expiration month (e.g., 01 for January).');
+        return false;
+    }
+
+    if (!expYearRegex.test(expYear)) {
+        alert('Please enter a valid expiration year (e.g., 2024).');
+        return false;
+    }
+
+    if (!cvvRegex.test(cvv)) {
+        alert('Please enter a valid CVV (3 digits).');
+        return false;
+    }
+
+    // If all validations pass, return true to submit the form
+    return true;
+}
+</script>
 
 <h2>Checkout Form</h2>
 <div class="row">
   <div class="col-75">
     <div class="container">
-        <form action="{{ url_for('process_payment') }}" method="post"> 
-        <div class="row">
+      <form action="{{ url_for('process_payment') }}" method="post" onsubmit="return validatePayment()"> 
+        <div class="row">       
           <div class="col-50">
             <h3>Billing Address</h3>
             <label for="fname"><i class="fa fa-user"></i> Full Name</label>
@@ -154,7 +199,7 @@ span.price {
             <label for="ccnum">Credit card number</label>
             <input type="text" id="ccnum" name="cardnumber" placeholder="1111-2222-3333-4444" required>
             <label for="expmonth">Exp Month</label>
-            <input type="text" id="expmonth" name="expmonth" placeholder="September" required>
+            <input type="text" id="expmonth" name="expmonth" placeholder="01" required>
             <div class="row">
               <div class="col-50">
                 <label for="expyear">Exp Year</label>
