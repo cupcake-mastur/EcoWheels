@@ -509,6 +509,7 @@ def admin_log_in():
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
+
 def is_valid_input(input_str):
     """
     Check if the input string contains only allowed characters.
@@ -516,6 +517,7 @@ def is_valid_input(input_str):
     # Define a regular expression to match allowed characters
     allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
     return bool(allowed_chars_pattern.match(input_str))
+
 
 @app.route('/createVehicle', methods=['GET', 'POST'])
 def createVehicle():
@@ -541,6 +543,7 @@ def MCustomers():
     customers = db.session.query(User).all()  # Retrieve all users from the database
     return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
 
+
 @app.route('/manageVehicles')
 def MVehicles():
     admin_username = session.get('admin_username')
@@ -560,6 +563,7 @@ def delete_vehicle(id):
 
     # Redirect back to the manageVehicles page
     return redirect(url_for('MVehicles'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
