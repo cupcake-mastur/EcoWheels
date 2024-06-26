@@ -484,6 +484,7 @@ def create_payment_intent():
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
     form = AdminLoginForm()
+    error_message = None  # Initialize the error message
     if form.validate_on_submit():
         username = html.escape(form.username.data)  # Escape HTML characters
         password = html.escape(form.password.data)
@@ -503,8 +504,11 @@ def admin_log_in():
         if admin and admin.check_password(password):
             session['admin_username'] = username  # Store the username in the session
             return redirect(url_for('dashboard'))
+        else:
+            error_message = "Incorrect Username or Password"  # Set the error message
 
-    return render_template('admin/admin_log_in.html', form=form)
+    return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
+
 
 def is_valid_input(input_str):
     """
@@ -513,6 +517,7 @@ def is_valid_input(input_str):
     # Define a regular expression to match allowed characters
     allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
     return bool(allowed_chars_pattern.match(input_str))
+
 
 @app.route('/createVehicle', methods=['GET', 'POST'])
 def createVehicle():
@@ -538,6 +543,7 @@ def MCustomers():
     customers = db.session.query(User).all()  # Retrieve all users from the database
     return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
 
+
 @app.route('/manageVehicles')
 def MVehicles():
     admin_username = session.get('admin_username')
@@ -557,6 +563,7 @@ def delete_vehicle(id):
 
     # Redirect back to the manageVehicles page
     return redirect(url_for('MVehicles'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
