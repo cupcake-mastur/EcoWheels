@@ -33,7 +33,7 @@ body {
 }
 
 .col-75 {
-  -ms-flex: 75%; /* IE10 */
+  -ms-flex: 75%;
   flex: 75%;
 }
 
@@ -110,57 +110,13 @@ span.price {
 </style>
 </head>
 <body>
-<script>
-function validatePayment() {
-    // Get form inputs
-    var cardName = document.getElementById('cname').value.trim();
-    var cardNumber = document.getElementById('ccnum').value.trim();
-    var expMonth = document.getElementById('expmonth').value.trim();
-    var expYear = document.getElementById('expyear').value.trim();
-    var cvv = document.getElementById('cvv').value.trim();
-
-    // Regular expressions for validation
-    var cardNameRegex = /^[a-zA-Z]+(([',. -][a-zA-Z ])?[a-zA-Z]*)*$/;
-    var cardNumberRegex = /^[0-9]{4}-?[0-9]{4}-?[0-9]{4}-?[0-9]{4}$/;
-    var expMonthRegex = /^(0?[1-9]|1[012])$/;
-    var expYearRegex = /^[0-9]{4}$/;
-    var cvvRegex = /^[0-9]{3}$/;
-    // Validation checks
-    if (!cardNameRegex.test(cardName)) {
-        alert('Please enter a valid name on card.');
-        return false;
-    }
-
-    if (!cardNumberRegex.test(cardNumber)) {
-        alert('Please enter a valid credit card number.');
-        return false;
-    }
-
-    if (!expMonthRegex.test(expMonth)) {
-        alert('Please enter a valid expiration month (e.g., 01 for January).');
-        return false;
-    }
-
-    if (!expYearRegex.test(expYear)) {
-        alert('Please enter a valid expiration year (e.g., 2024).');
-        return false;
-    }
-
-    if (!cvvRegex.test(cvv)) {
-        alert('Please enter a valid CVV (3 digits).');
-        return false;
-    }
-
-    // If all validations pass, return true to submit the form
-    return true;
-}
-</script>
+<script src="https://js.stripe.com/v3/"></script>
 
 <h2>Checkout Form</h2>
 <div class="row">
   <div class="col-75">
     <div class="container">
-      <form action="{{ url_for('process_payment') }}" method="post" onsubmit="return validatePayment()"> 
+      <form id="payment-form">
         <div class="row">       
           <div class="col-50">
             <h3>Billing Address</h3>
@@ -178,10 +134,6 @@ function validatePayment() {
                 <label for="state">State</label>
                 <input type="text" id="state" name="state" placeholder="NY" required>
               </div>
-              <div class="col-50">
-                <label for="zip">Zip</label>
-                <input type="text" id="zip" name="zip" placeholder="10001" required>
-              </div>
             </div>
           </div>
 
@@ -196,30 +148,17 @@ function validatePayment() {
             </div>
             <label for="cname">Name on Card</label>
             <input type="text" id="cname" name="cardname" placeholder="John More Doe" required>
-            <label for="ccnum">Credit card number</label>
-            <input type="text" id="ccnum" name="cardnumber" placeholder="1111-2222-3333-4444" required>
-            <label for="expmonth">Exp Month</label>
-            <input type="text" id="expmonth" name="expmonth" placeholder="01" required>
-            <div class="row">
-              <div class="col-50">
-                <label for="expyear">Exp Year</label>
-                <input type="text" id="expyear" name="expyear" placeholder="2018" required>
-              </div>
-              <div class="col-50">
-                <label for="cvv">CVV</label>
-                <input type="text" id="cvv" name="cvv" placeholder="352" required>
-              </div>
-            </div>
+            <div id="card-element"><!-- A Stripe Element will be inserted here. --></div>
+            <div id="card-errors" role="alert"></div>
           </div>
-          
         </div>
         <label>
           <input type="checkbox" checked="checked" name="sameadr"> Shipping address same as billing
         </label>
         <label>
-            <input type="checkbox" checked="checked" name="sameadr"> By placing this order, you agree to the <a href="Vehicleorderagreement.html">EcoWheels' Vehicle Order Agreement</a>, Terms of Use and the Privacy Notice. You also allow us to save your credit card to pay for future services as described in the payment terms.
+          <input type="checkbox" checked="checked" name="agree"> By placing this order, you agree to the <a href="Vehicleorderagreement.html">EcoWheels' Vehicle Order Agreement</a>, Terms of Use and the Privacy Notice. You also allow us to save your credit card to pay for future services as described in the payment terms.
         </label>
-        <input type="submit" value="Place Order" class="btn">
+        <button type="submit" class="btn">Place Order</button>
       </form>
     </div>
   </div>
@@ -236,5 +175,85 @@ function validatePayment() {
   </div>
 </div>
 
+<script>
+var stripe = Stripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
+var elements = stripe.elements();
+var card = elements.create('card');
+card.mount('#card-element');
+
+card.on('change', function(event) {
+  var displayError = document.getElementById('card-errors');
+  if (event.error) {
+    displayError.textContent = event.error.message;
+  } else {
+    displayError.textContent = '';
+  }
+});
+
+var form = document.getElementById('payment-form');
+form.addEventListener('submit', function(event) {
+  event.preventDefault();
+
+  fetch('/create-payment-intent', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      amount: 5000,  // Amount in cents (e.g., 5000 cents = 50 USD)
+      currency: 'usd'
+    }),
+  }).then(function(response) {
+    return response.json();
+  }).then(function(paymentIntent) {
+    if (paymentIntent.error) {
+      var errorElement = document.getElementById('card-errors');
+      errorElement.textContent = paymentIntent.error.message;
+    } else {
+      stripe.confirmCardPayment(paymentIntent.clientSecret, {
+        payment_method: {
+          card: card,
+          billing_details: {
+            name: document.getElementById('cname').value
+          }
+        }
+      }).then(function(result) {
+        if (result.error) {
+          var errorElement = document.getElementById('card-errors');
+          errorElement.textContent = result.error.message;
+        } else {
+          if (result.paymentIntent.status === 'succeeded') {
+            // Send order data to server to store in the database
+            fetch('/process_payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                firstname: document.getElementById('fname').value,
+                email: document.getElementById('email').value,
+                address: document.getElementById('adr').value,
+                city: document.getElementById('city').value,
+                state: document.getElementById('state').value,
+                cardname: document.getElementById('cname').value
+              })
+            }).then(function(response) {
+              return response.json();
+            }).then(function(data) {
+              if (data.message === "Order processed successfully") {
+                window.location.href = "/confirmation";
+              } else {
+                alert("There was an error processing your order. Please try again.");
+              }
+            }).catch(function(error) {
+              console.error('Error:', error);
+            });
+          }
+        }
+      });
+    }
+  });
+});
+</script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 import html
 import logging
 import re
+import stripe
 
 from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify
 from flask_mail import Mail, Message
@@ -368,29 +369,43 @@ def confirmation():
 @app.route('/process_payment', methods=['POST'])
 def process_payment():
     try:
-        fullname = request.form['firstname']
-        email = request.form['email']
-        address = request.form['address']
-        city = request.form['city']
-        state = request.form['state']
-        zip_code = request.form['zip']
-        card_name = request.form['cardname']
-        card_number = request.form['cardnumber']
-        exp_month = request.form['expmonth']
-        exp_year = request.form['expyear']
-        cvv = request.form['cvv']
+        data = request.get_json()
+        fullname = data['firstname']
+        email = data['email']
+        address = data['address']
+        city = data['city']
+        state = data['state']
+        card_name = data['cardname']
 
-        new_order = Order(fullname=fullname, email=email, address=address, city=city, state=state,
-                          zip_code=zip_code, card_name=card_name, card_number=card_number,
-                          exp_month=exp_month, exp_year=exp_year, cvv=cvv)
+        new_order = Order(fullname=fullname, email=email, address=address, city=city, state=state, card_name=card_name)
         db.session.add(new_order)
         db.session.commit()
+        return jsonify({"message": "Order processed successfully"}), 200
     except Exception as e:
         db.session.rollback()
-        print("Failed to process payment:", e)  # Log the error or use a logging framework
-        return "Error processing payment", 500
-    return redirect(url_for('confirmation'))
+        print("Failed to process payment:", e)
+        return jsonify({"error": "Error processing payment"}), 500
 
+@app.route('/create-payment-intent', methods=['POST'])
+def create_payment_intent():
+    try:
+        data = request.get_json()
+        amount = data['amount']
+        currency = data['currency']
+
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency=currency,
+            automatic_payment_methods={
+                'enabled': True,
+            },
+        )
+
+        return jsonify({
+            'clientSecret': intent['client_secret']
+        })
+    except Exception as e:
+        return jsonify(error=str(e)), 403
 
 # @app.route('/process_payment', methods=['POST'])
 # def process_payment():
