@@ -20,6 +20,7 @@ import secrets
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists
 from werkzeug.utils import secure_filename
+from PIL import Image
 
 from model import *
 
@@ -521,13 +522,29 @@ def is_valid_input(input_str):
     return bool(allowed_chars_pattern.match(input_str))
 
 
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 def save_image_file(form_file):
+    if not allowed_file(form_file.filename):
+        raise ValueError("Invalid file type. Only JPG, JPEG, and PNG files are allowed.")
+
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_file.filename)
-    picture_fn = random_hex + f_ext
-    picture_fn = secure_filename(picture_fn)
+    picture_fn = random_hex + f_ext.lower()  # Ensure lowercase extension
     picture_path = os.path.join(current_app.root_path, 'static/vehicle_images', picture_fn)
+
+    # Save file securely
     form_file.save(picture_path)
+
+    try:
+        Image.open(picture_path).verify()
+    except Exception as e:
+        os.remove(picture_path)  # Remove the file if verification fails
+        raise ValueError("Invalid image file.")
+
     return picture_fn
 
 @app.route('/createVehicle', methods=['GET', 'POST'])
@@ -541,7 +558,10 @@ def createVehicle():
 
         # Handle image file upload
         if create_vehicle_form.file.data:
-            file = save_image_file(create_vehicle_form.file.data)
+            try:
+                file = save_image_file(create_vehicle_form.file.data)
+            except ValueError as e:
+                return redirect(url_for('createVehicle'))  # Redirect or handle error gracefully
         else:
             file = None
 
@@ -587,7 +607,6 @@ def delete_vehicle(id):
 
     # Redirect back to the manageVehicles page
     return redirect(url_for('MVehicles'))
-
 
 if __name__ == '__main__':
     app.run(debug=True)
