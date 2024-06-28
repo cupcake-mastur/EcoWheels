@@ -19,6 +19,8 @@ import string
 import secrets
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists
+from werkzeug.utils import secure_filename
+from PIL import Image
 
 from model import *
 
@@ -57,6 +59,7 @@ with app.app_context():
     db.init_app(app)
     db.create_all()  # Create sql tables
 
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
 
 @app.route('/')
 def home():
@@ -483,7 +486,7 @@ def create_payment_intent():
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
-    form = AdminLoginForm()
+    form = AdminLoginForm(request.form)
     error_message = None  # Initialize the error message
     if form.validate_on_submit():
         username = html.escape(form.username.data)  # Escape HTML characters
@@ -519,17 +522,58 @@ def is_valid_input(input_str):
     return bool(allowed_chars_pattern.match(input_str))
 
 
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_image_file(form_file):
+    if not allowed_file(form_file.filename):
+        raise ValueError("Invalid file type. Only JPG, JPEG, and PNG files are allowed.")
+
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_file.filename)
+    picture_fn = random_hex + f_ext.lower()  # Ensure lowercase extension
+    picture_path = os.path.join(current_app.root_path, 'static/vehicle_images', picture_fn)
+
+    # Save file securely
+    form_file.save(picture_path)
+
+    try:
+        Image.open(picture_path).verify()
+    except Exception as e:
+        os.remove(picture_path)  # Remove the file if verification fails
+        raise ValueError("Invalid image file.")
+
+    return picture_fn
+
 @app.route('/createVehicle', methods=['GET', 'POST'])
 def createVehicle():
-    form = CreateVehicleForm()
-    if form.validate_on_submit():
-        # Logic for form submission (e.g., saving data to the database)
-        flash('Vehicle created successfully!', 'success')
-        return redirect(url_for('dashboard'))  # Redirect to the 'dashboard' route upon successful form submission
-    elif request.method == 'POST':
-        # If it's a POST request but form validation fails, it means there are errors
-        flash('There were errors in the form. Please correct them.', 'danger')
-    return render_template('admin/createVehicleForm.html', form=form)
+    create_vehicle_form = CreateVehicleForm()
+    if request.method == 'POST' and create_vehicle_form.validate_on_submit():
+        brand = create_vehicle_form.brand.data
+        model = create_vehicle_form.model.data
+        price = create_vehicle_form.price.data
+        description = create_vehicle_form.description.data
+
+        # Handle image file upload
+        if create_vehicle_form.file.data:
+            try:
+                file = save_image_file(create_vehicle_form.file.data)
+            except ValueError as e:
+                return redirect(url_for('createVehicle'))  # Redirect or handle error gracefully
+        else:
+            file = None
+
+        try:
+            new_vehicle = Vehicle(brand=brand, model=model, selling_price=price, image=file, description=description)
+            db.session.add(new_vehicle)
+            db.session.commit()
+            return redirect(url_for('MVehicles'))
+        except Exception as e:
+            db.session.rollback()
+
+    return render_template('admin/createVehicleForm.html', form=create_vehicle_form)
 
 
 @app.route('/dashboard', methods=['GET', 'POST'])
@@ -563,7 +607,6 @@ def delete_vehicle(id):
 
     # Redirect back to the manageVehicles page
     return redirect(url_for('MVehicles'))
-
 
 if __name__ == '__main__':
     app.run(debug=True)
