@@ -126,7 +126,13 @@
                     <td>{{ vehicle.brand }}</td>
                     <td>{{ vehicle.model }}</td>
                     <td>{{ '{:,.2f}'.format(vehicle.selling_price) }}</td>
-                    <td>{{ vehicle.image }}</td>
+                    <td>
+                        {% if vehicle.image %}
+                            <img src="{{ url_for('static', filename='vehicle_images/' + vehicle.image) }}" alt="Vehicle Image" style="max-width: 100px; max-height: 100px;">
+                        {% else %}
+                            No Image
+                        {% endif %}
+                    </td>
                     <td>{{ vehicle.description }}</td>
                     <td>
                         <form id="deleteForm{{ vehicle.idvehicles }}" action="{{ url_for('delete_vehicle', id=vehicle.idvehicles) }}" method="post">
