@@ -18,7 +18,7 @@ import random
 import string
 import secrets
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import exists
+from sqlalchemy import exists, func
 from werkzeug.utils import secure_filename
 from PIL import Image
 
