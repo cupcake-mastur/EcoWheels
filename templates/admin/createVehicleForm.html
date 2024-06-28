@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="../static/css/adminform.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/adminform.css') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
-
 <body>
     <div class="org-img">
         <img src="../static/images/EcoWheels Logo.jpeg" alt="EcoWheels">
@@ -17,6 +16,7 @@
     </div>
 
     <form action="{{ url_for('createVehicle') }}" method="POST" autocomplete="off" class="form" id="createVehicle">
+        {{ form.csrf_token }}
 
         <h1 class="form__title">Create Vehicle</h1>
 
@@ -24,7 +24,11 @@
             <label for="v-brand" id="v-brand">Brand</label>
             {{ form.brand(class="form__input", id="v-brand", autofocus=true, placeholder="Enter Brand") }}
             {% if form.brand.errors %}
-                <div class="form__input--error-message">{{ form.brand.errors[0] }}</div>
+                <div class="form__input--error-message">
+                    {% for error in form.brand.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
             {% endif %}
         </div>
 
@@ -32,7 +36,11 @@
             <label for="v-model" id="v-model">Model</label>
             {{ form.model(class="form__input", id="v-model", placeholder="Enter Model") }}
             {% if form.model.errors %}
-                <div class="form__input--error-message">{{ form.model.errors[0] }}</div>
+                <div class="form__input--error-message">
+                    {% for error in form.model.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
             {% endif %}
         </div>
 
@@ -40,7 +48,11 @@
             <label for="v-sp" id="v-sp">Selling Price in SGD ($)</label>
             {{ form.price(class="form__input", id="v-sp", value=20000) }}
             {% if form.price.errors %}
-                <div class="form__input--error-message">{{ form.price.errors[0] }}</div>
+                <div class="form__input--error-message">
+                    {% for error in form.price.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
             {% endif %}
         </div>
 
@@ -48,7 +60,11 @@
             <label for="v-image" id="v-image">Image</label>
             {{ form.file(class="form-control form__input", id="v-image", accept="image/*", autocomplete="off") }}
             {% if form.file.errors %}
-                <div class="form__input--error-message">{{ form.file.errors[0] }}</div>
+                <div class="form__input--error-message">
+                    {% for error in form.file.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
             {% endif %}
         </div>
 
@@ -56,7 +72,11 @@
             <label for="v-des" id="v-des">Description</label>
             {{ form.description(class="form__input", id="v-des", rows=5, cols=40, placeholder="Enter Description") }}
             {% if form.description.errors %}
-                <div class="form__input--error-message">{{ form.description.errors[0] }}</div>
+                <div class="form__input--error-message">
+                    {% for error in form.description.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
             {% endif %}
         </div>
 
