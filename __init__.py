@@ -304,6 +304,10 @@ def edit_profile():
     edit_profile_form = UpdateProfileForm(request.form, obj=user)
 
     if request.method == 'POST' and edit_profile_form.validate():
+        full_name = edit_profile_form.full_name.data
+        username = edit_profile_form.username.data
+        email = edit_profile_form.email.data
+        phone_number = edit_profile_form.phone_number.data
         current_password = edit_profile_form.current_password.data
         new_password = edit_profile_form.new_password.data
         confirm_new_password = edit_profile_form.confirm_new_password.data
@@ -313,6 +317,12 @@ def edit_profile():
             error = 'Current password is incorrect.'
         elif new_password and new_password != confirm_new_password:
             error = 'New passwords do not match.'
+        elif len(str(phone_number)) != 8:
+            error = "Phone number must be 8 digits."
+        else:
+            # Validate special characters
+            if any(char in "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?'" for char in full_name):
+                error = "Special characters are not allowed in the full name."
 
         if error:
             return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, token=token, error=error)
@@ -553,6 +563,7 @@ def delete_vehicle(id):
 
     # Redirect back to the manageVehicles page
     return redirect(url_for('MVehicles'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
