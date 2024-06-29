@@ -14,8 +14,16 @@
         {{ form.csrf_token }}
         <h1 class="form__title">Login</h1>
 
-        <div class="form__input-group">
-            <label for="Username">{{ form.username.label }}</label>
+        <!-- Error message for incorrect username or password -->
+        {% if error_message %}
+            <div class="form__input--error-message">
+                <span>{{ error_message }}</span>
+            </div>
+        {% endif %}
+        <br>
+
+        <div class="form__input-group" >
+            <label for="Username" id="Username">{{ form.username.label }}</label>
             {{ form.username(class="form__input", id="Username", placeholder="Enter Username") }}
             {% if form.username.errors %}
                 <div class="form__input--error-message">
@@ -27,7 +35,7 @@
         </div>
 
         <div class="form__input-group">
-            <label for="Password">{{ form.password.label }}</label>
+            <label for="Password" id="Password">{{ form.password.label }}</label>
             {{ form.password(class="form__input", id="Password", placeholder="Enter Password") }}
             {% if form.password.errors %}
                 <div class="form__input--error-message">

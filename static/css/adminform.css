@@ -88,3 +88,7 @@ form {
     text-decoration: none;
     color: #000000;
 }
+
+.form__input--error-message {
+    color: rgb(234, 42, 42);
+}

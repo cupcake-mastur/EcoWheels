@@ -58,9 +58,8 @@ class Vehicle(db.Model):
     brand = db.Column(db.String(50), nullable=False)
     model = db.Column(db.String(50), nullable=False)
     selling_price = db.Column(db.Float, nullable=False)
-    image = db.Column(db.LargeBinary, nullable=True)
+    image = db.Column(db.String(100), nullable=True)  # Adjusted to allow NULL values
     description = db.Column(db.Text, nullable=True)
-
 
 
 
