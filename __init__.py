@@ -35,7 +35,7 @@ logging.basicConfig(filename='app.log', level=logging.DEBUG,
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=20)  # Session timeout after 30 minutes
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session timeout after 30 minutes
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Only send cookie over HTTPS
@@ -90,8 +90,6 @@ def check_session():
 
         if current_time > expiry_time:
             app.logger.info("Session expired: True")
-            session.clear()
-            session.modified = True
             return jsonify(expired=True), 200
 
     app.logger.info("Session expired: False")
@@ -149,11 +147,6 @@ def login_required(f):
             return redirect(url_for('login'))  # Redirect to login if user is not authenticated
         return f(*args, **kwargs)
     return decorated_function
-
-
-def generate_user_id_hash(user_id):
-    secret_key = current_app.config['SECRET_KEY']
-    return hmac.new(secret_key.encode(), str(user_id).encode(), hashlib.sha256).hexdigest()
 
 
 def generate_otp(length=6):
@@ -257,7 +250,7 @@ def verify_otp():
             # Clear OTP from session
             session.pop('otp', None)
             session['user'] = user_email  # Set user in session
-            session['expiry_time'] = (datetime.now(timezone.utc) + timedelta(minutes=20)).timestamp()
+            session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
             session['user_logged_in'] = True
             session.permanent = True
             app.logger.info(f"User {user_email} logged in successfully.")
@@ -362,10 +355,16 @@ def logout():
 @app.before_request
 def before_request():
     if 'user_email' in session:
-        if 'expiry_time' in session and datetime.now(timezone.utc).timestamp() > session['expiry_time']:
+        current_time = datetime.now(timezone.utc).timestamp()
+        if 'expiry_time' in session and current_time > session['expiry_time']:
+            session.clear()
             session.modified = True
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify(expired=True), 401  # Return JSON for the AJAX request
+
+        if request.headers.get('X-Check-Session') != 'True':
+            session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
+            session.modified = True
 
 
 @app.route('/payment')
