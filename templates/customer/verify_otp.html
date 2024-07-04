@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/verify_otp.css') }}">
 
     <form method="post" class="otp-form" name="otp-form" autocomplete="off">
+        {{ form.hidden_tag() }}
         <div class="title">
             <h3 style="font-size: 30px;">OTP VERIFICATION</h3>
             <p class="info">An otp has been sent to {{ user_email|hide_email }}</p>
@@ -22,6 +23,10 @@
             <p style="color: red; text-align: center;">{{ error }}</p>
         {% endif %}
         <button type="submit" id="verify">Verify OTP</button>
+    </form>
+    <form action="{{ url_for('request_new_otp') }}" method="post">
+        {{ form.hidden_tag() }}
+        <button type="submit">Resend OTP</button>
     </form>
 
 <script>

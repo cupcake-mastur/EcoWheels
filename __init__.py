@@ -150,7 +150,9 @@ def login_required(f):
 
 
 def generate_otp(length=6):
-    return ''.join(random.choices(string.digits, k=length))
+    otp = ''.join(random.choices(string.digits, k=length))
+    session['otp_generation_time'] = datetime.now(timezone.utc).timestamp()
+    return otp
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -217,8 +219,18 @@ def login():
 
 def send_otp_email(email, otp):
     msg = Message('Your OTP Code', recipients=[email])
-    msg.body = f'Your OTP code is: {otp}'
+    msg.body = f'Your OTP code is: {otp}\n\nPlease note that this code will expire in 1 minute.'
     mail.send(msg)
+
+
+def request_new_otp():
+    user_email = session.get('user_email')
+    new_otp = generate_otp()
+    session['otp'] = new_otp
+    send_otp_email(user_email, new_otp)
+    app.logger.info(f"New OTP sent to {user_email}")
+
+    return redirect(url_for('verify_otp'))
 
 
 def hide_email(email):
@@ -245,19 +257,25 @@ def verify_otp():
         entered_otp_digits = [request.form.get(f'otp{i}') for i in range(1, 7)]
         entered_otp = ''.join(entered_otp_digits)
         otp = session.get('otp')
+        otp_generation_time = session.get('otp_generation_time')
+        current_time = datetime.now(timezone.utc).timestamp()
 
-        if entered_otp == otp and stored_token == token:
-            # Clear OTP from session
-            session.pop('otp', None)
-            session['user'] = user_email  # Set user in session
-            session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
-            session['user_logged_in'] = True
-            session.permanent = True
-            app.logger.info(f"User {user_email} logged in successfully.")
-            return redirect(url_for('home', token=token))
+        if otp_generation_time and (current_time - otp_generation_time) <= 60:
+            if entered_otp == otp and stored_token == token:
+                # Clear OTP from session
+                session.pop('otp', None)
+                session['user'] = user_email  # Set user in session
+                session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
+                session['user_logged_in'] = True
+                session.permanent = True
+                app.logger.info(f"User {user_email} logged in successfully.")
+                return redirect(url_for('home', token=token))
+            else:
+                error = "Invalid OTP. Please try again."
+                app.logger.warning(f"Invalid OTP attempt for {user_email}")
         else:
-            error = "Invalid OTP. Please try again."
-            app.logger.warning(f"Invalid OTP attempt for {user_email}")
+            error = "OTP has expired. Please request a new OTP."
+            app.logger.warning(f"Expired OTP attempt for {user_email}")
 
     return render_template('customer/verify_otp.html', error=error, user_email=user_email)
 
