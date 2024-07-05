@@ -3,7 +3,7 @@ import logging
 import re
 import stripe
 
-from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify
+from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify, make_response, request
 from flask_mail import Mail, Message
 from Forms import CreateUserForm, UpdateProfileForm, LoginForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -61,14 +61,10 @@ with app.app_context():
 
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
 
+
 @app.route('/')
 def home():
-    token = request.args.get('token')
-    stored_token = session.get('token')
-
-    if token != stored_token:
-        return "Sorry, an unexpected error occurred. :("
-    return render_template("homepage/homepage.html", token=token)
+    return render_template("homepage/homepage.html")
 
 
 @app.route('/models')
@@ -155,9 +151,14 @@ def generate_otp(length=6):
     return otp
 
 
+def generate_session_id(length=32):
+    return secrets.token_hex(length)
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
+    print(session)
     if session.get('user_logged_in'):
         return "You are already logged in."
 
@@ -186,18 +187,13 @@ def login():
                     db.session.commit()
 
                     otp = generate_otp()
-                    session.clear()  # Clear existing session data
                     session['otp'] = otp
                     session['user_email'] = email
-                    session['user_logged_in'] = True
-
-                    token = secrets.token_urlsafe(16)
-                    session['token'] = token
 
                     send_otp_email(user.email, otp)
                     app.logger.info(f"OTP sent to {user.email}")
 
-                    return redirect(url_for('verify_otp', token=token))
+                    return redirect(url_for('verify_otp'))
                 else:
                     user.failed_attempts += 1
 
@@ -223,8 +219,10 @@ def send_otp_email(email, otp):
     mail.send(msg)
 
 
+@app.route('/request_new_otp', methods=['POST'])
 def request_new_otp():
     user_email = session.get('user_email')
+    session.pop('otp', None)
     new_otp = generate_otp()
     session['otp'] = new_otp
     send_otp_email(user_email, new_otp)
@@ -246,8 +244,9 @@ app.jinja_env.filters['hide_email'] = hide_email
 def verify_otp():
     error = None
     user_email = session.get('user_email')
-    token = request.args.get('token')
-    stored_token = session.get('token')
+
+    if not user_email:
+        return redirect(url_for('login'))
 
     user = db.session.query(User).filter_by(email=user_email).first()
     if not user:
@@ -261,15 +260,21 @@ def verify_otp():
         current_time = datetime.now(timezone.utc).timestamp()
 
         if otp_generation_time and (current_time - otp_generation_time) <= 60:
-            if entered_otp == otp and stored_token == token:
+            if entered_otp == otp:
                 # Clear OTP from session
                 session.pop('otp', None)
+                session.pop('otp_generation_time', None)
                 session['user'] = user_email  # Set user in session
                 session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
                 session['user_logged_in'] = True
                 session.permanent = True
+
+                session_id = generate_session_id()
+                resp = make_response('Session cookie is set!')
+                resp.set_cookie('session_id', session_id)
+
                 app.logger.info(f"User {user_email} logged in successfully.")
-                return redirect(url_for('home', token=token))
+                return redirect(url_for('home'))
             else:
                 error = "Invalid OTP. Please try again."
                 app.logger.warning(f"Invalid OTP attempt for {user_email}")
@@ -280,25 +285,18 @@ def verify_otp():
     return render_template('customer/verify_otp.html', error=error, user_email=user_email)
 
 
-@app.route('/profile')
+@app.route('/profile', methods=['GET'])
 @login_required
 def profile():
     user_email = session.get('user_email')
-    token = request.args.get('token')
-    stored_token = session.get('token')
-
-    if token != stored_token:
-        return "Sorry, an unexpected error occurred. :("
-
-    if not user_email:
-        return redirect(url_for('login'))  # Redirect to login if user email is not found in session
+    session_id = request.cookies.get('session_id')
 
     user = db.session.query(User).filter_by(email=user_email).first()
 
-    if not user:
+    if not user_email or not user:
         return redirect(url_for('login'))
 
-    return render_template('customer/profile_page.html', user=user, token=token)
+    return render_template('customer/profile_page.html', user=user, session_id=session_id)
 
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
@@ -306,15 +304,10 @@ def profile():
 def edit_profile():
     error = None
     user_email = session.get('user_email')
-    token = request.args.get('token')
-    stored_token = session.get('token')
     user = db.session.query(User).filter_by(email=user_email).first()
 
     if not user:
         return redirect(url_for('login'))  # Redirect to login if user not found in the database
-
-    if token != stored_token:
-        return "Sorry, an unexpected error occurred. :("
 
     edit_profile_form = UpdateProfileForm(request.form, obj=user)
 
@@ -340,7 +333,7 @@ def edit_profile():
                 error = "Special characters are not allowed in the full name."
 
         if error:
-            return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, token=token, error=error)
+            return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
 
         # Update user details
         user.full_name = edit_profile_form.full_name.data
@@ -349,13 +342,13 @@ def edit_profile():
         user.phone_number = edit_profile_form.phone_number.data
 
         # Update password if new password is provided and matches confirmation
-        if new_password == confirm_new_password:
+        if new_password and new_password == confirm_new_password:
             user.password_hash = generate_password_hash(new_password)
 
         db.session.commit()
         error = 'Profile updated successfully.'
 
-    return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, token=token, error=error)
+    return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
 
 
 @app.route('/user/logout')
@@ -365,6 +358,7 @@ def logout():
         app.logger.info(f"User {user_email} logged out successfully.")
         session.clear()
         session.modified = True
+        print(session)
         return redirect(url_for('home'))
     else:
         return "You are not logged in."

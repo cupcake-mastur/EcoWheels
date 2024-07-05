@@ -9,6 +9,12 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/MaterialDesign-Webfont/3.6.95/css/materialdesignicons.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_page.css') }}">
 
+<div class="home-icon">
+   <a href="/" class="icon-link">
+    <i class="bi bi-house-door"></i>
+   </a>
+</div>
+
 <div class="page-content page-container" id="page-content">
     <div class="padding d-flex justify-content-center">
         <div class="col-xl-6 col-md-12">
@@ -20,7 +26,7 @@
                                 <i class="bi bi-person-circle" style="font-size: 100px; color: #000;"></i>
                             </div>
                             <h6 class="f-w-600">{{ user.full_name }}</h6>
-                            <a href="{{ url_for('edit_profile', token=token) }}">
+                            <a href="{{ url_for('edit_profile') }}">
                                 <i class="mdi mdi-square-edit-outline feather icon-edit m-t-10 f-16" style="font-size: 23px; color: white;"></i>
                             </a>
                         </div>

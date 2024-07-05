@@ -3,8 +3,10 @@
 
 {% block content %}
 {% from "_formHelper.html" import render_field %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/edit_profile.css') }}">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sign_up.css') }}">
+<a href="{{ url_for('profile') }}" id="backButton" style="outline: none;">< Back to Profile Page</a>
+
 <div class="container">
        <div class="title">
             <p>Edit Profile</p>
@@ -16,7 +18,7 @@
       </p>
     {% endif %}
 
-        <form method="POST" action="{{ url_for('edit_profile', token=token) }}" autocomplete="off">
+        <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off">
             <div class="user_details">
                 <div class="input_box">
                     {{ render_field(form.full_name, class="form-control", id="name", placeholder="Enter your name") }}

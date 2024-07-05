@@ -61,6 +61,17 @@ body{
   }
 }
 
+#resend {
+    cursor: pointer;
+    border-radius: 4px;
+    background-color: #ff0000;
+    border: 0;
+    padding: 10px 162px;
+    margin: 45px 0 5px 436px;
+    font-size: 16px;
+    color: #ffffff; /* Text color */
+}
+
 #verify {
   background-color: #2f8f1f;
   color: white;
