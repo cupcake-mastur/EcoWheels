@@ -1,6 +1,6 @@
 function showSessionExpiredModal() {
     var modal = document.getElementById('session-expired-modal');
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
 
     var closeButton = modal.querySelector('.close');
     closeButton.onclick = function() {
@@ -28,4 +28,4 @@ function checkSession() {
 }
 
 // Polling to check session status periodically
-setInterval(checkSession, 60000);
+setInterval(checkSession, 10000);
