@@ -527,12 +527,20 @@ def admin_log_in():
         # Compare the hashed input password with the hashed password in the database
         if admin and admin.check_password(password):
             session['admin_username'] = username  # Store the username in the session
+            session['admin_logged_in'] = True  # Set admin logged in status
             return redirect(url_for('dashboard'))
         else:
             error_message = "Incorrect Username or Password"  # Set the error message
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
+def admin_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_log_in'))  # Redirect to admin login if not logged in
+        return f(*args, **kwargs)
+    return decorated_function
 
 def is_valid_input(input_str):
     """
@@ -598,18 +606,22 @@ def createVehicle():
 
 
 @app.route('/dashboard', methods=['GET', 'POST'])
+@admin_login_required
 def dashboard():
     admin_username = session.get('admin_username')
     return render_template('admin/dashboard.html', admin_username=admin_username)
 
 @app.route('/manageCustomers')
+@admin_login_required
 def MCustomers():
     admin_username = session.get('admin_username')
     customers = db.session.query(User).all()  # Retrieve all users from the database
     return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
 
 
+
 @app.route('/manageVehicles')
+@admin_login_required
 def MVehicles():
     admin_username = session.get('admin_username')
     vehicles = db.session.query(Vehicle).all()
@@ -617,6 +629,7 @@ def MVehicles():
 
 
 @app.route('/delete_vehicle/<int:id>', methods=['POST'])
+@admin_login_required
 def delete_vehicle(id):
     # Retrieve the vehicle from the database
     vehicle = db.session.query(Vehicle).get(id)
@@ -628,6 +641,18 @@ def delete_vehicle(id):
 
     # Redirect back to the manageVehicles page
     return redirect(url_for('MVehicles'))
+
+@app.route('/admin_logout')
+def admin_logout():
+    if 'admin_logged_in' in session:
+        session.pop('admin_logged_in', None)
+        session.pop('admin_username', None)
+        app.logger.info("Admin logged out successfully.")
+        session.clear()
+        session.modified = True
+        return redirect(url_for('admin_log_in'))
+    else:
+        return "Admin is not logged in."
 
 
 if __name__ == '__main__':
