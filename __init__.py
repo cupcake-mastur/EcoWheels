@@ -122,8 +122,10 @@ def sign_up():
             error = "Phone number must be 8 digits."
         else:
             # Validate special characters
-            if any(char in "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?'" for char in full_name):
-                error = "Special characters are not allowed in the full name."
+            special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
+
+            if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
+                error = "Special characters are not allowed in the full name or username."
 
         if error is None:
             hashed_password = generate_password_hash(password)
@@ -149,10 +151,6 @@ def generate_otp(length=6):
     otp = ''.join(random.choices(string.digits, k=length))
     session['otp_generation_time'] = datetime.now(timezone.utc).timestamp()
     return otp
-
-
-def generate_session_id(length=32):
-    return secrets.token_hex(length)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -269,10 +267,6 @@ def verify_otp():
                 session['user_logged_in'] = True
                 session.permanent = True
 
-                session_id = generate_session_id()
-                resp = make_response('Session cookie is set!')
-                resp.set_cookie('session_id', session_id)
-
                 app.logger.info(f"User {user_email} logged in successfully.")
                 return redirect(url_for('home'))
             else:
@@ -289,14 +283,13 @@ def verify_otp():
 @login_required
 def profile():
     user_email = session.get('user_email')
-    session_id = request.cookies.get('session_id')
 
     user = db.session.query(User).filter_by(email=user_email).first()
 
     if not user_email or not user:
         return redirect(url_for('login'))
 
-    return render_template('customer/profile_page.html', user=user, session_id=session_id)
+    return render_template('customer/profile_page.html', user=user)
 
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
@@ -329,8 +322,10 @@ def edit_profile():
             error = "Phone number must be 8 digits."
         else:
             # Validate special characters
-            if any(char in "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?'" for char in full_name):
-                error = "Special characters are not allowed in the full name."
+            special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
+
+            if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
+                error = "Special characters are not allowed in the full name or username."
 
         if error:
             return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
