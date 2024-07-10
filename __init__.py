@@ -317,7 +317,6 @@ def profile():
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
-    # update_last_visited_url()
     error = None
     user_email = session.get('user_email')
     user = db.session.query(User).filter_by(email=user_email).first()
@@ -328,40 +327,53 @@ def edit_profile():
     edit_profile_form = UpdateProfileForm(request.form, obj=user)
 
     if request.method == 'POST' and edit_profile_form.validate():
-        full_name = edit_profile_form.full_name.data
-        username = edit_profile_form.username.data
-        email = edit_profile_form.email.data
-        phone_number = edit_profile_form.phone_number.data
-        current_password = edit_profile_form.current_password.data
-        new_password = edit_profile_form.new_password.data
-        confirm_new_password = edit_profile_form.confirm_new_password.data
+        form_type = request.form.get('form_type')
+        print(f"Form Type Received: {form_type}")
 
-        # Verify current password
-        if not check_password_hash(user.password_hash, current_password):
-            error = 'Current password is incorrect.'
-        elif new_password and new_password != confirm_new_password:
-            error = 'New passwords do not match.'
-        elif len(str(phone_number)) != 8:
-            error = "Phone number must be 8 digits."
-        else:
-            # Validate special characters
-            special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
+        if form_type == 'general':
+            full_name = edit_profile_form.full_name.data
+            username = edit_profile_form.username.data
+            email = edit_profile_form.email.data
+            phone_number = edit_profile_form.phone_number.data
+            current_password = edit_profile_form.current_password.data
+            new_password = edit_profile_form.new_password.data
+            confirm_new_password = edit_profile_form.confirm_new_password.data
 
-            if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
-                error = "Special characters are not allowed in the full name or username."
+            # Validate current password if provided
+            if current_password and not check_password_hash(user.password_hash, current_password):
+                error = 'Current password is incorrect.'
+            elif new_password and new_password != confirm_new_password:
+                error = 'New passwords do not match.'
+            elif len(str(phone_number)) != 8:
+                error = "Phone number must be 8 digits."
+            else:
+                # Validate special characters
+                special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
+
+                if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
+                    error = "Special characters are not allowed in the full name or username."
+
+                if not error:
+                    # Update user details
+                    user.full_name = full_name
+                    user.username = username
+                    user.email = email
+                    user.phone_number = phone_number
+
+                    # Update password if new password is provided and matches confirmation
+                    if new_password:
+                        user.password_hash = generate_password_hash(new_password)
+
+        elif form_type == 'payment':
+            # Need to add validation
+            user.card_name = edit_profile_form.card_name.data
+            user.card_number = edit_profile_form.card_number.data
+            user.exp_month = edit_profile_form.exp_month.data
+            user.exp_year = edit_profile_form.exp_year.data
+            user.cvv = edit_profile_form.cvv.data
 
         if error:
             return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
-
-        # Update user details
-        user.full_name = edit_profile_form.full_name.data
-        user.username = edit_profile_form.username.data
-        user.email = edit_profile_form.email.data
-        user.phone_number = edit_profile_form.phone_number.data
-
-        # Update password if new password is provided and matches confirmation
-        if new_password and new_password == confirm_new_password:
-            user.password_hash = generate_password_hash(new_password)
 
         db.session.commit()
         error = 'Profile updated successfully.'

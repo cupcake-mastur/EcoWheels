@@ -33,6 +33,7 @@
                 {% endif %}
                 <div class="user-details">
                     <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off">
+                        <input type="hidden" name="form_type" value="general">
                         {{ render_field(form.full_name, class="form-control", id="name", placeholder="Enter your name") }}
                         {{ render_field(form.username, class="form-control", id="username", placeholder="Enter your username") }}
                         {{ render_field(form.email, class="form-control", id="email", placeholder="example@gmail.com") }}
@@ -50,7 +51,12 @@
                 </div>
                 <div class="payment-details">
                     <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off">
-                        <!-- Add payment fields here -->
+                        <input type="hidden" name="form_type" value="payment">
+                        {{ render_field(form.card_name, class="form-control", id="card_name", placeholder="Enter your card name") }}
+                        {{ render_field(form.card_number, class="form-control", id="card_number", placeholder="Enter your card number") }}
+                        {{ render_field(form.exp_month, class="form-control", id="exp_month", placeholder="Enter your expiry month") }}
+                        {{ render_field(form.exp_year, class="form-control", id="exp_year", placeholder="Enter your name") }}
+                        {{ render_field(form.cvv, class="form-control", id="cvv", placeholder="Enter your cvv") }}
                         <button type="submit" class="btn btn-primary" id="saveChanges_p">Save Changes</button>
                     </form>
                 </div>

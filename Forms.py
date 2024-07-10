@@ -26,9 +26,15 @@ class UpdateProfileForm(Form):
     username = StringField('Username', validators=[validators.DataRequired()])
     phone_number = IntegerField('Phone Number', [validators.DataRequired(),
                                                  validators.NumberRange(min=00000000, max=99999999)])
-    current_password = PasswordField('Current Password', [validators.DataRequired(), validators.length(min=8, max=30)])
+    current_password = PasswordField('Current Password', [validators.Optional(), validators.length(min=8, max=30)])
     new_password = PasswordField('New Password', [validators.Optional(), validators.length(min=8, max=30)])
     confirm_new_password = PasswordField('Confirm New Password', [validators.Optional(), validators.length(min=8, max=30)])
+
+    card_name = StringField('Card Name', validators=[validators.Optional(), validators.length(max=30)])
+    card_number = StringField('Card Number', validators=[validators.Optional(), validators.length(min=16, max=16)])
+    exp_month = StringField('Expiry Month', validators=[validators.Optional(), validators.length(min=2, max=2)])
+    exp_year = StringField('Expiry Year', validators=[validators.Optional(), validators.length(min=4, max=4)])
+    cvv = StringField('CVV', validators=[validators.Optional(), validators.length(min=3, max=3)])
 
 
 class AdminLoginForm(FlaskForm):

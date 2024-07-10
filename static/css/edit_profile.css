@@ -75,6 +75,10 @@
     margin-top: 20px;
 }
 
+#saveChanges_p {
+    margin-top: 20px;
+}
+
 /* Tab content styling */
 .tab-content {
     padding: 20px;
