@@ -21,6 +21,12 @@ class User(db.Model):
     lockout_until = db.Column(db.DateTime, nullable=True)
     last_visited_url = db.Column(db.String(200), default='/')
 
+    card_name = db.Column(db.String(30))
+    card_number = db.Column(db.String(20))
+    exp_month = db.Column(db.String(2))
+    exp_year = db.Column(db.String(4))
+    cvv = db.Column(db.String(3))
+
 
 class Order(db.Model):
     __tablename__ = 'orders'
