@@ -71,6 +71,10 @@
     border-color: #ddd #ddd #fff;
 }
 
+#saveChanges_g {
+    margin-top: 20px;
+}
+
 /* Tab content styling */
 .tab-content {
     padding: 20px;
@@ -92,7 +96,10 @@ p[style*="color: red"] {
     font-weight: bold;
 }
 
-/* Back button styling */
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+    display: none;
+}
+
 #backButton {
     display: inline-block;
     margin-bottom: 20px;

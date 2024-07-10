@@ -5,52 +5,57 @@
 {% from "_formHelper.html" import render_field %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/edit_profile.css') }}">
 
-<a href="{{ url_for('profile') }}" id="backButton" style="outline: none; " class="nav-link">< Back to Profile Page</a>
+<a href="{{ url_for('profile') }}" id="backButton" style="outline: none;" class="nav-link">< Back to Profile Page</a>
 
 <div class="container">
-       <div class="title">
-            <p>Edit Profile</p>
-        </div>
+    <div class="title">
+        <p>Edit Profile</p>
+    </div>
 
-    {% if error %}
-      <p style="text-align: center; {% if error == 'Profile updated successfully.' %}color: LimeGreen;{% else %}color: red;{% endif %}">
-        {{ error }}
-      </p>
-    {% endif %}
-
-        <div class="container">
-    <ul class="nav nav-tabs" id="myTab" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="general-tab" data-toggle="tab" href="#general" role="tab" aria-controls="general" aria-selected="true">General Information</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="payment-tab" data-toggle="tab" href="#payment" role="tab" aria-controls="payment" aria-selected="false">Payment Information</a>
-        </li>
-        <!-- Add more tabs as needed -->
-    </ul>
-    <div class="tab-content" id="myTabContent">
-        <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
-            <div class="title">
-                <p>General Information</p>
+    <div class="container">
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="general-tab" data-toggle="tab" href="#general" role="tab" aria-controls="general" aria-selected="true">General Information</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="payment-tab" data-toggle="tab" href="#payment" role="tab" aria-controls="payment" aria-selected="false">Payment Information</a>
+            </li>
+        </ul>
+        <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+                <div class="title">
+                    <p>General Information</p>
+                </div>
+                {% if error %}
+                  <p style="text-align: center; {% if error == 'Profile updated successfully.' %}color: LimeGreen;{% else %}color: red;{% endif %}">
+                    {{ error }}
+                  </p>
+                {% endif %}
+                <div class="user-details">
+                    <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off">
+                        {{ render_field(form.full_name, class="form-control", id="name", placeholder="Enter your name") }}
+                        {{ render_field(form.username, class="form-control", id="username", placeholder="Enter your username") }}
+                        {{ render_field(form.email, class="form-control", id="email", placeholder="example@gmail.com") }}
+                        {{ render_field(form.phone_number, class="form-control", id="phone", placeholder="8 digits phone number") }}
+                        {{ render_field(form.current_password, class="form-control", id="current_pass", placeholder="Enter your current password") }}
+                        {{ render_field(form.new_password, class="form-control", id="new_pass", placeholder="Enter your new password") }}
+                        {{ render_field(form.confirm_new_password, class="form-control", id="confirm_new_pass", placeholder="Confirm your password") }}
+                        <button type="submit" class="btn btn-primary" id="saveChanges_g">Save Changes</button>
+                    </form>
+                </div>
             </div>
-            <div class="user-details">
-                <p>Full Name: {{ form.full_name }}</p>
-                <p>Username: {{ form.username }}</p>
-                <p>Email: {{ form.email }}</p>
-                <p>Phone Number: {{ form.phone_number }}</p>
-                <p>Current Password: {{form.current_password }}</p>
-                <!-- Add more fields as needed -->
+            <div class="tab-pane fade" id="payment" role="tabpanel" aria-labelledby="payment-tab">
+                <div class="title">
+                    <p>Payment Information</p>
+                </div>
+                <div class="payment-details">
+                    <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off">
+                        <!-- Add payment fields here -->
+                        <button type="submit" class="btn btn-primary" id="saveChanges_p">Save Changes</button>
+                    </form>
+                </div>
             </div>
         </div>
-        <div class="tab-pane fade" id="payment" role="tabpanel" aria-labelledby="payment-tab">
-            <div class="title">
-                <p>Payment Information</p>
-            </div>
-            <div class="payment-details">
-
-            </div>
-        </div>
-        <!-- Add more tab panes as needed -->
     </div>
 </div>
 
