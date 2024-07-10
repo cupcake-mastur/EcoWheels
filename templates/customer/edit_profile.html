@@ -18,34 +18,50 @@
       </p>
     {% endif %}
 
-        <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off">
-            <div class="user_details">
-                <div class="input_box">
-                    {{ render_field(form.full_name, class="form-control", id="name", placeholder="Enter your name") }}
-                </div>
-                <div class="input_box">
-                    {{ render_field(form.username, class="form-control", id="username", placeholder="Enter your username") }}
-                </div>
-                <div class="input_box">
-                    {{ render_field(form.email, class="form-control", id="email", placeholder="example@gmail.com") }}
-                </div>
-                <div class="input_box">
-                    {{ render_field(form.phone_number, class="form-control", id="phone", placeholder="8 digits phone number") }}
-                </div>
-                <div class="input_box">
-                    {{ render_field(form.current_password, class="form-control", id="current_pass", placeholder="Enter your current password") }}
-                </div>
-                <div class="input_box">
-                    {{ render_field(form.new_password, class="form-control", id="new_pass", placeholder="Enter your new password") }}
-                </div>
-                <div class="input_box">
-                    {{ render_field(form.confirm_new_password, class="form-control", id="confirm_new_pass", placeholder="Confirm your password") }}
-                </div>
+        <div class="container">
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="general-tab" data-toggle="tab" href="#general" role="tab" aria-controls="general" aria-selected="true">General Information</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="payment-tab" data-toggle="tab" href="#payment" role="tab" aria-controls="payment" aria-selected="false">Payment Information</a>
+        </li>
+        <!-- Add more tabs as needed -->
+    </ul>
+    <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+            <div class="title">
+                <p>General Information</p>
             </div>
-            <div class="reg_btn">
-                <input type="submit" value="Update">
+            <div class="user-details">
+                <p>Full Name: {{ form.full_name }}</p>
+                <p>Username: {{ form.username }}</p>
+                <p>Email: {{ form.email }}</p>
+                <p>Phone Number: {{ form.phone_number }}</p>
+                <p>Current Password: {{form.current_password }}</p>
+                <!-- Add more fields as needed -->
             </div>
-        </form>
-    </div>
+        </div>
+        <div class="tab-pane fade" id="payment" role="tabpanel" aria-labelledby="payment-tab">
+            <div class="title">
+                <p>Payment Information</p>
+            </div>
+            <div class="payment-details">
 
+            </div>
+        </div>
+        <!-- Add more tab panes as needed -->
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script>
+    $(document).ready(function () {
+        $('#myTab a').on('click', function (e) {
+            e.preventDefault();
+            $(this).tab('show');
+        });
+    });
+</script>
 {% endblock %}

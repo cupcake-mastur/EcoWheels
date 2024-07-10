@@ -19,6 +19,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(128))
     failed_attempts = db.Column(db.Integer, default=0)
     lockout_until = db.Column(db.DateTime, nullable=True)
+    last_visited_url = db.Column(db.String(200), default='/')
 
 
 class Order(db.Model):

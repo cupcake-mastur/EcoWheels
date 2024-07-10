@@ -263,13 +263,19 @@ def verify_otp():
                 # Clear OTP from session
                 session.pop('otp', None)
                 session.pop('otp_generation_time', None)
+
+                if not request.path.startswith('/verify_otp'):
+                    user.last_visited_url = request.url
+                db.session.commit()
+
                 session['user'] = user_email  # Set user in session
                 session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
                 session['user_logged_in'] = True
                 session.permanent = True
 
                 app.logger.info(f"User {user_email} logged in successfully.")
-                return redirect(url_for('home'))
+                print(f"Last visited URL: {user.last_visited_url}")
+                return redirect(user.last_visited_url)
             else:
                 error = "Invalid OTP. Please try again."
                 app.logger.warning(f"Invalid OTP attempt for {user_email}")
