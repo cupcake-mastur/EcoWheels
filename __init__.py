@@ -32,6 +32,7 @@ app = Flask(__name__)
 logging.basicConfig(filename='app.log', level=logging.DEBUG,
                     format=f'%(asctime)s %(levelname)s: %(message)s')
 
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
 
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
@@ -60,11 +61,29 @@ with app.app_context():
     db.init_app(app)
     db.create_all()  # Create sql tables
 
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
+
+# @app.route('/update_last_visited_url', methods=['POST'])
+# def update_last_visited_url():
+#     if 'user_email' in session:
+#         user_email = session['user_email']
+#         user = db.session.query(User).filter_by(email=user_email).first()
+#         if user:
+#             last_visited_url = request.form.get('last_visited_url')
+#             if last_visited_url:  # Check if last_visited_url is not None or empty
+#                 user.last_visited_url = last_visited_url
+#             else:
+#                 user.last_visited_url = '/'  # Set to default if last_visited_url is None or empty
+#             db.session.commit()
+#             return jsonify({'message': 'Last visited URL updated successfully.'}), 200
+#         else:
+#             return jsonify({'error': 'User not found.'}), 404
+#     else:
+#         return jsonify({'error': 'User not authenticated.'}), 401
 
 
 @app.route('/')
 def home():
+    # update_last_visited_url()
     return render_template("homepage/homepage.html")
 
 
@@ -264,17 +283,12 @@ def verify_otp():
                 session.pop('otp', None)
                 session.pop('otp_generation_time', None)
 
-                if not request.path.startswith('/verify_otp'):
-                    user.last_visited_url = request.url
-                db.session.commit()
-
                 session['user'] = user_email  # Set user in session
                 session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
                 session['user_logged_in'] = True
                 session.permanent = True
 
                 app.logger.info(f"User {user_email} logged in successfully.")
-                print(f"Last visited URL: {user.last_visited_url}")
                 return redirect(user.last_visited_url)
             else:
                 error = "Invalid OTP. Please try again."
@@ -289,6 +303,7 @@ def verify_otp():
 @app.route('/profile', methods=['GET'])
 @login_required
 def profile():
+    # update_last_visited_url()
     user_email = session.get('user_email')
 
     user = db.session.query(User).filter_by(email=user_email).first()
@@ -302,6 +317,7 @@ def profile():
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
+    # update_last_visited_url()
     error = None
     user_email = session.get('user_email')
     user = db.session.query(User).filter_by(email=user_email).first()

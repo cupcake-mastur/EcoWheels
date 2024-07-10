@@ -5,7 +5,7 @@
 {% from "_formHelper.html" import render_field %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/edit_profile.css') }}">
 
-<a href="{{ url_for('profile') }}" id="backButton" style="outline: none;">< Back to Profile Page</a>
+<a href="{{ url_for('profile') }}" id="backButton" style="outline: none; " class="nav-link">< Back to Profile Page</a>
 
 <div class="container">
        <div class="title">
@@ -56,6 +56,7 @@
 
 <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/last_visited_url.js') }}"></script>
 <script>
     $(document).ready(function () {
         $('#myTab a').on('click', function (e) {
