@@ -4,40 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoWheels Admin</title>
-    <link rel="stylesheet" type="text/css" href="../static/css/style.css">
-<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
-
-      <style>
-
+    <style>
         #v-table {
             margin: 0 auto;
             border-collapse: collapse;
             width: 100%;
             font-size: 1.05rem;
         }
-
         th.v-tablehead {
             background-color: #eee;
-            padding: 20px; /* Adjust spacing */        }
-
+            padding: 20px;
+        }
         tr:last-child td {
             border-bottom: #12171e;
         }
-
         td {
             text-align: center;
             padding: 5px;
         }
-
         tbody tr:nth-child(odd) {
             background-color: #D3D3D3;
         }
-
         tbody tr:nth-child(even) {
             background-color: #eee;
         }
-
         .delete-button {
             background-color: #dc3545;
             color: #fff;
@@ -48,26 +42,22 @@
             transition: background-color 0.3s;
             font-weight: 500;
         }
-
         .delete-button:hover {
             background-color: #c82333;
         }
     </style>
-
 </head>
 <body>
 
     <div class="sidebar">
         <div class="top">
             <div class="logo">
-                <!-- <img src="../static/images/EcoWheels Logo.jpeg" alt="Img" class="org-img"> -->
                 <i class='bx bx-car'></i>
                 <span>EcoWheels</span>
             </div>
             <i class="bx bx-menu" id="btn"></i>
         </div>
         <div class="user">
-            
             <div>
                 <p class="bold">{{ admin_username }}</p>
                 <p>Admin</p>
@@ -104,7 +94,7 @@
             </li>
         </ul>
     </div>
-    
+
     <div class="main-content">
         <div class="container">
             <h1>EcoWheels Management System</h1>
@@ -114,7 +104,7 @@
         <a href="{{ url_for('createVehicle') }}"><button id="createVehicle">Add Vehicle</button></a>
         <br>
         <br>
-       <table id="v-table" border="0">
+        <table id="v-table" border="0">
             <thead>
                 <tr>
                     <th class="v-tablehead">Vehicle id</th>
@@ -123,9 +113,9 @@
                     <th class="v-tablehead">$SGD Selling Price</th>
                     <th class="v-tablehead">Image</th>
                     <th class="v-tablehead">Description</th>
-                    <th class="v-tablehead">Actions</th> <!-- New column for actions -->
+                    <th class="v-tablehead">Actions</th>
                 </tr>
-                <tr> <!-- Add a new row for the line below the header -->
+                <tr>
                     <th colspan="7" style="border-bottom: 2px solid #000000;"></th>
                 </tr>
             </thead>
@@ -135,40 +125,41 @@
                     <td>{{ vehicle.idvehicles }}</td>
                     <td>{{ vehicle.brand }}</td>
                     <td>{{ vehicle.model }}</td>
-                    <td>{{ '{:,.2f}'.format(vehicle.selling_price) }}</td> <!-- Format selling price to 2 decimal places -->
-                    <td>{{ vehicle.image }}</td> <!-- Assuming you have logic to display images -->
+                    <td>{{ '{:,.2f}'.format(vehicle.selling_price) }}</td>
+                    <td>
+                        {% if vehicle.image %}
+                            <img src="{{ url_for('static', filename='vehicle_images/' + vehicle.image) }}" alt="Vehicle Image" style="max-width: 100px; max-height: 100px;">
+                        {% else %}
+                            No Image
+                        {% endif %}
+                    </td>
                     <td>{{ vehicle.description }}</td>
-                   <td>
-    <!-- Form for delete button -->
-                        <form id="deleteForm{{ vehicle.idvehicles }}, open-popup" action="{{ url_for('delete_vehicle', id=vehicle.idvehicles) }}" method="post">
+                    <td>
+                        <form id="deleteForm{{ vehicle.idvehicles }}" action="{{ url_for('delete_vehicle', id=vehicle.idvehicles) }}" method="post">
                             <div>
-                                <button class="delete-button" type="button" onclick="openPopup()">Delete</button>
-                            </div>
-                            <div class="popup" id="popup">
-                                <div class="overlay"></div>
-                                <div class="popup-content">
-                                    <h2>Are you sure you want to delete this vehicle ?</h2>
-                                    <p>{{ vehicle.idvehicles}}  {{vehicle.brand}} {{vehicle.model}}</p>
-                                    <div class="controls">
-                                        <button class="close-btn" type="button">Close</button>
-                                        <button class="submit-btn" type="submit">Submit</button>
-                                    </div>
-                                </div>
+                                <button class="delete-button" type="button" onclick="openPopup({{ vehicle.idvehicles }}, '{{ vehicle.brand }}', '{{ vehicle.model }}')">Delete</button>
                             </div>
                         </form>
-                   </td>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
-    </table>
+        </table>
     </div>
 
-
-
-</body>
+    <div class="popup" id="popup">
+        <div class="overlay"></div>
+        <div class="popup-content">
+            <h2>Are you sure you want to delete this vehicle?</h2>
+            <p id="popup-vehicle-info"></p>
+            <div class="controls">
+                <button class="close-btn" type="button">Close</button>
+                <button class="submit-btn" id="press-n-hold" type="button">Submit</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-
         let btn = document.querySelector("#btn");
         let sidebar = document.querySelector(".sidebar");
 
@@ -176,7 +167,6 @@
             sidebar.classList.toggle('active');
         };
 
-        // Function to remove the active class from all links
         function removeActiveClasses() {
             const activeLinks = document.querySelectorAll(".nav__link.active");
             activeLinks.forEach(link => {
@@ -184,7 +174,6 @@
             });
         }
 
-        // Add click event listener to each link
         document.querySelectorAll(".nav__link").forEach(link => {
             link.addEventListener("click", function() {
                 removeActiveClasses();
@@ -192,20 +181,48 @@
             });
         });
 
-          function openPopup() {
+        function openPopup(vehicleId, brand, model) {
             const popupNode = document.getElementById('popup');
             const overlay = popupNode.querySelector('.overlay');
             const closeBtn = popupNode.querySelector('.close-btn');
+            const submitBtn = popupNode.querySelector('#press-n-hold');
+            const vehicleInfo = `${vehicleId} ${brand} ${model}`;
+            const form = document.getElementById(`deleteForm${vehicleId}`);
+
+            document.getElementById('popup-vehicle-info').textContent = vehicleInfo;
 
             function closePopup() {
                 popupNode.classList.remove('active');
+                isHoldingButton = false;
+                clearTimeout(pressHoldTimer);
             }
+
+            let pressHoldDuration = 1000;
+            let pressHoldTimer;
+            let isHoldingButton = false;
+
+            function startPressHold() {
+                isHoldingButton = true;
+                pressHoldTimer = setTimeout(() => {
+                    if (isHoldingButton) {
+                        form.submit();
+                    }
+                }, pressHoldDuration);
+            }
+
+            function endPressHold() {
+                clearTimeout(pressHoldTimer);
+                isHoldingButton = false;
+            }
+
+            submitBtn.onmousedown = startPressHold;
+            submitBtn.onmouseup = endPressHold;
+            submitBtn.onmouseleave = endPressHold;
 
             popupNode.classList.add('active');
             overlay.addEventListener('click', closePopup);
             closeBtn.addEventListener('click', closePopup);
         }
-
     </script>
-
+</body>
 </html>

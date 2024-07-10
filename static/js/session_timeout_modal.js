@@ -1,18 +1,21 @@
 function showSessionExpiredModal() {
     var modal = document.getElementById('session-expired-modal');
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
 
-    // Close the modal and redirect when the user clicks the close (x) button
     var closeButton = modal.querySelector('.close');
     closeButton.onclick = function() {
         modal.style.display = 'none';
-        window.location.href = '/login';  // Adjust URL as per your routes
+        window.location.href = '/login';
     }
 }
 
-// Function to check session status
 function checkSession() {
-    fetch('/check_session')
+    fetch('/check_session', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-Check-Session': 'True'
+        }
+    })
         .then(response => response.json())
         .then(data => {
             if (data.expired) {
@@ -25,4 +28,4 @@ function checkSession() {
 }
 
 // Polling to check session status periodically
-setInterval(checkSession, 60000);
+setInterval(checkSession, 10000);

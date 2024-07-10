@@ -110,3 +110,20 @@ h6 {
     -webkit-transition: all 0.3s ease-in-out;
     transition: all 0.3s ease-in-out;
 }
+
+.home-icon {
+    position: absolute;
+    top: 28px;
+    right: 50px;
+    font-size: 2.5em;
+    color: ##000000;
+    }
+
+.icon-link {
+      text-decoration: none;
+      color: inherit;
+    }
+
+.icon-link:hover {
+    color: LimeGreen;
+}

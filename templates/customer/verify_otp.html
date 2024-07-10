@@ -7,7 +7,7 @@
     <form method="post" class="otp-form" name="otp-form" autocomplete="off">
         <div class="title">
             <h3 style="font-size: 30px;">OTP VERIFICATION</h3>
-            <p class="info">An otp has been sent to {{ user_email|hide_email }}</p>
+            <p class="info">An OTP has been sent to {{ user_email|hide_email }}</p>
             <p class="msg" style="margin-top: 45px; text-align: center;">Please enter OTP to verify</p>
         </div>
           <div class="otp-input-fields" id="otp">
@@ -22,6 +22,9 @@
             <p style="color: red; text-align: center;">{{ error }}</p>
         {% endif %}
         <button type="submit" id="verify">Verify OTP</button>
+    </form>
+    <form action="{{ url_for('request_new_otp') }}" method="post">
+        <button type="submit" id="resend">Resend OTP</button>
     </form>
 
 <script>

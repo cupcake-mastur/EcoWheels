@@ -1,8 +1,9 @@
 import html
 import logging
 import re
+import stripe
 
-from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify
+from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify, make_response, request
 from flask_mail import Mail, Message
 from Forms import CreateUserForm, UpdateProfileForm, LoginForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -17,7 +18,9 @@ import random
 import string
 import secrets
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import exists
+from sqlalchemy import exists, func
+from werkzeug.utils import secure_filename
+from PIL import Image
 
 from model import *
 
@@ -33,7 +36,7 @@ logging.basicConfig(filename='app.log', level=logging.DEBUG,
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=20)  # Session timeout after 30 minutes
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session timeout after 30 minutes
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Only send cookie over HTTPS
@@ -57,15 +60,12 @@ with app.app_context():
     db.init_app(app)
     db.create_all()  # Create sql tables
 
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
+
 
 @app.route('/')
 def home():
-    token = request.args.get('token')
-    stored_token = session.get('token')
-
-    if token != stored_token:
-        return "Sorry, an unexpected error occurred. :("
-    return render_template("homepage/homepage.html", token=token)
+    return render_template("homepage/homepage.html")
 
 
 @app.route('/models')
@@ -87,8 +87,6 @@ def check_session():
 
         if current_time > expiry_time:
             app.logger.info("Session expired: True")
-            session.clear()
-            session.modified = True
             return jsonify(expired=True), 200
 
     app.logger.info("Session expired: False")
@@ -125,8 +123,10 @@ def sign_up():
             error = "Phone number must be 8 digits."
         else:
             # Validate special characters
-            if any(char in "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?'" for char in full_name):
-                error = "Special characters are not allowed in the full name."
+            special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
+
+            if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
+                error = "Special characters are not allowed in the full name or username."
 
         if error is None:
             hashed_password = generate_password_hash(password)
@@ -148,18 +148,16 @@ def login_required(f):
     return decorated_function
 
 
-def generate_user_id_hash(user_id):
-    secret_key = current_app.config['SECRET_KEY']
-    return hmac.new(secret_key.encode(), str(user_id).encode(), hashlib.sha256).hexdigest()
-
-
 def generate_otp(length=6):
-    return ''.join(random.choices(string.digits, k=length))
+    otp = ''.join(random.choices(string.digits, k=length))
+    session['otp_generation_time'] = datetime.now(timezone.utc).timestamp()
+    return otp
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
+    print(session)
     if session.get('user_logged_in'):
         return "You are already logged in."
 
@@ -188,18 +186,13 @@ def login():
                     db.session.commit()
 
                     otp = generate_otp()
-                    session.clear()  # Clear existing session data
                     session['otp'] = otp
                     session['user_email'] = email
-                    session['user_logged_in'] = True
-
-                    token = secrets.token_urlsafe(16)
-                    session['token'] = token
 
                     send_otp_email(user.email, otp)
                     app.logger.info(f"OTP sent to {user.email}")
 
-                    return redirect(url_for('verify_otp', token=token))
+                    return redirect(url_for('verify_otp'))
                 else:
                     user.failed_attempts += 1
 
@@ -221,8 +214,20 @@ def login():
 
 def send_otp_email(email, otp):
     msg = Message('Your OTP Code', recipients=[email])
-    msg.body = f'Your OTP code is: {otp}'
+    msg.body = f'Your OTP code is: {otp}\n\nPlease note that this code will expire in 1 minute.'
     mail.send(msg)
+
+
+@app.route('/request_new_otp', methods=['POST'])
+def request_new_otp():
+    user_email = session.get('user_email')
+    session.pop('otp', None)
+    new_otp = generate_otp()
+    session['otp'] = new_otp
+    send_otp_email(user_email, new_otp)
+    app.logger.info(f"New OTP sent to {user_email}")
+
+    return redirect(url_for('verify_otp'))
 
 
 def hide_email(email):
@@ -238,8 +243,9 @@ app.jinja_env.filters['hide_email'] = hide_email
 def verify_otp():
     error = None
     user_email = session.get('user_email')
-    token = request.args.get('token')
-    stored_token = session.get('token')
+
+    if not user_email:
+        return redirect(url_for('login'))
 
     user = db.session.query(User).filter_by(email=user_email).first()
     if not user:
@@ -249,42 +255,42 @@ def verify_otp():
         entered_otp_digits = [request.form.get(f'otp{i}') for i in range(1, 7)]
         entered_otp = ''.join(entered_otp_digits)
         otp = session.get('otp')
+        otp_generation_time = session.get('otp_generation_time')
+        current_time = datetime.now(timezone.utc).timestamp()
 
-        if entered_otp == otp and stored_token == token:
-            # Clear OTP from session
-            session.pop('otp', None)
-            session['user'] = user_email  # Set user in session
-            session['expiry_time'] = (datetime.now(timezone.utc) + timedelta(minutes=20)).timestamp()
-            session['user_logged_in'] = True
-            session.permanent = True
-            app.logger.info(f"User {user_email} logged in successfully.")
-            return redirect(url_for('home', token=token))
+        if otp_generation_time and (current_time - otp_generation_time) <= 60:
+            if entered_otp == otp:
+                # Clear OTP from session
+                session.pop('otp', None)
+                session.pop('otp_generation_time', None)
+                session['user'] = user_email  # Set user in session
+                session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
+                session['user_logged_in'] = True
+                session.permanent = True
+
+                app.logger.info(f"User {user_email} logged in successfully.")
+                return redirect(url_for('home'))
+            else:
+                error = "Invalid OTP. Please try again."
+                app.logger.warning(f"Invalid OTP attempt for {user_email}")
         else:
-            error = "Invalid OTP. Please try again."
-            app.logger.warning(f"Invalid OTP attempt for {user_email}")
+            error = "OTP has expired. Please request a new OTP."
+            app.logger.warning(f"Expired OTP attempt for {user_email}")
 
     return render_template('customer/verify_otp.html', error=error, user_email=user_email)
 
 
-@app.route('/profile')
+@app.route('/profile', methods=['GET'])
 @login_required
 def profile():
     user_email = session.get('user_email')
-    token = request.args.get('token')
-    stored_token = session.get('token')
-
-    if token != stored_token:
-        return "Sorry, an unexpected error occurred. :("
-
-    if not user_email:
-        return redirect(url_for('login'))  # Redirect to login if user email is not found in session
 
     user = db.session.query(User).filter_by(email=user_email).first()
 
-    if not user:
+    if not user_email or not user:
         return redirect(url_for('login'))
 
-    return render_template('customer/profile_page.html', user=user, token=token)
+    return render_template('customer/profile_page.html', user=user)
 
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
@@ -292,19 +298,18 @@ def profile():
 def edit_profile():
     error = None
     user_email = session.get('user_email')
-    token = request.args.get('token')
-    stored_token = session.get('token')
     user = db.session.query(User).filter_by(email=user_email).first()
 
     if not user:
         return redirect(url_for('login'))  # Redirect to login if user not found in the database
 
-    if token != stored_token:
-        return "Sorry, an unexpected error occurred. :("
-
     edit_profile_form = UpdateProfileForm(request.form, obj=user)
 
     if request.method == 'POST' and edit_profile_form.validate():
+        full_name = edit_profile_form.full_name.data
+        username = edit_profile_form.username.data
+        email = edit_profile_form.email.data
+        phone_number = edit_profile_form.phone_number.data
         current_password = edit_profile_form.current_password.data
         new_password = edit_profile_form.new_password.data
         confirm_new_password = edit_profile_form.confirm_new_password.data
@@ -314,9 +319,17 @@ def edit_profile():
             error = 'Current password is incorrect.'
         elif new_password and new_password != confirm_new_password:
             error = 'New passwords do not match.'
+        elif len(str(phone_number)) != 8:
+            error = "Phone number must be 8 digits."
+        else:
+            # Validate special characters
+            special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
+
+            if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
+                error = "Special characters are not allowed in the full name or username."
 
         if error:
-            return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, token=token, error=error)
+            return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
 
         # Update user details
         user.full_name = edit_profile_form.full_name.data
@@ -325,13 +338,13 @@ def edit_profile():
         user.phone_number = edit_profile_form.phone_number.data
 
         # Update password if new password is provided and matches confirmation
-        if new_password == confirm_new_password:
+        if new_password and new_password == confirm_new_password:
             user.password_hash = generate_password_hash(new_password)
 
         db.session.commit()
         error = 'Profile updated successfully.'
 
-    return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, token=token, error=error)
+    return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
 
 
 @app.route('/user/logout')
@@ -341,6 +354,7 @@ def logout():
         app.logger.info(f"User {user_email} logged out successfully.")
         session.clear()
         session.modified = True
+        print(session)
         return redirect(url_for('home'))
     else:
         return "You are not logged in."
@@ -349,10 +363,16 @@ def logout():
 @app.before_request
 def before_request():
     if 'user_email' in session:
-        if 'expiry_time' in session and datetime.now(timezone.utc).timestamp() > session['expiry_time']:
+        current_time = datetime.now(timezone.utc).timestamp()
+        if 'expiry_time' in session and current_time > session['expiry_time']:
+            session.clear()
             session.modified = True
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify(expired=True), 401  # Return JSON for the AJAX request
+
+        if request.headers.get('X-Check-Session') != 'True':
+            session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
+            session.modified = True
 
 
 @app.route('/payment')
@@ -369,29 +389,43 @@ def confirmation():
 @app.route('/process_payment', methods=['POST'])
 def process_payment():
     try:
-        fullname = request.form['firstname']
-        email = request.form['email']
-        address = request.form['address']
-        city = request.form['city']
-        state = request.form['state']
-        zip_code = request.form['zip']
-        card_name = request.form['cardname']
-        card_number = request.form['cardnumber']
-        exp_month = request.form['expmonth']
-        exp_year = request.form['expyear']
-        cvv = request.form['cvv']
+        data = request.get_json()
+        fullname = data['firstname']
+        email = data['email']
+        address = data['address']
+        city = data['city']
+        state = data['state']
+        card_name = data['cardname']
 
-        new_order = Order(fullname=fullname, email=email, address=address, city=city, state=state,
-                          zip_code=zip_code, card_name=card_name, card_number=card_number,
-                          exp_month=exp_month, exp_year=exp_year, cvv=cvv)
+        new_order = Order(fullname=fullname, email=email, address=address, city=city, state=state, card_name=card_name)
         db.session.add(new_order)
         db.session.commit()
+        return jsonify({"message": "Order processed successfully"}), 200
     except Exception as e:
         db.session.rollback()
-        print("Failed to process payment:", e)  # Log the error or use a logging framework
-        return "Error processing payment", 500
-    return redirect(url_for('confirmation'))
+        print("Failed to process payment:", e)
+        return jsonify({"error": "Error processing payment"}), 500
 
+@app.route('/create-payment-intent', methods=['POST'])
+def create_payment_intent():
+    try:
+        data = request.get_json()
+        amount = data['amount']
+        currency = data['currency']
+
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency=currency,
+            automatic_payment_methods={
+                'enabled': True,
+            },
+        )
+
+        return jsonify({
+            'clientSecret': intent['client_secret']
+        })
+    except Exception as e:
+        return jsonify(error=str(e)), 403
 
 # @app.route('/process_payment', methods=['POST'])
 # def process_payment():
@@ -469,19 +503,18 @@ def process_payment():
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
-    form = AdminLoginForm()
+    form = AdminLoginForm(request.form)
+    error_message = None  # Initialize the error message
     if form.validate_on_submit():
         username = html.escape(form.username.data)  # Escape HTML characters
         password = html.escape(form.password.data)
 
         # Manually trigger field validation
         if not form.username.validate(form) or not form.password.validate(form):
-            flash('Invalid characters in username or password', 'danger')
             return render_template('admin/admin_log_in.html', form=form)
 
         # Check for disallowed characters in username and password
         if not is_valid_input(username) or not is_valid_input(password):
-            flash('Invalid characters in username or password', 'danger')
             return render_template('admin/admin_log_in.html', form=form)
 
         # Perform case-sensitive query for the admin with the given username
@@ -490,15 +523,20 @@ def admin_log_in():
         # Compare the hashed input password with the hashed password in the database
         if admin and admin.check_password(password):
             session['admin_username'] = username  # Store the username in the session
+            session['admin_logged_in'] = True  # Set admin logged in status
             return redirect(url_for('dashboard'))
         else:
-            flash('Invalid username or password', 'danger')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f"Error in {getattr(form, field).label.text}: {error}", 'danger')
+            error_message = "Incorrect Username or Password"  # Set the error message
 
-    return render_template('admin/admin_log_in.html', form=form)
+    return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
+
+def admin_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_log_in'))  # Redirect to admin login if not logged in
+        return f(*args, **kwargs)
+    return decorated_function
 
 def is_valid_input(input_str):
     """
@@ -508,31 +546,78 @@ def is_valid_input(input_str):
     allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
     return bool(allowed_chars_pattern.match(input_str))
 
+
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_image_file(form_file):
+    if not allowed_file(form_file.filename):
+        raise ValueError("Invalid file type. Only JPG, JPEG, and PNG files are allowed.")
+
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_file.filename)
+    picture_fn = random_hex + f_ext.lower()  # Ensure lowercase extension
+    picture_path = os.path.join(current_app.root_path, 'static/vehicle_images', picture_fn)
+
+    # Save file securely
+    form_file.save(picture_path)
+
+    try:
+        Image.open(picture_path).verify()
+    except Exception as e:
+        os.remove(picture_path)  # Remove the file if verification fails
+        raise ValueError("Invalid image file.")
+
+    return picture_fn
+
 @app.route('/createVehicle', methods=['GET', 'POST'])
 def createVehicle():
-    form = CreateVehicleForm()
-    if form.validate_on_submit():
-        # Logic for form submission (e.g., saving data to the database)
-        flash('Vehicle created successfully!', 'success')
-        return redirect(url_for('dashboard'))  # Redirect to the 'dashboard' route upon successful form submission
-    elif request.method == 'POST':
-        # If it's a POST request but form validation fails, it means there are errors
-        flash('There were errors in the form. Please correct them.', 'danger')
-    return render_template('admin/createVehicleForm.html', form=form)
+    create_vehicle_form = CreateVehicleForm()
+    if request.method == 'POST' and create_vehicle_form.validate_on_submit():
+        brand = create_vehicle_form.brand.data
+        model = create_vehicle_form.model.data
+        price = create_vehicle_form.price.data
+        description = create_vehicle_form.description.data
+
+        # Handle image file upload
+        if create_vehicle_form.file.data:
+            try:
+                file = save_image_file(create_vehicle_form.file.data)
+            except ValueError as e:
+                return redirect(url_for('createVehicle'))  # Redirect or handle error gracefully
+        else:
+            file = None
+
+        try:
+            new_vehicle = Vehicle(brand=brand, model=model, selling_price=price, image=file, description=description)
+            db.session.add(new_vehicle)
+            db.session.commit()
+            return redirect(url_for('MVehicles'))
+        except Exception as e:
+            db.session.rollback()
+
+    return render_template('admin/createVehicleForm.html', form=create_vehicle_form)
 
 
 @app.route('/dashboard', methods=['GET', 'POST'])
+@admin_login_required
 def dashboard():
     admin_username = session.get('admin_username')
     return render_template('admin/dashboard.html', admin_username=admin_username)
 
 @app.route('/manageCustomers')
+@admin_login_required
 def MCustomers():
     admin_username = session.get('admin_username')
     customers = db.session.query(User).all()  # Retrieve all users from the database
     return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
 
+
+
 @app.route('/manageVehicles')
+@admin_login_required
 def MVehicles():
     admin_username = session.get('admin_username')
     vehicles = db.session.query(Vehicle).all()
@@ -540,6 +625,7 @@ def MVehicles():
 
 
 @app.route('/delete_vehicle/<int:id>', methods=['POST'])
+@admin_login_required
 def delete_vehicle(id):
     # Retrieve the vehicle from the database
     vehicle = db.session.query(Vehicle).get(id)
@@ -548,12 +634,22 @@ def delete_vehicle(id):
         # Delete the vehicle from the database
         db.session.delete(vehicle)
         db.session.commit()
-        flash('Vehicle deleted successfully!', 'success')
-    else:
-        flash('Vehicle not found!', 'danger')
 
     # Redirect back to the manageVehicles page
     return redirect(url_for('MVehicles'))
+
+@app.route('/admin_logout')
+def admin_logout():
+    if 'admin_logged_in' in session:
+        session.pop('admin_logged_in', None)
+        session.pop('admin_username', None)
+        app.logger.info("Admin logged out successfully.")
+        session.clear()
+        session.modified = True
+        return redirect(url_for('admin_log_in'))
+    else:
+        return "Admin is not logged in."
+
 
 if __name__ == '__main__':
     app.run(debug=True)

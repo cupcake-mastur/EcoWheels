@@ -44,9 +44,9 @@ class Admin(db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
 
-    def set_password(self, password):
-        # Update existing passwords using werkzeug.security
-        self.password_hash = generate_password_hash(password)
+    # def set_password(self, password):
+    #     # Update existing passwords using werkzeug.security
+    #     self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -58,9 +58,8 @@ class Vehicle(db.Model):
     brand = db.Column(db.String(50), nullable=False)
     model = db.Column(db.String(50), nullable=False)
     selling_price = db.Column(db.Float, nullable=False)
-    image = db.Column(db.LargeBinary, nullable=True)
+    image = db.Column(db.String(100), nullable=True)  # Adjusted to allow NULL values
     description = db.Column(db.Text, nullable=True)
-
 
 
 

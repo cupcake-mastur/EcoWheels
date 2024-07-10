@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from flask_wtf.file import FileField
+from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import Form, EmailField, validators, PasswordField, StringField, IntegerField
 from wtforms.fields.simple import SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length, Regexp, NumberRange
@@ -69,9 +69,12 @@ class CreateVehicleForm(FlaskForm):
         DataRequired(message="Price is required."),
         NumberRange(min=0, message="Price must be a positive number.")
     ])
-    file = FileField('Image', validators=[DataRequired(message="Image is required.")])
-
+    file = FileField('Image', validators=[
+        FileRequired(message="Image is required."),
+        FileAllowed(['jpg', 'jpeg', 'png'], message="Only image files are allowed (jpg, jpeg, png).")
+    ])
     description = TextAreaField('Description', validators=[
         DataRequired(message="Description is required."),
-        Length(min=30, max=500, message="Description must be between 30 and 500 characters.")
+        Length(min=30, max=500, message="Description must be between 30 and 500 characters."),
+        Regexp(r'^[\w\s.,!?-]+$', message="Description can only contain letters, numbers, spaces, and basic punctuation.")
     ])
