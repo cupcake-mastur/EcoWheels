@@ -373,12 +373,15 @@ def edit_profile():
             user.cvv = edit_profile_form.cvv.data
 
         if error:
-            return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
+            return render_template('customer/edit_profile.html', user=user, form=edit_profile_form,
+                                   error=error)
 
         db.session.commit()
         error = 'Profile updated successfully.'
 
-    return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
+    return render_template('customer/edit_profile.html', user=user, form=edit_profile_form,
+                           error=error)
+
 
 
 @app.route('/user/logout')

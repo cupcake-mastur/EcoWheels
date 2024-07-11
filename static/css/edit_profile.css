@@ -32,19 +32,6 @@
     margin: 10px 0;
 }
 
-/* Back button styling */
-#backButton {
-    display: inline-block;
-    margin-bottom: 20px;
-    color: #007bff;
-    text-decoration: none;
-    font-size: 16px;
-}
-
-#backButton:hover {
-    text-decoration: underline;
-}
-
 /* Tabs styling */
 .nav-tabs {
     border-bottom: 1px solid #ddd;
@@ -121,4 +108,12 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
 #backButton:hover {
     background-color: #0056b3;
     text-decoration: none;
+}
+
+#passwordModalLabel{
+    margin-left: 60px;
+}
+
+#modal_confirm {
+    margin-top: 25px;
 }

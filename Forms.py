@@ -26,7 +26,7 @@ class UpdateProfileForm(Form):
     username = StringField('Username', validators=[validators.DataRequired()])
     phone_number = IntegerField('Phone Number', [validators.DataRequired(),
                                                  validators.NumberRange(min=00000000, max=99999999)])
-    current_password = PasswordField('Current Password', [validators.Optional(), validators.length(min=8, max=30)])
+    current_password = PasswordField('', [validators.Optional(), validators.length(min=8, max=30)])
     new_password = PasswordField('New Password', [validators.Optional(), validators.length(min=8, max=30)])
     confirm_new_password = PasswordField('Confirm New Password', [validators.Optional(), validators.length(min=8, max=30)])
 
