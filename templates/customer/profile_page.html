@@ -4,16 +4,16 @@
 {% block content %}
 
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.bundle.min.js">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js">
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/MaterialDesign-Webfont/3.6.95/css/materialdesignicons.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_page.css') }}">
 <script src="{{ url_for('static', filename='js/last_visited_url.js') }}"></script>
 
 <div class="home-icon">
-   <a href="/" class="icon-link">
-    <i class="bi bi-house-door"></i>
-   </a>
+    <a href="/" class="icon-link">
+        <i class="bi bi-house-door"></i>
+    </a>
 </div>
 
 <div class="page-content page-container" id="page-content">
@@ -49,12 +49,21 @@
                                     <h6 class="text-muted f-w-400">{{ user.username }}</h6>
                                 </div>
                             </div>
-
-                            <ul class="social-link list-unstyled m-t-40 m-b-10">
-                                <li><a href="#!" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="facebook" data-abc="true"><i class="mdi mdi-facebook feather icon-facebook facebook" aria-hidden="true"></i></a></li>
-                                <li><a href="#!" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="twitter" data-abc="true"><i class="mdi mdi-twitter feather icon-twitter twitter" aria-hidden="true"></i></a></li>
-                                <li><a href="#!" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="instagram" data-abc="true"><i class="mdi mdi-instagram feather icon-instagram instagram" aria-hidden="true"></i></a></li>
-                            </ul>
+                            <h6 class="m-b-20 m-t-40 p-b-5 b-b-default f-w-600">Payment Information</h6>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <p class="m-b-10 f-w-600">Card Number</p>
+                                    <h6 class="text-muted f-w-400">{{ user.card_number }}</h6>
+                                </div>
+                                <div class="col-sm-6">
+                                    <p class="m-b-10 f-w-600">Expiry Month</p>
+                                    <h6 class="text-muted f-w-400">{{ user.exp_month }}</h6>
+                                </div>
+                                <div class="col-sm-6">
+                                    <p class="m-b-10 f-w-600">Expiry Year</p>
+                                    <h6 class="text-muted f-w-400">{{ user.exp_year }}</h6>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
