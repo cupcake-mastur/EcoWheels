@@ -3,6 +3,15 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import Form, EmailField, validators, PasswordField, StringField, IntegerField
 from wtforms.fields.simple import SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length, Regexp, NumberRange
+import re
+
+
+class CustomValidators:
+    @staticmethod
+    def validate_numeric(form, field):
+        if field.data:
+            if not re.match(r'^[0-9]+$', field.data):
+                raise validators.ValidationError('Only numeric characters are allowed.')
 
 
 class CreateUserForm(Form):
@@ -26,15 +35,31 @@ class UpdateProfileForm(Form):
     username = StringField('Username', validators=[validators.DataRequired()])
     phone_number = IntegerField('Phone Number', [validators.DataRequired(),
                                                  validators.NumberRange(min=00000000, max=99999999)])
-    current_password = PasswordField('', [validators.Optional(), validators.length(min=8, max=30)])
+    current_password = PasswordField('', [validators.DataRequired(), validators.length(min=8, max=30)])
     new_password = PasswordField('New Password', [validators.Optional(), validators.length(min=8, max=30)])
     confirm_new_password = PasswordField('Confirm New Password', [validators.Optional(), validators.length(min=8, max=30)])
 
-    card_name = StringField('Card Name', validators=[validators.Optional(), validators.length(max=30)])
-    card_number = StringField('Card Number', validators=[validators.Optional(), validators.length(min=16, max=16)])
-    exp_month = StringField('Expiry Month', validators=[validators.Optional(), validators.length(min=2, max=2)])
-    exp_year = StringField('Expiry Year', validators=[validators.Optional(), validators.length(min=4, max=4)])
-    cvv = StringField('CVV', validators=[validators.Optional(), validators.length(min=3, max=3)])
+    card_name = StringField('Card Name', validators=[validators.DataRequired(), validators.length(max=30)])
+    card_number = StringField('Card Number', validators=[
+        validators.DataRequired(),
+        validators.length(min=16, max=16),
+        CustomValidators.validate_numeric
+    ])
+    exp_month = StringField('Expiry Month', validators=[
+        validators.DataRequired(),
+        validators.length(min=2, max=2),
+        CustomValidators.validate_numeric
+    ])
+    exp_year = StringField('Expiry Year', validators=[
+        validators.DataRequired(),
+        validators.length(min=4, max=4),
+        CustomValidators.validate_numeric
+    ])
+    cvv = StringField('CVV', validators=[
+        validators.DataRequired(), 
+        validators.length(min=3, max=3),
+        CustomValidators.validate_numeric
+    ])
 
 
 class AdminLoginForm(FlaskForm):

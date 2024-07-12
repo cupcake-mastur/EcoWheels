@@ -270,6 +270,16 @@ def hide_email(email):
 app.jinja_env.filters['hide_email'] = hide_email
 
 
+def hide_credit_card(card_number):
+    # Assuming card_number is a string
+    visible_digits = 4
+    hidden_digits = len(card_number) - visible_digits
+    return '****' * (hidden_digits // 4) + card_number[-visible_digits:]
+
+
+app.jinja_env.filters['hide_credit_card'] = hide_credit_card
+
+
 @app.route('/verify_otp', methods=['GET', 'POST'])
 @login_required
 def verify_otp():
@@ -386,6 +396,7 @@ def edit_profile():
                         db.session.add(new_password_history)
 
                         # Keep only the last 3 password hashes
+                        # Most recent password changes are listed first (because of the desc)
                         all_passwords = (db.session.query(PasswordHistory).filter_by(user_id=user.id).
                                          order_by(PasswordHistory.changed_at.desc()).all())
                         if len(all_passwords) > 3:
