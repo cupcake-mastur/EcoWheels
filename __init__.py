@@ -21,6 +21,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists, func
 from werkzeug.utils import secure_filename
 from PIL import Image
+import stripe
 
 from model import *
 
@@ -61,6 +62,8 @@ with app.app_context():
     db.init_app(app)
     db.create_all()  # Create sql tables
 
+#the stripe key for payment (SORRY ILL HIDE DIS LTR ON)
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY', 'sk_test_4eC39HqLyjWDarjtT1zdp7dc')
 
 # @app.route('/update_last_visited_url', methods=['POST'])
 # def update_last_visited_url():
@@ -86,6 +89,16 @@ def home():
     # update_last_visited_url()
     return render_template("homepage/homepage.html")
 
+@app.route('/product_page')
+def product_page():
+    all_result = [
+        # Example product data (seller, product)
+        ('Seller1', {'get_product_id': lambda: 'prod_1', 'get_product_name': lambda: 'Product 1', 'get_product_price': lambda: 15.00, 'get_image': lambda: 'product1.jpg'}),
+        ('Seller2', {'get_product_id': lambda: 'prod_2', 'get_product_name': lambda: 'Product 2', 'get_product_price': lambda: 5.00, 'get_image': lambda: 'product2.jpg'}),
+        ('Seller3', {'get_product_id': lambda: 'prod_3', 'get_product_name': lambda: 'Product 3', 'get_product_price': lambda: 8.00, 'get_image': lambda: 'product3.jpg'}),
+        ('Seller4', {'get_product_id': lambda: 'prod_4', 'get_product_name': lambda: 'Product 4', 'get_product_price': lambda: 2.00, 'get_image': lambda: 'product4.jpg'}),
+    ]
+    return render_template('customer/product_page.html', all_result=all_result)
 
 @app.route('/models')
 def models():
@@ -411,130 +424,53 @@ def before_request():
             session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
             session.modified = True
 
+@app.route('/cart')
+def cart_page():
+    return render_template('customer/shopping_cart.html')
 
-@app.route('/payment')
-def payment():
-    return render_template("customer/payment.html")
-
-
-@app.route('/confirmation')
-def confirmation():
-    # Render a simple confirmation page
-    return "Thank you for your order!"
-
-
-@app.route('/process_payment', methods=['POST'])
-def process_payment():
+@app.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
     try:
         data = request.get_json()
-        fullname = data['firstname']
-        email = data['email']
-        address = data['address']
-        city = data['city']
-        state = data['state']
-        card_name = data['cardname']
-
-        new_order = Order(fullname=fullname, email=email, address=address, city=city, state=state, card_name=card_name)
-        db.session.add(new_order)
-        db.session.commit()
-        return jsonify({"message": "Order processed successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        print("Failed to process payment:", e)
-        return jsonify({"error": "Error processing payment"}), 500
-
-@app.route('/create-payment-intent', methods=['POST'])
-def create_payment_intent():
-    try:
-        data = request.get_json()
-        amount = data['amount']
-        currency = data['currency']
-
-        intent = stripe.PaymentIntent.create(
-            amount=amount,
-            currency=currency,
-            automatic_payment_methods={
-                'enabled': True,
+        line_items = [{
+            'price_data': {
+                'currency': 'usd',
+                'product_data': {
+                    'name': item['name'],
+                },
+                'unit_amount': int(item['price'] * 100),  # Stripe expects the amount in cents
             },
+            'quantity': 1,
+        } for item in data]
+
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=line_items,
+            mode='payment',
+            success_url='https://yourdomain.com/success',  # Update with your success URL
+            cancel_url='https://yourdomain.com/cancel',  # Update with your cancel URL
         )
 
-        return jsonify({
-            'clientSecret': intent['client_secret']
-        })
+        return jsonify({'url': session.url})
     except Exception as e:
         return jsonify(error=str(e)), 403
 
-# @app.route('/process_payment', methods=['POST'])
-# def process_payment():
-#     try:
-#         fullname = request.form['firstname']
-#         email = request.form['email']
-#         address = request.form['address']
-#         city = request.form['city']
-#         state = request.form['state']
-#         zip_code = request.form['zip']
-#         card_name = request.form['cardname']
-#         card_number = request.form['cardnumber']
-#         exp_month = request.form['expmonth']
-#         exp_year = request.form['expyear']
-#         cvv = request.form['cvv']
-#         cursor = db_2.cursor()
-#         query = "INSERT INTO orders (fullname, email, address, city, state, zip_code, card_name, card_number, exp_month, exp_year, cvv) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-#         values = (fullname, email, address, city, state, zip_code, card_name, card_number, exp_month, exp_year, cvv)
-#         cursor.execute(query, values)
-#         db_2.commit()
-#     except Exception as e:
-#         db_2.session.rollback()
-#         print("Failed to process payment:", e)  # Log the error or use a logging framework
-#         return "Error processing payment", 500
-#     return redirect(url_for('confirmation'))
-#
-# @app.route('/view_payment')
-# def view_payment():
-#     cursor = db_2.cursor(dictionary=True)
-#     cursor.execute("SELECT * FROM orders")
-#     orders = cursor.fetchall()
-#     cursor.close()
-#     return render_template("admin/view_payment.html", orders=orders)
-#
-#
-# @app.route('/update_payment/<int:id>', methods=['GET', 'POST'])
-# def update_payment(id):
-#     if request.method == 'POST':
-#         fullname = request.form['fullname']
-#         email = request.form['email']
-#         address = request.form['address']
-#         city = request.form['city']
-#         state = request.form['state']
-#         zip_code = request.form['zip']
-#         card_name = request.form['cardname']
-#         card_number = request.form['cardnumber']
-#         exp_month = request.form['expmonth']
-#         exp_year = request.form['expyear']
-#         cvv = request.form['cvv']
-#
-#         cursor = db_2.cursor()
-#         cursor.execute("""
-#             UPDATE orders SET fullname=%s, email=%s, address=%s, city=%s, state=%s, zip_code=%s, card_name=%s, card_number=%s, exp_month=%s, exp_year=%s, cvv=%s
-#             WHERE order_id=%s
-#         """, (fullname, email, address, city, state, zip_code, card_name, card_number, exp_month, exp_year, cvv, id))
-#         db_2.commit()
-#         cursor.close()
-#         return redirect(url_for('view_payment'))
-#     else:
-#         cursor = db_2.cursor(dictionary=True)
-#         cursor.execute("SELECT * FROM orders WHERE order_id = %s", (id,))
-#         order = cursor.fetchone()
-#         cursor.close()
-#         return render_template('admin/update_payment.html', order=order)
-#
-# @app.route('/delete_payment/<int:id>', methods=['POST'])
-# def delete_payment(id):
-#     cursor = db_2.cursor()
-#     cursor.execute("DELETE FROM orders WHERE order_id = %s", (id,))
-#     db_2.commit()
-#     cursor.close()
-#     return redirect(url_for('view_payment'))
+@app.route('/success')
+def success_page():
+    return "Payment Successful"
+
+@app.route('/cancel')
+def cancel_page():
+    return "Payment Cancelled"
+# @app.route('/payment')
+# def payment():
+#     return render_template("customer/payment.html")
+
+
+# @app.route('/confirmation')
+# def confirmation():
+#     # Render a simple confirmation page
+#     return "Thank you for your order!"
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
