@@ -335,7 +335,7 @@ def edit_profile():
     user = db.session.query(User).filter_by(email=user_email).first()
 
     if not user:
-        return redirect(url_for('login'))  # Redirect to login if user not found in the database
+        return redirect(url_for('login'))
 
     edit_profile_form = UpdateProfileForm(request.form, obj=user)
 
@@ -360,14 +360,20 @@ def edit_profile():
             elif len(str(phone_number)) != 8:
                 error = "Phone number must be 8 digits."
             else:
-                # Validate special characters
                 special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
-
                 if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
                     error = "Special characters are not allowed in the full name or username."
 
+                # Check last 3 passwords
                 if not error:
-                    # Update user details
+                    recent_passwords = (db.session.query(PasswordHistory).filter_by(user_id=user.id).
+                                        order_by(PasswordHistory.changed_at.desc()).limit(3).all())
+                    for past_password in recent_passwords:
+                        if check_password_hash(past_password.password_hash, new_password):
+                            error = 'New password cannot be the same as any of the last 3 passwords.'
+                            break
+
+                if not error:
                     user.full_name = full_name
                     user.username = username
                     user.email = email
@@ -376,6 +382,15 @@ def edit_profile():
                     # Update password if new password is provided and matches confirmation
                     if new_password:
                         user.password_hash = generate_password_hash(new_password)
+                        new_password_history = PasswordHistory(user_id=user.id, password_hash=user.password_hash)
+                        db.session.add(new_password_history)
+
+                        # Keep only the last 3 password hashes
+                        all_passwords = (db.session.query(PasswordHistory).filter_by(user_id=user.id).
+                                         order_by(PasswordHistory.changed_at.desc()).all())
+                        if len(all_passwords) > 3:
+                            for old_password in all_passwords[3:]:
+                                db.session.delete(old_password)
 
         elif form_type == 'payment':
             # Need to add validation
@@ -386,15 +401,12 @@ def edit_profile():
             user.cvv = edit_profile_form.cvv.data
 
         if error:
-            return render_template('customer/edit_profile.html', user=user, form=edit_profile_form,
-                                   error=error)
+            return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
 
         db.session.commit()
         error = 'Profile updated successfully.'
 
-    return render_template('customer/edit_profile.html', user=user, form=edit_profile_form,
-                           error=error)
-
+    return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
 
 
 @app.route('/user/logout')

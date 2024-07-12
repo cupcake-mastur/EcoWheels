@@ -3,7 +3,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Float, LargeBinary, Text
+from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
+
 
 from __init__ import db
 
@@ -20,12 +22,21 @@ class User(db.Model):
     failed_attempts = db.Column(db.Integer, default=0)
     lockout_until = db.Column(db.DateTime, nullable=True)
     last_visited_url = db.Column(db.String(200), default='/')
+    password_history = db.relationship('PasswordHistory', backref='user', lazy=True)
 
     card_name = db.Column(db.String(30))
     card_number = db.Column(db.String(20))
     exp_month = db.Column(db.String(2))
     exp_year = db.Column(db.String(4))
     cvv = db.Column(db.String(3))
+
+
+class PasswordHistory(db.Model):
+    __tablename__ = 'password_history'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    changed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class Admin(db.Model):
