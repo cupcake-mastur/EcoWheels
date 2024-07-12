@@ -98,7 +98,7 @@ def product_page():
         ('Seller3', {'get_product_id': lambda: 'prod_3', 'get_product_name': lambda: 'Product 3', 'get_product_price': lambda: 8.00, 'get_image': lambda: 'product3.jpg'}),
         ('Seller4', {'get_product_id': lambda: 'prod_4', 'get_product_name': lambda: 'Product 4', 'get_product_price': lambda: 2.00, 'get_image': lambda: 'product4.jpg'}),
     ]
-    return render_template('customer/product_page.html', all_result=all_result)
+    return render_template('customer/test_product_page(exists till terron creates one hehe).html', all_result=all_result)
 
 @app.route('/models')
 def models():

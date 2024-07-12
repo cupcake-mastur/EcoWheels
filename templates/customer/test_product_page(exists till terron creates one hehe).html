@@ -24,7 +24,6 @@
       border-radius: 5px;
     }
   </style>
-  <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
 
@@ -32,31 +31,31 @@
 <div class="product">
   <h3>Product 1</h3>
   <p>Price: $15</p>
-  <button onclick="addToCart('Product 1', 15, 'prod_XXXXXXXXXX')">Add to Cart</button>
+  <button onclick="addToCart('Product 1', 15)">Add to Cart</button>
 </div>
 <div class="product">
   <h3>Product 2</h3>
   <p>Price: $5</p>
-  <button onclick="addToCart('Product 2', 5, 'prod_XXXXXXXXXX')">Add to Cart</button>
+  <button onclick="addToCart('Product 2', 5)">Add to Cart</button>
 </div>
 <div class="product">
   <h3>Product 3</h3>
   <p>Price: $8</p>
-  <button onclick="addToCart('Product 3', 8, 'prod_XXXXXXXXXX')">Add to Cart</button>
+  <button onclick="addToCart('Product 3', 8)">Add to Cart</button>
 </div>
 <div class="product">
   <h3>Product 4</h3>
   <p>Price: $2</p>
-  <button onclick="addToCart('Product 4', 2, 'prod_XXXXXXXXXX')">Add to Cart</button>
+  <button onclick="addToCart('Product 4', 2)">Add to Cart</button>
 </div>
 
 <script>
   // Initialize cart
-  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  let cart = [];
 
-  function addToCart(name, price, id) {
+  function addToCart(name, price) {
     // Add product to cart
-    cart.push({name: name, price: price, id: id});
+    cart.push({name: name, price: price});
     alert(name + ' added to cart.');
     // Save cart to localStorage
     localStorage.setItem('cart', JSON.stringify(cart));
