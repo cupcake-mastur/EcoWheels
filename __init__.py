@@ -608,11 +608,29 @@ def dashboard():
                            num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
 
 
-@app.route('/manageCustomers')
+@app.route('/manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
 def MCustomers():
     admin_username = session.get('admin_username')
-    customers = db.session.query(User).all()  # Retrieve all users from the database
+
+    query = db.session.query(User)
+    if request.method == 'POST':
+        full_name_filter = request.form.get('full_name_filter')
+        username_filter = request.form.get('username_filter')
+        email_filter = request.form.get('email_filter')
+        phone_number_filter = request.form.get('phone_number_filter')
+
+        if full_name_filter:
+            query = query.filter(User.full_name.ilike(f"%{full_name_filter}%"))
+        if username_filter:
+            query = query.filter(User.username.ilike(f"%{username_filter}%"))
+        if email_filter:
+            query = query.filter(User.email.ilike(f"%{email_filter}%"))
+        if phone_number_filter:
+            query = query.filter(User.phone_number.ilike(f"%{phone_number_filter}%"))
+
+    customers = query.all()
+
     return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
 
 
