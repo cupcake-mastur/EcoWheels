@@ -17,22 +17,31 @@
             justify-content: space-between;
             gap: 20px; /* Adjust the gap as needed */
             margin: 0 auto;
-            width: 75%;
+            width: 100%;
         }
 
         .d-table {
-            border-collapse: collapse;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: none;
             font-size: 1.5rem; /* Adjust the font size for numbers and words */
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 20px;
         }
 
-        .d-table th, .d-table td {
-            padding: 3px; /* Adjust the padding as needed */
-            vertical-align: middle;
-        }
-
-        .d-table th i, .d-table td i {
+        .d-icon {
             font-size: 5rem; /* Adjust the icon size as needed */
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+        }
+
+        .d-info {
+            text-align: center;
+            flex-grow: 1;
         }
 
         .d-numbers {
@@ -42,24 +51,19 @@
 
         .d-label {
             font-size: 2rem; /* Adjust the font size for the words */
+            padding: 10px;
         }
 
         #cog-i {
             background-color: rgb(49, 204, 188);
-            color: white;
-            padding: 11px 0px 11px 00px;
         }
 
-         #customer-i {
+        #customer-i {
             background-color: rgb(250, 206, 72);
-            color: white;
-            padding: 11px 0px 11px 00px;
         }
 
         #car-i {
             background-color: rgb(232, 102, 51);
-            color: white;
-            padding: 11px 0px 11px 00px;
         }
     </style>
 </head>
@@ -119,35 +123,29 @@
         </div>
 
         <div class="tables-container">
-            <table class="d-table" border="0">
-                <tr>
-                    <td rowspan="2"><i class="bx bx-body" id="customer-i"></i></td>
-                    <th class="d-numbers">2</th>
-                </tr>
-                <tr>
-                    <td class="d-label">customers</td>
-                </tr>
-            </table>
+            <div class="d-table">
+                <i class="bx bx-body d-icon" id="customer-i"></i>
+                <div class="d-info">
+                    <div class="d-numbers">{{ num_customers }}</div>
+                    <div class="d-label">customers</div>
+                </div>
+            </div>
 
-            <table class="d-table" border="0">
-                <tr>
-                    <td rowspan="2"><i class="bx bxs-car"  id="car-i"></i></td>
-                    <th class="d-numbers">2</th>
-                </tr>
-                <tr>
-                    <td class="d-label">vehicles</td>
-                </tr>
-            </table>
+            <div class="d-table">
+                <i class="bx bxs-car d-icon" id="car-i"></i>
+                <div class="d-info">
+                    <div class="d-numbers">{{ num_vehicles }}</div>
+                    <div class="d-label">vehicles</div>
+                </div>
+            </div>
 
-            <table class="d-table" border="0">
-                <tr>
-                    <td rowspan="2"><i class='bx bx-cog' id="cog-i"></i></td>
-                    <th class="d-numbers">8</th>
-                </tr>
-                <tr>
-                    <td class="d-label">admins</td>
-                </tr>
-            </table>
+            <div class="d-table">
+                <i class='bx bx-cog d-icon' id="cog-i"></i>
+                <div class="d-info">
+                    <div class="d-numbers">{{ num_admins }}</div>
+                    <div class="d-label">admins</div>
+                </div>
+            </div>
         </div>
 
     </div>
