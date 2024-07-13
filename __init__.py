@@ -601,7 +601,12 @@ def createVehicle():
 @admin_login_required
 def dashboard():
     admin_username = session.get('admin_username')
-    return render_template('admin/dashboard.html', admin_username=admin_username)
+    num_customers = db.session.query(User).count()
+    num_vehicles = db.session.query(Vehicle).count()
+    num_admins = db.session.query(Admin).count()
+    return render_template('admin/dashboard.html', admin_username=admin_username,
+                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
+
 
 @app.route('/manageCustomers')
 @admin_login_required
