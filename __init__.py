@@ -617,13 +617,31 @@ def MCustomers():
 
 
 
-@app.route('/manageVehicles')
+@app.route('/manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
 def MVehicles():
     admin_username = session.get('admin_username')
     vehicles = db.session.query(Vehicle).all()
-    return render_template('admin/manageVehicles.html', admin_username=admin_username, vehicles=vehicles)
 
+    if request.method == 'POST':
+        brand_filter = request.form.get('brand_filter')
+        model_filter = request.form.get('model_filter')
+        min_price_filter = request.form.get('min_price_filter')
+        max_price_filter = request.form.get('max_price_filter')
+
+        query = db.session.query(Vehicle)
+        if brand_filter:
+            query = query.filter(Vehicle.brand.ilike(f"%{brand_filter}%"))
+        if model_filter:
+            query = query.filter(Vehicle.model.ilike(f"%{model_filter}%"))
+        if min_price_filter:
+            query = query.filter(Vehicle.selling_price >= float(min_price_filter))
+        if max_price_filter:
+            query = query.filter(Vehicle.selling_price <= float(max_price_filter))
+
+        vehicles = query.all()
+
+    return render_template('admin/manageVehicles.html', admin_username=admin_username, vehicles=vehicles)
 
 @app.route('/delete_vehicle/<int:id>', methods=['POST'])
 @admin_login_required
@@ -650,7 +668,6 @@ def admin_logout():
         return redirect(url_for('admin_log_in'))
     else:
         return "Admin is not logged in."
-
 
 if __name__ == '__main__':
     app.run(debug=True)
