@@ -553,7 +553,7 @@ def save_image_file(form_file):
     if not allowed_file(form_file.filename):
         raise ValueError("Invalid file type. Only JPG, JPEG, and PNG files are allowed.")
 
-    if '.' not in form_file.filename:  # Check if it's a folder
+    if form_file.filename == '':  # Check if it's a folder
         raise IsADirectoryError("Submitted a folder instead of a file.")
 
     random_hex = secrets.token_hex(8)
@@ -574,6 +574,7 @@ def save_image_file(form_file):
 
 
 @app.route('/createVehicle', methods=['GET', 'POST'])
+@admin_login_required
 def createVehicle():
     create_vehicle_form = CreateVehicleForm()
     if request.method == 'POST' and create_vehicle_form.validate_on_submit():
@@ -586,10 +587,10 @@ def createVehicle():
         if create_vehicle_form.file.data:
             try:
                 file = save_image_file(create_vehicle_form.file.data)
-            except IsADirectoryError as e:
-                return redirect(url_for('createVehicle'))  # Redirect to createVehicle page
-            except ValueError as e:
-                return redirect(url_for('ErrorPage'))  # Redirect to ErrorPage.html
+            except IsADirectoryError:
+                return redirect(url_for('ErrorPage'))  # Redirect to error page for folder submission
+            except ValueError:
+                return redirect(url_for('ErrorPage'))  # Redirect to error page for other errors
         else:
             file = None
 
@@ -603,11 +604,9 @@ def createVehicle():
 
     return render_template('admin/createVehicleForm.html', form=create_vehicle_form)
 
-
-# Define a route for the error page
 @app.route('/ErrorPage')
 def ErrorPage():
-    return render_template('ErrorPage.html')
+    return render_template('admin/ErrorPage.html')
 
 
 @app.route('/dashboard', methods=['GET', 'POST'])
