@@ -548,9 +548,13 @@ ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
 def save_image_file(form_file):
     if not allowed_file(form_file.filename):
         raise ValueError("Invalid file type. Only JPG, JPEG, and PNG files are allowed.")
+
+    if '.' not in form_file.filename:  # Check if it's a folder
+        raise IsADirectoryError("Submitted a folder instead of a file.")
 
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_file.filename)
@@ -568,6 +572,7 @@ def save_image_file(form_file):
 
     return picture_fn
 
+
 @app.route('/createVehicle', methods=['GET', 'POST'])
 def createVehicle():
     create_vehicle_form = CreateVehicleForm()
@@ -581,8 +586,10 @@ def createVehicle():
         if create_vehicle_form.file.data:
             try:
                 file = save_image_file(create_vehicle_form.file.data)
+            except IsADirectoryError as e:
+                return redirect(url_for('createVehicle'))  # Redirect to createVehicle page
             except ValueError as e:
-                return redirect(url_for('createVehicle'))  # Redirect or handle error gracefully
+                return redirect(url_for('ErrorPage'))  # Redirect to ErrorPage.html
         else:
             file = None
 
@@ -595,6 +602,12 @@ def createVehicle():
             db.session.rollback()
 
     return render_template('admin/createVehicleForm.html', form=create_vehicle_form)
+
+
+# Define a route for the error page
+@app.route('/ErrorPage')
+def ErrorPage():
+    return render_template('ErrorPage.html')
 
 
 @app.route('/dashboard', methods=['GET', 'POST'])
