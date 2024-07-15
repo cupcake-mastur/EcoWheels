@@ -1,0 +1,22 @@
+.home-btn {
+    border: 2px solid rgb(113, 182, 70);
+    border-radius: 5px;
+    padding: 10px 30px;
+    background-color: rgb(217, 255, 217);
+    width: 185px;
+
+}
+
+.home-btn:hover {
+    border: 2px solid rgb(113, 182, 70);
+    background-color: rgb(217, 255, 217, 0.5);
+}
+
+.home-btn a {
+    text-decoration: none;
+    color: black;
+}
+
+body {
+    overflow:hidden;
+}

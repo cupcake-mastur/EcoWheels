@@ -191,7 +191,7 @@ def login():
     error = None
     print(session)
     if session.get('user_logged_in'):
-        return "You are already logged in."
+        return render_template('customer/error_msg_already_logged_in.html')
 
     login_form = LoginForm(request.form)
 
@@ -430,7 +430,7 @@ def logout():
         print(session)
         return redirect(url_for('home'))
     else:
-        return "You are not logged in."
+        return render_template('customer/error_msg_not_logged_in.html')
 
 
 @app.before_request
