@@ -117,3 +117,63 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
 #modal_confirm {
     margin-top: 25px;
 }
+
+.info-icon {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.info-icon i,
+.info-icon p {
+    display: inline-block;
+    padding-left: 7px;
+}
+
+#policyModal {
+    position: fixed;
+    z-index: 1050; /* Ensure it's above other content */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex; /* Make it appear once you enter the page */
+    justify-content: center;
+    align-items: center;
+}
+
+#policyModal .modal-content {
+    background-color: #ffffff;
+    padding: 50px;
+    border: 1px solid #888;
+    max-width: 530px;
+    width: 100%; /* Width relative to the parent container */
+    text-align: center;
+    border-radius: 8px;
+}
+
+#policyModal .modal-content ul {
+    text-align: left;
+    margin-left: 20px;
+}
+
+#policyModal .modal-content p {
+    font-size: 17px;
+}
+
+#policyModal .close {
+    color: #aaaaaa;
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    font-size: 30px;
+    font-weight: bold;
+    transition: color 0.3s ease; /* Smooth color transition on hover */
+}
+
+#policyModal .close:hover,
+#policyModal .close:focus {
+    color: #000000; /* Darken color on hover/focus */
+    text-decoration: none;
+}
