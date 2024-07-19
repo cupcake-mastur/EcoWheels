@@ -182,6 +182,8 @@ def sign_up():
 
             if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
                 error = "Special characters are not allowed in the full name or username."
+            elif not any(char in special_chars for char in password):
+                error = "Password must contain at least one special character."    
 
         if error is None:
             hashed_password = generate_password_hash(password)
@@ -396,6 +398,8 @@ def edit_profile():
                 special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
                 if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
                     error = "Special characters are not allowed in the full name or username."
+                elif not any(char in special_chars for char in new_password):
+                    error = "Password must contain at least one special character."    
 
                 # Check last 3 passwords
                 if not error:

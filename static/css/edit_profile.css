@@ -135,7 +135,7 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    display: flex; /* Make it appear once you enter the page */
+    display: none;
     justify-content: center;
     align-items: center;
 }

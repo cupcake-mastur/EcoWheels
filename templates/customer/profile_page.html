@@ -53,17 +53,29 @@
                             <div class="row">
                                 <div class="col-sm-6">
                                     <p class="m-b-10 f-w-600">Card Number</p>
-                                    <h6 class="text-muted f-w-400">{{ user.card_number | hide_credit_card }}</h6>
+                                    {% if user.card_number %}
+                                        <h6 class="text-muted f-w-400">{{ user.card_number | hide_credit_card }}</h6>
+                                    {% else %}
+                                        <h6 class="text-muted f-w-400">&nbsp;</h6>
+                                    {% endif %}
                                 </div>
                                 <div class="col-sm-6">
                                     <p class="m-b-10 f-w-600">Expiry Month</p>
-                                    <h6 class="text-muted f-w-400">{{ user.exp_month }}</h6>
+                                    {% if user.exp_month %}
+                                        <h6 class="text-muted f-w-400">{{ user.exp_month }}</h6>
+                                    {% else %}
+                                        <h6 class="text-muted f-w-400">&nbsp;</h6>
+                                    {% endif %}
                                 </div>
                                 <div class="col-sm-6">
                                     <p class="m-b-10 f-w-600">Expiry Year</p>
-                                    <h6 class="text-muted f-w-400">{{ user.exp_year }}</h6>
+                                    {% if user.exp_year %}
+                                        <h6 class="text-muted f-w-400">{{ user.exp_year }}</h6>
+                                    {% else %}
+                                        <h6 class="text-muted f-w-400">&nbsp;</h6>
+                                    {% endif %}
                                 </div>
-                            </div>
+                            </div>                            
                         </div>
                     </div>
                 </div>
