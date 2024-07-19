@@ -71,28 +71,9 @@ payment_intents = stripe.PaymentIntent.list(limit=10)
 for intent in payment_intents.data:
     print(f"Payment Intent ID: {intent.id}, Amount: {intent.amount}, Status: {intent.status}")
 
-# @app.route('/update_last_visited_url', methods=['POST'])
-# def update_last_visited_url():
-#     if 'user_email' in session:
-#         user_email = session['user_email']
-#         user = db.session.query(User).filter_by(email=user_email).first()
-#         if user:
-#             last_visited_url = request.form.get('last_visited_url')
-#             if last_visited_url:  # Check if last_visited_url is not None or empty
-#                 user.last_visited_url = last_visited_url
-#             else:
-#                 user.last_visited_url = '/'  # Set to default if last_visited_url is None or empty
-#             db.session.commit()
-#             return jsonify({'message': 'Last visited URL updated successfully.'}), 200
-#         else:
-#             return jsonify({'error': 'User not found.'}), 404
-#     else:
-#         return jsonify({'error': 'User not authenticated.'}), 401
-
 
 @app.route('/')
 def home():
-    # update_last_visited_url()
     return render_template("homepage/homepage.html")
 
 @app.route('/product_page')
@@ -190,6 +171,9 @@ def sign_up():
             new_user = User(full_name=full_name, username=username, email=email, phone_number=phone_number,
                             password_hash=hashed_password)
             db.session.add(new_user)
+            db.session.commit()
+            password_history = PasswordHistory(user_id=new_user.id, password_hash=hashed_password, changed_at=datetime.now(timezone.utc))
+            db.session.add(password_history)
             db.session.commit()
             app.logger.info(f"User {email} added to database.")
             return redirect(url_for('login'))
@@ -351,7 +335,6 @@ def verify_otp():
 @app.route('/profile', methods=['GET'])
 @login_required
 def profile():
-    # update_last_visited_url()
     user_email = session.get('user_email')
 
     user = db.session.query(User).filter_by(email=user_email).first()
@@ -398,7 +381,7 @@ def edit_profile():
                 special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
                 if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
                     error = "Special characters are not allowed in the full name or username."
-                elif not any(char in special_chars for char in new_password):
+                elif new_password and not any(char in special_chars for char in new_password):
                     error = "Password must contain at least one special character."    
 
                 # Check last 3 passwords
