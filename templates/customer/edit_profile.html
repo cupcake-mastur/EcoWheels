@@ -43,10 +43,18 @@
                 <div class="user-details">
                     <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off" data-form-type="general">
                         <input type="hidden" name="form_type" value="general">
-                        {{ render_field(form.full_name, class="form-control", id="name", placeholder="Enter your name") }}
-                        {{ render_field(form.username, class="form-control", id="username", placeholder="Enter your username") }}
-                        {{ render_field(form.email, class="form-control", id="email", placeholder="example@gmail.com") }}
-                        {{ render_field(form.phone_number, class="form-control", id="phone", placeholder="8 digits phone number") }}
+                        <div class="required_input">
+                            {{ render_field(form.full_name, class="form-control", id="name", placeholder="Enter your name") }}
+                        </div>
+                        <div class="required_input">
+                            {{ render_field(form.username, class="form-control", id="username", placeholder="Enter your username") }}
+                        </div>
+                        <div class="required_input">
+                            {{ render_field(form.email, class="form-control", id="email", placeholder="example@gmail.com") }}
+                        </div>
+                        <div class="required_input">
+                            {{ render_field(form.phone_number, class="form-control", id="phone", placeholder="8 digits phone number") }}
+                        </div>
                         {{ render_field(form.new_password, class="form-control", id="new_pass", placeholder="Enter your new password") }}
                         {{ render_field(form.confirm_new_password, class="form-control", id="confirm_new_pass", placeholder="Confirm your password") }}
                         <button type="button" class="btn btn-primary" id="saveChanges_g" onclick="showPasswordModal('general')">Save Changes</button>
