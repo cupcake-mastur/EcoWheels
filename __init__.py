@@ -104,6 +104,23 @@ def product_page():
 def models():
     return render_template("homepage/models.html")
 
+@app.route('/Feedback')
+def feedback():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        message = request.form['message']
+
+        # Handle the feedback (e.g., save to database)
+
+        flash('Thank you for your feedback!', 'success')
+        return redirect(url_for('feedback'))
+
+    # Pass the current user's username to the template
+    #username = current_user.username
+    return render_template('homepage/Feedback.html')
+
+
 
 @app.route('/check_session')
 def check_session():
