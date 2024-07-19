@@ -1,13 +1,169 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Confirmation</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/fireworks.js') }}"></script>
 </head>
 <body>
-    <h1>Thank you for your purchase!</h1>
-    <p>Your payment has been successfully processed.</p>
-    <p>A confirmation email has been sent to your email address.</p>
-    <a href="{{ url_for('home') }}">Return to Home</a>
+    <canvas id="fireworksCanvas"></canvas>
+    <div class="container">
+        <h1>Thank You for Your Purchase!</h1>
+        <div class="message">
+            <p>Your payment has been successfully processed.</p>
+            <p>A confirmation email has been sent to your email address.</p>
+        </div>
+        <a href="{{ url_for('home') }}" class="home-button">Return to Home</a>
+    </div>
 </body>
+
+<style>
+
+/* body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f0f0;
+    color: white;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.container {
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 40px;
+    border-radius: 10px;
+    width: 50%;
+    box-sizing: border-box;
+    text-align: center;
+    display: block;
+    margin: auto;
+    position: relative;
+    z-index: 2; /* Ensure the text is above the fireworks */ 
+ 
+
+h1 {
+    color: #4CAF50;
+    font-size: 2em;
+}
+
+.message p {
+    line-height: 1.8;
+    font-size: 1.2em;
+}
+
+.home-button {
+    display: inline-block;
+    background-color: #4CAF50;
+    color: white;
+    padding: 15px 30px;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    margin-top: 20px;
+    transition: background-color 0.3s;
+}
+
+.home-button:hover {
+    background-color: #45a049;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.container {
+    position: relative;
+    z-index: 2;  /* Ensure the container is above the canvas */
+    width: 50%;
+    margin: auto;
+    padding: 40px;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    text-align: center;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const canvas = document.getElementById('fireworksCanvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    function random(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    function firework() {
+        const x = random(100, canvas.width - 100);
+        const y = random(100, canvas.height - 100);
+        const explosions = 30;
+        const particles = [];
+
+        for (let i = 0; i < explosions; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                radius: random(1, 4),
+                angle: random(0, 2 * Math.PI),
+                velocity: random(1, 6),
+                decay: random(0.015, 0.03)
+            });
+        }
+
+        const interval = setInterval(() => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach((p, index) => {
+                p.x += p.velocity * Math.cos(p.angle);
+                p.y += p.velocity * Math.sin(p.angle);
+                p.radius -= p.decay;
+
+                if (p.radius < 0.1) {
+                    particles.splice(index, 1);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI, false);
+                    ctx.fillStyle = 'rgba(0, 255, 0, 1)'; // Green color
+                    ctx.fill();
+                }
+            });
+
+            if (particles.length === 0) {
+                clearInterval(interval);
+            }
+        }, 16);
+    }
+
+    setInterval(firework, 900);
+});
+
+</script>
 </html>
+
+
