@@ -4,6 +4,8 @@
 {% block content %}
 {% from "_formHelper.html" import render_field %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/edit_profile.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
 
 <a href="{{ url_for('profile') }}" id="backButton" style="outline: none;" class="nav-link">< Back to Profile Page</a>
 
@@ -26,11 +28,18 @@
                 <div class="title">
                     <p>General Information</p>
                 </div>
+
+                <div class="info-icon">
+                    <i class="fas fa-info-circle" style="padding-left: 140px;"></i>
+                    <p>Click <a href="#" id="policyLink">here</a> to see our username and password policy.</p>
+                </div>
+
                 {% if error and not error_in_modal %}
                   <p style="text-align: center; {% if error == 'Profile updated successfully.' %}color: LimeGreen;{% else %}color: red;{% endif %}">
                     {{ error }}
                   </p>
                 {% endif %}
+
                 <div class="user-details">
                     <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off" data-form-type="general">
                         <input type="hidden" name="form_type" value="general">
@@ -85,36 +94,27 @@
     </div>
 </div>
 
+<div id="policyModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3 style="padding-bottom: 20px;">Username and Password Policy</h3>
+        <p><strong>Username:</strong></p>
+        <ul>
+            <li>Must be at least 6 characters long.</li>
+            <li>Special characters are not allowed.</li>
+        </ul>
+        <p><strong>Password:</strong></p>
+        <ul>
+            <li>Must be at least 8 characters long.</li>
+            <li>Must contain at least one uppercase letter, one lowercase letter, and one special character.</li>
+            <li>New password cannot be the same as any of the last 3 passwords.</li>
+        </ul>
+    </div>
+</div>
+
 <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/last_visited_url.js') }}"></script>
-<script>
-    let formType = '';
+<script src="{{ url_for('static', filename='js/edit_profile.js') }}"></script>
 
-    function showPasswordModal(type) {
-        formType = type;
-        $('#passwordModal').modal('show');
-    }
-
-    $('#passwordForm').on('submit', function(event) {
-        event.preventDefault();
-        const currentPassword = $('#current_pass_modal').val();
-        if (currentPassword && formType) {
-            const form = $(`form[data-form-type=${formType}]`);
-            $('<input>').attr({
-                type: 'hidden',
-                name: 'current_password',
-                value: currentPassword
-            }).appendTo(form);
-            form.submit();
-        }
-    });
-
-    $(document).ready(function () {
-        $('#myTab a').on('click', function (e) {
-            e.preventDefault();
-            $(this).tab('show');
-        });
-    });
-</script>
 {% endblock %}

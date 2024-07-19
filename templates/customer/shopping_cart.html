@@ -38,7 +38,6 @@
 <button class="checkout-btn" onclick="checkout()">Checkout</button>
 
 <script>
-  // Load cart from localStorage
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
   function displayCart() {
@@ -64,9 +63,24 @@
     displayCart();
   }
 
-  function checkout() {
-    // Redirect to the provided Stripe Checkout link
-    window.location.href = 'https://buy.stripe.com/test_5kA165czf3CsdRS28a';
+  async function checkout() {
+    try {
+      const response = await fetch('/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cart),
+      });
+      const session = await response.json();
+      if (session.url) {
+        window.location.href = session.url;
+      } else {
+        console.error('Error creating checkout session:', session.error);
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+    }
   }
 
   displayCart();
