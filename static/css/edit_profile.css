@@ -127,6 +127,11 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
     padding-left: 7px;
 }
 
+.required_input label::after{
+    content: " *";
+    color: red;
+}
+
 #policyModal {
     position: fixed;
     z-index: 1050; /* Ensure it's above other content */
