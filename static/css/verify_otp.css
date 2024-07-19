@@ -1,12 +1,16 @@
 *{
   box-sizing: border-box;
 }
+
+
 body{
   margin: 0;
 }
+
 .title{
   max-width: 400px;
   margin: auto;
+  padding-top: 35px;
   text-align: center;
   font-family: "Poppins", sans-serif;
   h3{
@@ -86,3 +90,4 @@ body{
   &:hover{
     background-color: darken(#2f8f1f, 5%);
   }
+}
