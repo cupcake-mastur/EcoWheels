@@ -63,7 +63,13 @@ with app.app_context():
     db.create_all()  # Create sql tables
 
 #the stripe key for payment (SORRY ILL HIDE DIS LTR ON)
-stripe.api_key = os.getenv('STRIPE_SECRET_KEY', 'sk_test_4eC39HqLyjWDarjtT1zdp7dc')
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51Pe8BfFIE5otqt7EOKvQqa9Q21pxw6sOSStBTVsAqYPW89hggCJQjVoQd71erh65UnljQgmMPJDs0MnkkqsZ3E8C00WpoPI9Xz')
+
+# Retrieve the latest 10 payment intents
+payment_intents = stripe.PaymentIntent.list(limit=10)
+
+for intent in payment_intents.data:
+    print(f"Payment Intent ID: {intent.id}, Amount: {intent.amount}, Status: {intent.status}")
 
 # @app.route('/update_last_visited_url', methods=['POST'])
 # def update_last_visited_url():
@@ -470,17 +476,17 @@ def create_checkout_session():
             payment_method_types=['card'],
             line_items=line_items,
             mode='payment',
-            success_url='https://yourdomain.com/success',  # Update with your success URL
-            cancel_url='https://yourdomain.com/cancel',  # Update with your cancel URL
+            success_url='http://127.0.0.1:5000/payment_success',  # Update with your success URL
+            cancel_url='http://yourdomain.com/cancel',  # Update with your cancel URL
         )
 
         return jsonify({'url': session.url})
     except Exception as e:
         return jsonify(error=str(e)), 403
 
-@app.route('/success')
+@app.route('/payment_success')
 def success_page():
-    return "Payment Successful"
+    return render_template('customer/payment_success.html')
 
 @app.route('/cancel')
 def cancel_page():
