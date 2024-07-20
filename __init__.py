@@ -553,19 +553,8 @@ def is_valid_input(input_str):
     return bool(allowed_chars_pattern.match(input_str))
 
 
-ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 def save_image_file(form_file):
-    if not allowed_file(form_file.filename):
-        raise ValueError("Invalid file type. Only JPG, JPEG, and PNG files are allowed.")
-
-    if form_file.filename == '':  # Check if it's a folder
-        raise IsADirectoryError("Submitted a folder instead of a file.")
-
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_file.filename)
     picture_fn = random_hex + f_ext.lower()  # Ensure lowercase extension
