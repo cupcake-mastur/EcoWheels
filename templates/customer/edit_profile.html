@@ -30,7 +30,7 @@
                 </div>
 
                 <div class="info-icon">
-                    <i class="fas fa-info-circle" style="padding-left: 140px;"></i>
+                    <i class="fas fa-info-circle" style="padding-left: 110px;"></i>
                     <p>Click <a href="#" id="policyLink">here</a> to see our username and password policy.</p>
                 </div>
 
@@ -55,8 +55,12 @@
                         <div class="required_input">
                             {{ render_field(form.phone_number, class="form-control", id="phone", placeholder="8 digits phone number") }}
                         </div>
-                        {{ render_field(form.new_password, class="form-control", id="new_pass", placeholder="Enter your new password") }}
-                        {{ render_field(form.confirm_new_password, class="form-control", id="confirm_new_pass", placeholder="Confirm your password") }}
+                        <div class="input_box">
+                            {{ render_field(form.new_password, class="form-control", id="new_pass", placeholder="Enter your new password") }}
+                        </div>
+                        <div class="input_box">
+                            {{ render_field(form.confirm_new_password, class="form-control", id="confirm_new_pass", placeholder="Confirm your password") }}
+                        </div>
                         <button type="button" class="btn btn-primary" id="saveChanges_g" onclick="showPasswordModal('general')">Save Changes</button>
                     </form>
                 </div>
@@ -68,11 +72,21 @@
                 <div class="payment-details">
                     <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off" data-form-type="payment">
                         <input type="hidden" name="form_type" value="payment">
-                        {{ render_field(form.card_name, class="form-control", id="card_name", placeholder="Enter your card name") }}
-                        {{ render_field(form.card_number, class="form-control", id="card_number", placeholder="Enter your card number") }}
-                        {{ render_field(form.exp_month, class="form-control", id="exp_month", placeholder="Enter your expiry month") }}
-                        {{ render_field(form.exp_year, class="form-control", id="exp_year", placeholder="Enter your name") }}
-                        {{ render_field(form.cvv, class="form-control", id="cvv", placeholder="Enter your cvv") }}
+                        <div class="input_box" style="margin-top: 10px;">
+                            {{ render_field(form.card_name, class="form-control", id="card_name", placeholder="Enter your card name") }}
+                        </div>
+                        <div class="input_box">
+                            {{ render_field(form.card_number, class="form-control", id="card_number", placeholder="Enter your card number") }}
+                        </div>
+                        <div class="input_box">
+                            {{ render_field(form.exp_month, class="form-control", id="exp_month", placeholder="Enter your expiry month") }}
+                        </div>
+                        <div class="input_box">
+                            {{ render_field(form.exp_year, class="form-control", id="exp_year", placeholder="Enter your name") }}
+                        </div>
+                        <div class="input_box">
+                            {{ render_field(form.cvv, class="form-control", id="cvv", placeholder="Enter your cvv") }}
+                        </div>
                         <button type="button" class="btn btn-primary" id="saveChanges_p" onclick="showPasswordModal('payment')">Save Changes</button>
                     </form>
                 </div>
