@@ -5,11 +5,12 @@ import stripe
 
 from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify, make_response, request
 from flask_mail import Mail, Message
-from Forms import CreateUserForm, UpdateProfileForm, LoginForm, AdminLoginForm, CreateVehicleForm
+from Forms import CreateUserForm, UpdateProfileForm, LoginForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta, timezone
 from functools import wraps
+from itsdangerous import URLSafeTimedSerializer
 import hashlib
 import hmac
 import os
@@ -36,6 +37,7 @@ logging.basicConfig(filename='app.log', level=logging.DEBUG,
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
 
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
+s = URLSafeTimedSerializer(os.environ.get("SECRET_KEY"))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session timeout after 30 minutes
@@ -343,6 +345,67 @@ def profile():
         return redirect(url_for('login'))
 
     return render_template('customer/profile_page.html', user=user)
+
+
+@app.route('/request_password_reset', methods=['GET', 'POST'])
+def request_password_reset():
+    error = None
+    request_password_reset_form = RequestPasswordResetForm(request.form)
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user = db.session.query(User).filter_by(email=email).first()
+        if user:
+            token = s.dumps(email, salt='password-reset-salt')
+            reset_url = url_for('reset_password', token=token, _external=True)
+            send_password_reset_email(email, reset_url)  # Implement this function
+            error = "A password reset link has been sent to your email."
+        else:
+            error = "Email address not found"
+    
+    return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
+
+
+def send_password_reset_email(email, reset_url):
+    msg = Message('Password Reset Request', recipients=[email])
+    msg.html = f'''
+    <p>Click the link below to reset your password:</p>
+    <p><a href="{reset_url}">Reset Password</a></p>
+    <p>If you did not request this, please contact us at +6562911189.</p>
+    '''
+    mail.send(msg)
+
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    error = None
+    reset_password_form = ResetPasswordForm(request.form)
+    try:
+        email = s.loads(token, salt='password-reset-salt', max_age=3600)
+    except:
+        error = "The password reset link is invalid or has expired"
+        return redirect(url_for('request_password_reset'))
+
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+
+        if new_password != confirm_password:
+            error = "Passwords do not match"
+            return redirect(url_for('reset_password', token=token))
+
+        user = db.session.query(User).filter_by(email=email).first()
+        if user:
+            user.password_hash = generate_password_hash(new_password)
+            new_password_history = PasswordHistory(user_id=user.id, password_hash=user.password_hash)
+            db.session.add(new_password_history)
+            db.session.commit()
+            error = "Your password has been reset"
+            return redirect(url_for('login'))
+        else:
+            error = "An error occurred. Please try again"
+            return redirect(url_for('request_password_reset'))
+
+    return render_template('customer/reset_password.html', form=reset_password_form, token=token, error=error)
 
 
 @app.route('/edit_profile', methods=['GET', 'POST'])

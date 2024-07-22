@@ -13,9 +13,19 @@ class CustomValidators:
             if not re.match(r'^[0-9]+$', field.data):
                 raise validators.ValidationError('Only numeric characters are allowed.')
 
+class RequestPasswordResetForm(Form):
+    email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
+
+
+class ResetPasswordForm(Form):
+    password = PasswordField('Password', [validators.DataRequired(), validators.length(min=8, max=30), 
+                                          validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
+    confirm_password = PasswordField('Confirm Password', [validators.DataRequired(), validators.length(min=8, max=30), 
+                                          validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
+
 
 class CreateUserForm(Form):
-    email = EmailField('Email', [validators.DataRequired(), validators.Email()])
+    email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
     full_name = StringField('Full Name', validators=[validators.DataRequired()])
     username = StringField('Username', validators=[validators.DataRequired()])
     phone_number = IntegerField('Phone Number', [validators.DataRequired(), validators.NumberRange(min=00000000, max=99999999)])
@@ -26,19 +36,22 @@ class CreateUserForm(Form):
 
 
 class LoginForm(Form):
-    email = EmailField('Email', [validators.DataRequired(), validators.Email()])
-    password = PasswordField('Password', [validators.DataRequired(), validators.length(min=8, max=30)])
+    email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
+    password = PasswordField('Password', [validators.DataRequired(), validators.length(min=8, max=30), 
+                                          validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
 
 
 class UpdateProfileForm(Form):
-    email = EmailField('Email', [validators.DataRequired(), validators.Email()])
+    email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
     full_name = StringField('Full Name', validators=[validators.DataRequired()])
     username = StringField('Username', validators=[validators.DataRequired()])
     phone_number = IntegerField('Phone Number', [validators.DataRequired(),
                                                  validators.NumberRange(min=00000000, max=99999999)])
     current_password = PasswordField('', [validators.DataRequired(), validators.length(min=8, max=30)])
-    new_password = PasswordField('New Password', [validators.Optional(), validators.length(min=8, max=30)])
-    confirm_new_password = PasswordField('Confirm New Password', [validators.Optional(), validators.length(min=8, max=30)])
+    new_password = PasswordField('New Password', [validators.Optional(), validators.length(min=8, max=30), 
+                                          validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
+    confirm_new_password = PasswordField('Confirm New Password', [validators.Optional(), validators.length(min=8, max=30), 
+                                          validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
 
     card_name = StringField('Card Name', validators=[validators.Optional(), validators.length(max=30)])
     card_number = StringField('Card Number', validators=[
