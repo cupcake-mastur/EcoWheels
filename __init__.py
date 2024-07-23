@@ -757,7 +757,30 @@ def delete_vehicle(id):
 @admin_login_required
 def admin_logs():
     admin_username = session.get('admin_username')
-    logs = db.session.query(Log).all()
+
+    if request.method == 'POST':
+        event_type = request.form.get('event_type')
+        start_date = request.form.get('start_date')
+        end_date = request.form.get('end_date')
+        keyword = request.form.get('keyword')
+
+        query = db.session.query(Log)
+
+        if event_type:
+            query = query.filter(Log.event_type == event_type)
+        if start_date:
+            start_datetime = datetime.strptime(start_date, '%Y-%m-%dT%H:%M')
+            query = query.filter(Log.event_time >= start_datetime)
+        if end_date:
+            end_datetime = datetime.strptime(end_date, '%Y-%m-%dT%H:%M')
+            query = query.filter(Log.event_time <= end_datetime)
+        if keyword:
+            query = query.filter(Log.event_result.ilike(f'%{keyword}%'))
+
+        logs = query.all()
+    else:
+        logs = db.session.query(Log).all()
+
     return render_template('admin/logs.html', admin_username=admin_username, logs=logs)
 
 @app.route('/admin_logout')
