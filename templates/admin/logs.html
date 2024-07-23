@@ -2,9 +2,162 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoWheels Admin</title>
+    <link rel="stylesheet" type="text/css" href="../static/css/style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        .container {
+            padding-bottom: 3rem;
+        }
+
+        .tables-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px; /* Adjust the gap as needed */
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .d-table {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: none;
+            font-size: 1.5rem; /* Adjust the font size for numbers and words */
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .d-icon {
+            font-size: 5rem; /* Adjust the icon size as needed */
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+        }
+
+        .d-info {
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .d-numbers {
+            font-size: 3rem; /* Adjust the font size for the big numbers */
+            font-weight: 500;
+        }
+
+        .d-label {
+            font-size: 2rem; /* Adjust the font size for the words */
+            padding: 10px;
+        }
+
+        #cog-i {
+            background-color: rgb(49, 204, 188);
+        }
+
+        #customer-i {
+            background-color: rgb(250, 206, 72);
+        }
+
+        #car-i {
+            background-color: rgb(232, 102, 51);
+        }
+    </style>
 </head>
 <body>
 
+    <div class="sidebar">
+        <div class="top">
+            <div class="logo">
+                <!-- <img src="../static/images/EcoWheels Logo.jpeg" alt="Img" class="org-img"> -->
+                <i class='bx bx-car'></i>
+                <span>EcoWheels</span>
+            </div>
+            <i class="bx bx-menu" id="btn"></i>
+        </div>
+        <div class="user">
+            <div>
+                <p class="bold">{{ admin_username }}</p>
+                <p>Admin</p>
+            </div>
+        </div>
+        <ul>
+            <li>
+                <a href="{{ url_for('dashboard') }}" class="nav__link">
+                    <i class="bx bxs-grid-alt"></i>
+                    <span class="nav-item">Dashboard</span>
+                </a>
+                <span class="tooltip">Dashboard</span>
+            </li>
+            <li>
+                <a href="{{url_for('MVehicles')}}" class="nav__link">
+                    <i class="bx bxs-car"></i>
+                    <span class="nav-item">Vehicles</span>
+                </a>
+                <span class="tooltip">Vehicles</span>
+            </li>
+            <li>
+                <a href="{{url_for('MCustomers')}}" class="nav__link">
+                    <i class="bx bx-body"></i>
+                    <span class="nav-item">Customers</span>
+                </a>
+                <span class="tooltip">Customers</span>
+            </li>
+             <li>
+                <a href="{{url_for('admin_logs')}}" class="nav__link">
+                    <i class='bx bxs-message-square-dots'></i>
+                    <span class="nav-item">Feedback</span>
+                </a>
+                <span class="tooltip">Customer Feedback</span>
+            </li>
+             <li>
+                <a href="#" class="nav__link active">
+                    <i class='bx bx-note'></i>
+                    <span class="nav-item">Logs</span>
+                </a>
+                <span class="tooltip">Logs</span>
+            </li>
+            <li>
+                <a href="{{url_for('admin_logout')}}">
+                    <i class="bx bx-log-out"></i>
+                    <span class="nav-item">Logout</span>
+                </a>
+                <span class="tooltip">Logout</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <h1>EcoWheels Management System</h1>
+            <h2>Logs</h2>
+        </div>
+    </div>
 </body>
+
+<script>
+    let btn = document.querySelector("#btn");
+    let sidebar = document.querySelector(".sidebar");
+
+    btn.onclick = function () {
+        sidebar.classList.toggle('active');
+    };
+
+    function removeActiveClasses() {
+        const activeLinks = document.querySelectorAll(".nav__link.active");
+        activeLinks.forEach(link => {
+            link.classList.remove("active");
+        });
+    }
+
+    document.querySelectorAll(".nav__link").forEach(link => {
+        link.addEventListener("click", function() {
+            removeActiveClasses();
+            link.classList.add("active");
+        });
+    });
+</script>
 </html>
