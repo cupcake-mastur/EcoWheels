@@ -178,6 +178,7 @@ box-shadow: 1px 5px 15px #CCC;
   border-radius: 5px;
   background-color: #f2f2f2;
   padding: 20px;
+  margin: 0 25%;
 }
 input[type=text], select, textarea {
   width: 100%;
