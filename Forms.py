@@ -118,8 +118,10 @@ class CreateVehicleForm(FlaskForm):
         FileRequired(message="Image is required."),
         FileAllowed(['jpg', 'jpeg', 'png'], message="Only image files are allowed (jpg, jpeg, png).")
     ])
+
     description = TextAreaField('Description', validators=[
         DataRequired(message="Description is required."),
         Length(min=30, max=500, message="Description must be between 30 and 500 characters."),
-        Regexp(r'^[\w\s.,!?-]+$', message="Description can only contain letters, numbers, spaces, and basic punctuation.")
+        Regexp(r'^[\w\s.,!?"/-]+$',
+               message="Description can only contain letters, numbers, spaces, and basic punctuation including hyphens, single quotes, double quotes, and slashes.")
     ])
