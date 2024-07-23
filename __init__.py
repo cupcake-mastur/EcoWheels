@@ -108,7 +108,9 @@ def product_page():
 
 @app.route('/models')
 def models():
-    return render_template("homepage/models.html")
+    vehicles = db.session.query(Vehicle).all()
+
+    return render_template("homepage/models.html" , vehicles=vehicles)
 
 @app.route('/Feedback')
 def feedback():
