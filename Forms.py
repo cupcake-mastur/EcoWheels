@@ -18,9 +18,9 @@ class RequestPasswordResetForm(Form):
 
 
 class ResetPasswordForm(Form):
-    password = PasswordField('Password', [validators.DataRequired(), validators.length(min=8, max=30), 
+    password = PasswordField('New Password', [validators.DataRequired(), validators.length(min=8, max=30), 
                                           validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
-    confirm_password = PasswordField('Confirm Password', [validators.DataRequired(), validators.length(min=8, max=30), 
+    confirm_password = PasswordField('Confirm New Password', [validators.DataRequired(), validators.length(min=8, max=30), 
                                           validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
 
 
