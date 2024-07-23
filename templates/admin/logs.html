@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,71 +8,61 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
     <style>
-        .container {
-            padding-bottom: 3rem;
-        }
-
-        .tables-container {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px; /* Adjust the gap as needed */
+        <style>
+        #u-table {
             margin: 0 auto;
+            border-collapse: collapse;
             width: 100%;
+            font-size: 1.05rem;
         }
 
-        .d-table {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border: none;
-            font-size: 1.5rem; /* Adjust the font size for numbers and words */
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 20px;
+        th.u-tablehead {
+            background-color: #eee;
+            padding: 20px; /* Adjust spacing */
         }
 
-        .d-icon {
-            font-size: 5rem; /* Adjust the icon size as needed */
-            padding: 20px;
-            border-radius: 8px;
-            color: white;
+        tr:last-child td {
+            border-bottom: #12171e;
         }
 
-        .d-info {
+        td {
             text-align: center;
-            flex-grow: 1;
+            padding: 5px;
         }
 
-        .d-numbers {
-            font-size: 3rem; /* Adjust the font size for the big numbers */
+        tbody tr:nth-child(odd) {
+            background-color: #D3D3D3;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #eee;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
             font-weight: 500;
         }
 
-        .d-label {
-            font-size: 2rem; /* Adjust the font size for the words */
-            padding: 10px;
-        }
-
-        #cog-i {
-            background-color: rgb(49, 204, 188);
-        }
-
-        #customer-i {
-            background-color: rgb(250, 206, 72);
-        }
-
-        #car-i {
-            background-color: rgb(232, 102, 51);
+        .container {
+            padding-bottom: 3rem;
         }
     </style>
+
+
+
+
 </head>
 <body>
 
     <div class="sidebar">
         <div class="top">
             <div class="logo">
-                <!-- <img src="../static/images/EcoWheels Logo.jpeg" alt="Img" class="org-img"> -->
                 <i class='bx bx-car'></i>
                 <span>EcoWheels</span>
             </div>
@@ -135,8 +125,33 @@
             <h1>EcoWheels Management System</h1>
             <h2>Logs</h2>
         </div>
+        <br><br>
+        <div class="table-container">
+            <table id="l-table" border="0">
+                <thead>
+                    <tr>
+                        <th class="l-tablehead">Log ID</th>
+                        <th class="l-tablehead">Event Type</th>
+                        <th class="l-tablehead">Event Time</th>
+                        <th class="l-tablehead">Event Result</th>
+                    </tr>
+                    <tr>
+                        <th colspan="4" style="border-bottom: 2px solid #000000;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.id }}</td>
+                        <td>{{ log.event_type }}</td>
+                        <td>{{ log.event_time }}</td>
+                        <td>{{ log.event_result }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-</body>
 
 <script>
     let btn = document.querySelector("#btn");
@@ -160,4 +175,5 @@
         });
     });
 </script>
+</body>
 </html>
