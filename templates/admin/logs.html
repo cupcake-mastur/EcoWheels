@@ -167,19 +167,19 @@
                 <div class="legend-items">
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: rgb(115, 222, 140); border: solid 2.5px rgb(91, 189, 114);"></div>
-                        <span>Success</span>
+                        <span>Log in/out Success</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: rgb(247, 118, 116); border: solid 3px rgb(237, 64, 62);"></div>
-                        <span>Failure</span>
+                        <span>Log in/out Failure</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: rgb(245, 200, 66); border: solid 2.5px rgb(212, 166, 32);"></div>
-                        <span>Creation</span>
+                        <span>Vehicle Creation</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: rgb(250, 164, 65); border: solid 3px rgb(237, 148, 45);"></div>
-                        <span>Deletion</span>
+                        <span>Vehicle Deletion</span>
                     </div>
                 </div>
             </div>
@@ -204,7 +204,7 @@
                 <tbody>
                     {% for log in logs %}
                     <tr class="
-                        {% if 'success' in log.event_result %}
+                        {% if 'Success' in log.event_result %}
                             log-success
                         {% elif 'Failed' in log.event_result %}
                             log-failure
@@ -217,7 +217,10 @@
                         <td>{{ log.id }}</td>
                         <td>{{ log.event_type }}</td>
                         <td>{{ log.event_time }}</td>
-                        <td>{{ log.event_result }}</td>
+                        <td>
+                            <!-- Bold the usernames in the event result -->
+                            {{ log.event_result | replace(log.event_result.split(' ')[-1], '<strong>' + log.event_result.split(' ')[-1] + '</strong>') | safe }}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

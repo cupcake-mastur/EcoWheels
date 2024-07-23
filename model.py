@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Float, LargeBinary, Text
 from datetime import datetime, timezone
+import pytz
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -63,11 +64,12 @@ class Vehicle(db.Model):
     description = db.Column(db.Text, nullable=True)
 
 
+SGT = pytz.timezone('Asia/Singapore')
 class Log(db.Model):
     __tablename__ = 'logs'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     event_type = db.Column(db.String(50), nullable=False)
-    event_time = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    event_time = db.Column(db.DateTime, default=lambda: datetime.now(SGT), nullable=False)
     event_result = db.Column(db.String(255), nullable=False)
 
 
