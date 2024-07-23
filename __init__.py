@@ -91,7 +91,9 @@ def product_page():
 
 @app.route('/models')
 def models():
-    return render_template("homepage/models.html")
+    vehicles = db.session.query(Vehicle).all()
+
+    return render_template("homepage/models.html" , vehicles=vehicles)
 
 @app.route('/Feedback')
 def feedback():
@@ -570,32 +572,36 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
+# Log event function
+def log_event(event_type, event_result):
+    log = Log(event_type=event_type, event_result=event_result)
+    db.session.add(log)
+    db.session.commit()
+
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
     form = AdminLoginForm(request.form)
-    error_message = None  # Initialize the error message
+    error_message = None
     if form.validate_on_submit():
-        username = html.escape(form.username.data)  # Escape HTML characters
+        username = html.escape(form.username.data)
         password = html.escape(form.password.data)
 
-        # Manually trigger field validation
         if not form.username.validate(form) or not form.password.validate(form):
             return render_template('admin/admin_log_in.html', form=form)
 
-        # Check for disallowed characters in username and password
         if not is_valid_input(username) or not is_valid_input(password):
             return render_template('admin/admin_log_in.html', form=form)
 
-        # Perform case-sensitive query for the admin with the given username
         admin = db.session.query(Admin).filter(func.binary(Admin.username) == username).first()
 
-        # Compare the hashed input password with the hashed password in the database
         if admin and admin.check_password(password):
-            session['admin_username'] = username  # Store the username in the session
-            session['admin_logged_in'] = True  # Set admin logged in status
+            session['admin_username'] = username
+            session['admin_logged_in'] = True
+            log_event('Login', f'Successful login for username {username}.')
             return redirect(url_for('dashboard'))
         else:
-            error_message = "Incorrect Username or Password"  # Set the error message
+            error_message = "Incorrect Username or Password"
+            log_event('Login', f'Failed login attempt for username {username}.')
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
@@ -645,14 +651,13 @@ def createVehicle():
         price = create_vehicle_form.price.data
         description = create_vehicle_form.description.data
 
-        # Handle image file upload
         if create_vehicle_form.file.data:
             try:
                 file = save_image_file(create_vehicle_form.file.data)
             except IsADirectoryError:
-                return redirect(url_for('ErrorPage'))  # Redirect to error page for folder submission
+                return redirect(url_for('ErrorPage'))
             except ValueError:
-                return redirect(url_for('ErrorPage'))  # Redirect to error page for other errors
+                return redirect(url_for('ErrorPage'))
         else:
             file = None
 
@@ -660,6 +665,7 @@ def createVehicle():
             new_vehicle = Vehicle(brand=brand, model=model, selling_price=price, image=file, description=description)
             db.session.add(new_vehicle)
             db.session.commit()
+            log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_username"]}.')
             return redirect(url_for('MVehicles'))
         except Exception as e:
             db.session.rollback()
@@ -738,23 +744,29 @@ def MVehicles():
 @app.route('/delete_vehicle/<int:id>', methods=['POST'])
 @admin_login_required
 def delete_vehicle(id):
-    # Retrieve the vehicle from the database
     vehicle = db.session.query(Vehicle).get(id)
-
     if vehicle:
-        # Delete the vehicle from the database
         db.session.delete(vehicle)
         db.session.commit()
-
-    # Redirect back to the manageVehicles page
+        log_event('Delete Vehicle', f'Vehicle deleted: {vehicle.brand} {vehicle.model} by {session["admin_username"]}.')
     return redirect(url_for('MVehicles'))
+
+
+
+@app.route('/logs', methods=['GET', 'POST'])
+@admin_login_required
+def admin_logs():
+    admin_username = session.get('admin_username')
+    logs = db.session.query(Log).all()
+    return render_template('admin/logs.html', admin_username=admin_username, logs=logs)
 
 @app.route('/admin_logout')
 def admin_logout():
     if 'admin_logged_in' in session:
+        admin_username = session.get('admin_username')
         session.pop('admin_logged_in', None)
         session.pop('admin_username', None)
-        app.logger.info("Admin logged out successfully.")
+        log_event('Logout', f'Successfully logged out Admin {admin_username}')
         session.clear()
         session.modified = True
         return redirect(url_for('admin_log_in'))

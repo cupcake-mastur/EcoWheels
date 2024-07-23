@@ -2,50 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Car Models</title>
-    <!-- bootstrap css -->
+    <title>Feedback Form</title>
+    <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet"
-     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <!-- CSS -->
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+          crossorigin="anonymous">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
+          integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p"
+          crossorigin="anonymous"/>
+    <!-- Your custom CSS -->
     <link rel="stylesheet" href="static/css/Models.css">
     <link rel="stylesheet" href="static/css/Homepage.css">
     <link rel='stylesheet' href="static/js/script.js">
-      <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous" />
-
-
 </head>
 <body>
 <!-- Navbar -->
-  <nav>
+<nav>
     <label class="logo">EcoWheel</label>
-    <input type="checkbox" id="check" />
+    <input type="checkbox" id="check"/>
     <label for="check" class="hamberger-btn">
-      <i class="fas fa-bars"></i>
+        <i class="fas fa-bars"></i>
     </label>
     <ul>
-      <li><a href="#">Home</a></li>
-      <li><a href="#">Pricing</a></li>
-      <li><a href="#">About</a></li>
-      <li><a href="#">Contact us</a></li>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Contact us</a></li>
     </ul>
-  </nav>
-  <!--Nav bar ends here-->
- <h1>Feedback</h1>
+</nav>
+<!-- Nav bar ends here -->
+
+<div class="container-Feedback">
+    <h1>Feedback</h1>
     <p>Logged in as: {{ username }}</p>
     <form method="POST" action="{{ url_for('feedback') }}">
-        <label for="name">Name:</label>
-        <input type="text" id="name" name="name" value="{{ username }}" required>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="email" value="{{ email }}" placeholder="Your email.." required>
         <br>
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
+        <label for="rating">Rating:</label>
+        <select id="rating" name="rating" required>
+            <option value="good">Good</option>
+            <option value="moderate">Moderate</option>
+            <option value="bad">Bad</option>
+        </select>
         <br>
-        <label for="message">Message:</label>
-        <textarea id="message" name="message" required></textarea>
+            <label for="feedback">Feedback:</label>
+            <textarea id="feedback" name="feedback" style="height:200px" required></textarea>
         <br>
-        <button type="submit">Submit</button>
+        <button type="submit" class="btn btn-Submit">Submit</button>
     </form>
-</head>
-<body>
+</div>
 
+<!-- Bootstrap JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
 </body>
 </html>

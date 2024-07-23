@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoWheels Admin</title>
+    <link rel="stylesheet" type="text/css" href="../static/css/style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        #l-table {
+            margin: 0 auto;
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 1.05rem;
+        }
+
+        th.l-tablehead {
+            border: none; /* No border for table header */
+            padding: 20px; /* Adjust spacing */
+            background-color: #eee;
+        }
+
+        td {
+            border: none; /* No border for table cells */
+            padding: 8px; /* Padding inside table cells */
+        }
+
+        tr {
+            border-bottom: none; /* No border below rows */
+        }
+
+        tr.log-success {
+            background-color: rgb(115, 222, 140); /* Green */
+            border: solid 2.5px rgb(91, 189, 114);
+        }
+
+        tr.log-failure {
+            background-color: rgb(247, 118, 116); /* Red */
+            border: solid 3px rgb(237, 64, 62);
+        }
+
+        tr.log-creation {
+            background-color: rgb(245, 200, 66); /* Orange-Yellow */
+            border: solid 2.5px rgb(212, 166, 32);
+        }
+
+        tr.log-deletion {
+            background-color: rgb(250, 164, 65); /* Bright Orange */
+            border: solid 3px rgb(237, 148, 45);
+        }
+
+        .container {
+            padding-bottom: 3rem;
+        }
+
+        /* Legend Styles */
+        .legend {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            text-align: center; /* Center the legend items */
+        }
+
+        .legend h3 {
+            margin-bottom: 10px; /* Space below the header */
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping to the next line if needed */
+            justify-content: center; /* Center items horizontally */
+            gap: 15px; /* Space between legend items */
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .legend-item span {
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="top">
+            <div class="logo">
+                <i class='bx bx-car'></i>
+                <span>EcoWheels</span>
+            </div>
+            <i class="bx bx-menu" id="btn"></i>
+        </div>
+        <div class="user">
+            <div>
+                <p class="bold">{{ admin_username }}</p>
+                <p>Admin</p>
+            </div>
+        </div>
+        <ul>
+            <li>
+                <a href="{{ url_for('dashboard') }}" class="nav__link">
+                    <i class="bx bxs-grid-alt"></i>
+                    <span class="nav-item">Dashboard</span>
+                </a>
+                <span class="tooltip">Dashboard</span>
+            </li>
+            <li>
+                <a href="{{url_for('MVehicles')}}" class="nav__link">
+                    <i class="bx bxs-car"></i>
+                    <span class="nav-item">Vehicles</span>
+                </a>
+                <span class="tooltip">Vehicles</span>
+            </li>
+            <li>
+                <a href="{{url_for('MCustomers')}}" class="nav__link">
+                    <i class="bx bx-body"></i>
+                    <span class="nav-item">Customers</span>
+                </a>
+                <span class="tooltip">Customers</span>
+            </li>
+             <li>
+                <a href="{{url_for('admin_logs')}}" class="nav__link">
+                    <i class='bx bxs-message-square-dots'></i>
+                    <span class="nav-item">Feedback</span>
+                </a>
+                <span class="tooltip">Customer Feedback</span>
+            </li>
+             <li>
+                <a href="#" class="nav__link active">
+                    <i class='bx bx-note'></i>
+                    <span class="nav-item">Logs</span>
+                </a>
+                <span class="tooltip">Logs</span>
+            </li>
+            <li>
+                <a href="{{url_for('admin_logout')}}">
+                    <i class="bx bx-log-out"></i>
+                    <span class="nav-item">Logout</span>
+                </a>
+                <span class="tooltip">Logout</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <h1>EcoWheels Management System</h1>
+            <h2>Logs</h2>
+        </div>
+
+        <!-- Legend Section -->
+        <div class="container">
+            <div class="legend">
+                <h3>Log Color Legend</h3>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(115, 222, 140); border: solid 2.5px rgb(91, 189, 114);"></div>
+                        <span>Log in/out Success</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(247, 118, 116); border: solid 3px rgb(237, 64, 62);"></div>
+                        <span>Log in/out Failure</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(245, 200, 66); border: solid 2.5px rgb(212, 166, 32);"></div>
+                        <span>Vehicle Creation</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(250, 164, 65); border: solid 3px rgb(237, 148, 45);"></div>
+                        <span>Vehicle Deletion</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <table id="l-table">
+                <thead>
+                    <tr>
+                        <th class="l-tablehead">Log ID</th>
+                        <th class="l-tablehead">Event Type</th>
+                        <th class="l-tablehead">Event Time</th>
+                        <th class="l-tablehead">Event Result</th>
+                    </tr>
+                    <tr>
+                        <th colspan="4" style="border-bottom: 2px solid #000000;"></th>
+                    </tr>
+                    <tr>
+                        <th colspan="4"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr class="
+                        {% if 'Success' in log.event_result %}
+                            log-success
+                        {% elif 'Failed' in log.event_result %}
+                            log-failure
+                        {% elif 'created' in log.event_result %}
+                            log-creation
+                        {% elif 'deleted' in log.event_result %}
+                            log-deletion
+                        {% endif %}
+                    ">
+                        <td>{{ log.id }}</td>
+                        <td>{{ log.event_type }}</td>
+                        <td>{{ log.event_time }}</td>
+                        <td>
+                            <!-- Bold the usernames in the event result -->
+                            {{ log.event_result | replace(log.event_result.split(' ')[-1], '<strong>' + log.event_result.split(' ')[-1] + '</strong>') | safe }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+<script>
+    let btn = document.querySelector("#btn");
+    let sidebar = document.querySelector(".sidebar");
+
+    btn.onclick = function () {
+        sidebar.classList.toggle('active');
+    };
+
+    function removeActiveClasses() {
+        const activeLinks = document.querySelectorAll(".nav__link.active");
+        activeLinks.forEach(link => {
+            link.classList.remove("active");
+        });
+    }
+
+    document.querySelectorAll(".nav__link").forEach(link => {
+        link.addEventListener("click", function() {
+            removeActiveClasses();
+            link.classList.add("active");
+        });
+    });
+</script>
+</body>
+</html>
