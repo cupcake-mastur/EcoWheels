@@ -330,7 +330,7 @@ def verify_otp():
                 error = "Invalid OTP. Please try again."
                 app.logger.warning(f"Invalid OTP attempt for {user_email}")
         else:
-            error = "OTP has expired. Please request a new OTP."
+            error = "Invalid OTP. Please try again."
             app.logger.warning(f"Expired OTP attempt for {user_email}")
 
     return render_template('customer/verify_otp.html', error=error, user_email=user_email)
@@ -359,8 +359,9 @@ def request_password_reset():
         if user:
             token = s.dumps(email, salt='password-reset-salt')
             reset_url = url_for('reset_password', token=token, _external=True)
-            send_password_reset_email(email, reset_url)  # Implement this function
+            send_password_reset_email(email, reset_url)
             error = "A password reset link has been sent to your email."
+            app.logger.info(f"Reset Link has been sent to {email} successfully.")
         else:
             error = "Email address not found"
     
@@ -385,6 +386,7 @@ def reset_password(token):
         email = s.loads(token, salt='password-reset-salt', max_age=3600)
     except:
         error = "The password reset link is invalid or has expired"
+        app.logger.warning(f"Reset Link for {email} is invalid.")
         return redirect(url_for('request_password_reset'))
 
     if request.method == 'POST':
@@ -401,10 +403,10 @@ def reset_password(token):
             new_password_history = PasswordHistory(user_id=user.id, password_hash=user.password_hash)
             db.session.add(new_password_history)
             db.session.commit()
-            error = "Your password has been reset"
+            error = "Your password has been reset. Please login again."
             return redirect(url_for('login'))
         else:
-            error = "An error occurred. Please try again"
+            error = "An error occurred. Please try again."
             return redirect(url_for('request_password_reset'))
 
     return render_template('customer/reset_password.html', form=reset_password_form, token=token, error=error)
@@ -508,7 +510,7 @@ def logout():
         session.clear()
         session.modified = True
         print(session)
-        return redirect(url_for('home'))
+        return render_template('customer/logout_message.html')
     else:
         return render_template('customer/error_msg_not_logged_in.html')
 
