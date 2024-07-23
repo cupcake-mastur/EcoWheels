@@ -48,10 +48,14 @@ class UpdateProfileForm(Form):
     phone_number = IntegerField('Phone Number', [validators.DataRequired(),
                                                  validators.NumberRange(min=00000000, max=99999999)])
     current_password = PasswordField('', [validators.DataRequired(), validators.length(min=8, max=30)])
-    new_password = PasswordField('New Password', [validators.Optional(), validators.length(min=8, max=30), 
-                                          validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
-    confirm_new_password = PasswordField('Confirm New Password', [validators.Optional(), validators.length(min=8, max=30), 
-                                          validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
+    new_password = PasswordField('New Password', [validators.Optional(), validators.length(min=8, max=30,
+                                            message="New password must be between 8 and 30 characters long."), 
+                                          validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'), 
+                                                            message= "New password must contain at least one special character.")])
+    confirm_new_password = PasswordField('Confirm New Password', [validators.Optional(), validators.length(min=8, max=30,
+                                            message="New password must be between 8 and 30 characters long."), 
+                                          validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'), 
+                                                            message= "New password must contain at least one special character.")])
 
     card_name = StringField('Card Name', validators=[validators.Optional(), validators.length(max=30)])
     card_number = StringField('Card Number', validators=[

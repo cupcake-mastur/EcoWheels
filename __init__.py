@@ -325,7 +325,7 @@ def verify_otp():
                 session.permanent = True
 
                 app.logger.info(f"User {user_email} logged in successfully.")
-                return redirect(user.last_visited_url)
+                return redirect(url_for('home'))
             else:
                 error = "Invalid OTP. Please try again."
                 app.logger.warning(f"Invalid OTP attempt for {user_email}")
@@ -479,12 +479,17 @@ def edit_profile():
                                 db.session.delete(old_password)
 
         elif form_type == 'payment':
-            # Need to add validation
-            user.card_name = edit_profile_form.card_name.data
-            user.card_number = edit_profile_form.card_number.data
-            user.exp_month = edit_profile_form.exp_month.data
-            user.exp_year = edit_profile_form.exp_year.data
-            user.cvv = edit_profile_form.cvv.data
+            card_name = edit_profile_form.card_name.data
+            card_number = edit_profile_form.card_number.data
+            exp_month = edit_profile_form.exp_month.data
+            exp_year = edit_profile_form.exp_year.data
+            cvv = edit_profile_form.cvv.data
+            #Add validation
+            user.card_name = card_name
+            user.card_number = card_number
+            user.exp_month = exp_month
+            user.exp_year = exp_year
+            user.cvv = cvv
 
         if error:
             return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
