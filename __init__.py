@@ -597,6 +597,13 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
+def get_admin_role():
+    username = session.get('admin_username')
+    if username:
+        admin = db.session.query(Admin).filter_by(username=username).first()
+        return admin.role  # Assuming `role` field exists in Admin model
+    return None
+
 # Log event function
 def log_event(event_type, event_result):
     log = Log(event_type=event_type, event_result=event_result)
@@ -623,12 +630,22 @@ def admin_log_in():
             session['admin_username'] = username
             session['admin_logged_in'] = True
             log_event('Login', f'Successful login for username {username}.')
+
+            if username == 'steveissystemadmin':
+                return redirect(url_for('system_admin_login'))
+
             return redirect(url_for('dashboard'))
+
         else:
             error_message = "Incorrect Username or Password"
             log_event('Login', f'Failed login attempt for username {username}.')
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
+
+@app.route('/system_admin_login')
+@admin_login_required
+def system_admin_login():
+    return render_template('admin/system_admin/dashboard.html')
 
 def admin_login_required(f):
     @wraps(f)
