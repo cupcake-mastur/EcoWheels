@@ -22,14 +22,13 @@ class User(db.Model):
     password_hash = db.Column(db.String(128))
     failed_attempts = db.Column(db.Integer, default=0)
     lockout_until = db.Column(db.DateTime, nullable=True)
-#    last_visited_url = db.Column(db.String(200), default='/')
-#    password_history = db.relationship('PasswordHistory', backref='user', lazy=True)
+    password_history = db.relationship('PasswordHistory', backref='user', lazy=True)
 
-#    card_name = db.Column(db.String(30))
-#    card_number = db.Column(db.String(20))
-#    exp_month = db.Column(db.String(2))
-#    exp_year = db.Column(db.String(4))
-#    cvv = db.Column(db.String(3))
+    card_name = db.Column(db.String(30))
+    card_number = db.Column(db.String(20))
+    exp_month = db.Column(db.String(2))
+    exp_year = db.Column(db.String(4))
+    cvv = db.Column(db.String(3))
 
 
 class PasswordHistory(db.Model):

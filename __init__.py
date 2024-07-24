@@ -403,8 +403,7 @@ def reset_password(token):
             new_password_history = PasswordHistory(user_id=user.id, password_hash=user.password_hash)
             db.session.add(new_password_history)
             db.session.commit()
-            error = "Your password has been reset. Please login again."
-            return redirect(url_for('login'))
+            return render_template('customer/password_reset_success.html')
         else:
             error = "An error occurred. Please try again."
             return redirect(url_for('request_password_reset'))
