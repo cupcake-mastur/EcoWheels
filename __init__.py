@@ -629,11 +629,14 @@ def cancel_page():
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
 system_admin_list = ['steveissystemadmin', 'testuser']
+
+
 # Log event function
 def log_event(event_type, event_result):
     log = Log(event_type=event_type, event_result=event_result)
     db.session.add(log)
     db.session.commit()
+
 
 def admin_login_required(f):
     @wraps(f)
@@ -641,7 +644,9 @@ def admin_login_required(f):
         if not session.get('admin_logged_in'):
             return redirect(url_for('admin_log_in'))  # Redirect to admin login if not logged in
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
@@ -676,8 +681,6 @@ def admin_log_in():
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
 
-
-
 def is_valid_input(input_str):
     """
     Check if the input string contains only allowed characters.
@@ -685,7 +688,6 @@ def is_valid_input(input_str):
     # Define a regular expression to match allowed characters
     allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
     return bool(allowed_chars_pattern.match(input_str))
-
 
 
 def save_image_file(form_file):
@@ -796,6 +798,7 @@ def system_dashboard():
     return render_template('admin/system_admin/system_dashboard.html', admin_username=admin_username,
                            num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
 
+
 @app.route('/manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
 def MCustomers():
@@ -821,6 +824,7 @@ def MCustomers():
 
     return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
 
+
 @app.route('/system_manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
 def system_MCustomers():
@@ -844,7 +848,9 @@ def system_MCustomers():
 
     customers = query.all()
 
-    return render_template('admin/system_admin/system_manageCustomers.html', admin_username=admin_username, customers=customers)
+    return render_template('admin/system_admin/system_manageCustomers.html', admin_username=admin_username,
+                           customers=customers)
+
 
 @app.route('/manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
@@ -897,7 +903,9 @@ def system_MVehicles():
 
         vehicles = query.all()
 
-    return render_template('admin/system_admin/system_manageVehicles.html', admin_username=admin_username, vehicles=vehicles)
+    return render_template('admin/system_admin/system_manageVehicles.html', admin_username=admin_username,
+                           vehicles=vehicles)
+
 
 @app.route('/delete_vehicle/<int:id>', methods=['POST'])
 @admin_login_required
@@ -908,7 +916,6 @@ def delete_vehicle(id):
         db.session.commit()
         log_event('Delete Vehicle', f'Vehicle deleted: {vehicle.brand} {vehicle.model} by {session["admin_username"]}.')
     return redirect(url_for('MVehicles'))
-
 
 
 @app.route('/logs', methods=['GET', 'POST'])
