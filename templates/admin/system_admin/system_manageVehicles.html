@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoWheels Admin</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
+    <style>
+    #v-table {
+            margin: 0 auto;
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 1.05rem;
+        }
+        th.v-tablehead {
+            background-color: #eee;
+            padding: 20px;
+        }
+        tr:last-child td {
+            border-bottom: #12171e;
+        }
+        td {
+            text-align: center;
+            padding: 5px;
+        }
+        tbody tr:nth-child(odd) {
+            background-color: #D3D3D3;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #eee;
+        }
+        .delete-button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+        .filter-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-form label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .filter-form input[type="text"],
+        .filter-form input[type="number"],
+        .filter-form button[type="submit"] {
+            font-size: 1.05rem;
+            display: box;
+            width: 100%;
+            padding: 0.75rem;
+            box-sizing: border-box;
+            border-radius: 4px;
+            border: 1.5px solid #dddddd;
+            outline: none;
+            background: #eeeeee;
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 1.2rem;
+        }
+        .filter-form input[type="text"]:focus,
+        .filter-form input[type="number"]:focus,
+        .filter-form button[type="submit"]:focus {
+            background: #ffffff;
+            border-color: #aaaaaa;
+        }
+
+        .filter-form button[type="submit"] {
+            cursor: pointer;
+            background-color: rgb(7, 165, 96);
+            color: white;
+            border: none;
+        }
+        .filter-form button[type="submit"]:hover {
+            background-color: rgb(5, 137, 80);
+        }
+        .filter-item {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .filter-item.button-item {
+            flex: 0;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #ffffff;
+            border: none;
+            border-radius:4px;
+            outline: none;
+            cursor: pointer;
+            background:rgb(7, 165, 96) ;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="top">
+            <div class="logo">
+                <i class='bx bx-car'></i>
+                <span>EcoWheels</span>
+            </div>
+            <i class="bx bx-menu" id="btn"></i>
+        </div>
+        <div class="user">
+            <div>
+                <p class="bold">{{ admin_username }}</p>
+                <p>Admin</p>
+            </div>
+        </div>
+        <ul>
+            <li>
+                <a href="{{url_for('system_dashboard')}}" class="nav__link">
+                    <i class="bx bxs-grid-alt"></i>
+                    <span class="nav-item">Dashboard</span>
+                </a>
+                <span class="tooltip">Dashboard</span>
+            </li>
+            <li>
+                <a href="{{url_for('system_MVehicles')}}" class="nav__link active">
+                    <i class="bx bxs-car"></i>
+                    <span class="nav-item">Vehicles</span>
+                </a>
+                <span class="tooltip">Vehicles</span>
+            </li>
+            <li>
+                <a href="{{url_for('system_MCustomers')}}" class="nav__link">
+                    <i class="bx bx-body"></i>
+                    <span class="nav-item">Customers</span>
+                </a>
+                <span class="tooltip">Customers</span>
+            </li>
+            <li>
+                <a href="{{url_for('system_manageFeedback')}}">
+                    <i class='bx bxs-message-square-dots'></i>
+                    <span class="nav-item">Feedback</span>
+                </a>
+                <span class="tooltip">Customer Feedback</span>
+            </li>
+            <li>
+                <a href="{{url_for('system_logs')}}">
+                    <i class='bx bx-note'></i>
+                    <span class="nav-item">Logs</span>
+                </a>
+                <span class="tooltip">Logs</span>
+            </li>
+            <li>
+                <a href="{{url_for('admin_logout')}}">
+                    <i class="bx bx-log-out"></i>
+                    <span class="nav-item">Logout</span>
+                </a>
+                <span class="tooltip">Logout</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <h1>EcoWheels Management System</h1>
+            <h2>Vehicles</h2>
+        </div>
+
+        <a href="{{ url_for('system_createVehicle') }}"><button id="createVehicle">Add Vehicle</button></a>
+        <br><br>
+
+        <!-- Filter Form -->
+    <form method="post" action="{{ url_for('system_MVehicles') }}" class="filter-form">
+            <div class="filter-item">
+                <label for="brand_filter">Brand:</label>
+                <input type="text" id="brand_filter" name="brand_filter" placeholder="Enter brand">
+            </div>
+
+            <div class="filter-item">
+                <label for="model_filter">Model:</label>
+                <input type="text" id="model_filter" name="model_filter" placeholder="Enter model">
+            </div>
+
+
+            <div class="filter-item">
+                <label for="min_price_filter">Min Price:</label>
+                <input type="number" id="min_price_filter" name="min_price_filter" placeholder="Enter min price">
+            </div>
+
+            <div class="filter-item">
+                <label for="max_price_filter">Max Price:</label>
+                <input type="number" id="max_price_filter" name="max_price_filter" placeholder="Enter max price">
+            </div>
+
+            <div class="filter-item">
+                <button type="submit" class="filter-item button-item">Filter</button>
+            </div>
+
+        </form>
+        <br><br>
+
+        <table id="v-table" border="0">
+            <thead>
+                <tr>
+                    <th class="v-tablehead">Vehicle id</th>
+                    <th class="v-tablehead">Brand</th>
+                    <th class="v-tablehead">Model</th>
+                    <th class="v-tablehead">$SGD Selling Price</th>
+                    <th class="v-tablehead">Image</th>
+                    <th class="v-tablehead">Description</th>
+                    <th class="v-tablehead">Actions</th>
+                </tr>
+                <tr>
+                    <th colspan="7" style="border-bottom: 2px solid #000000;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vehicle in vehicles %}
+                <tr>
+                    <td>{{ vehicle.idvehicles }}</td>
+                    <td>{{ vehicle.brand }}</td>
+                    <td>{{ vehicle.model }}</td>
+                    <td>{{ '{:,.2f}'.format(vehicle.selling_price) }}</td>
+                    <td>
+                        {% if vehicle.image %}
+                            <img src="{{ url_for('static', filename='vehicle_images/' + vehicle.image) }}" alt="Vehicle Image" style="max-width: 100px; max-height: 100px;">
+                        {% else %}
+                            No Image
+                        {% endif %}
+                    </td>
+                    <td>{{ vehicle.description }}</td>
+                    <td>
+                        <form id="deleteForm{{ vehicle.idvehicles }}" action="{{ url_for('delete_vehicle', id=vehicle.idvehicles) }}" method="post">
+                            <div>
+                                <button class="delete-button" type="button" onclick="openPopup({{ vehicle.idvehicles }}, '{{ vehicle.brand }}', '{{ vehicle.model }}')">Delete</button>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="popup" id="popup">
+        <div class="overlay"></div>
+        <div class="popup-content">
+            <h2>Are you sure you want to delete this vehicle?</h2>
+            <p id="popup-vehicle-info"></p>
+            <div class="controls">
+                <button class="close-btn" type="button">Close</button>
+                <button class="submit-btn" id="press-n-hold" type="button">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let btn = document.querySelector("#btn");
+        let sidebar = document.querySelector(".sidebar");
+
+        btn.onclick = function () {
+            sidebar.classList.toggle('active');
+        };
+
+        function removeActiveClasses() {
+            const activeLinks = document.querySelectorAll(".nav__link.active");
+            activeLinks.forEach(link => {
+                link.classList.remove("active");
+            });
+        }
+
+        document.querySelectorAll(".nav__link").forEach(link => {
+            link.addEventListener("click", function() {
+                removeActiveClasses();
+                link.classList.add("active");
+            });
+        });
+
+        function openPopup(vehicleId, brand, model) {
+            const popupNode = document.getElementById('popup');
+            const overlay = popupNode.querySelector('.overlay');
+            const closeBtn = popupNode.querySelector('.close-btn');
+            const submitBtn = popupNode.querySelector('#press-n-hold');
+            const vehicleInfo = `${vehicleId} ${brand} ${model}`;
+            const form = document.getElementById(`deleteForm${vehicleId}`);
+
+            document.getElementById('popup-vehicle-info').textContent = vehicleInfo;
+
+            function closePopup() {
+                popupNode.classList.remove('active');
+                isHoldingButton = false;
+                clearTimeout(pressHoldTimer);
+            }
+
+            let pressHoldDuration = 1000;
+            let pressHoldTimer;
+            let isHoldingButton = false;
+
+            function startPressHold() {
+                isHoldingButton = true;
+                pressHoldTimer = setTimeout(() => {
+                    if (isHoldingButton) {
+                        form.submit();
+                    }
+                }, pressHoldDuration);
+            }
+
+            function endPressHold() {
+                clearTimeout(pressHoldTimer);
+                isHoldingButton = false;
+            }
+
+            submitBtn.onmousedown = startPressHold;
+            submitBtn.onmouseup = endPressHold;
+            submitBtn.onmouseleave = endPressHold;
+
+            popupNode.classList.add('active');
+            overlay.addEventListener('click', closePopup);
+            closeBtn.addEventListener('click', closePopup);
+        }
+    </script>
+</body>
+</html>
