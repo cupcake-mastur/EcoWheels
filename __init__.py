@@ -597,18 +597,20 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-def get_admin_role():
-    username = session.get('admin_username')
-    if username:
-        admin = db.session.query(Admin).filter_by(username=username).first()
-        return admin.role  # Assuming `role` field exists in Admin model
-    return None
-
+system_admin_list = ['steveissystemadmin', 'testuser']
 # Log event function
 def log_event(event_type, event_result):
     log = Log(event_type=event_type, event_result=event_result)
     db.session.add(log)
     db.session.commit()
+
+def admin_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_log_in'))  # Redirect to admin login if not logged in
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
@@ -631,8 +633,8 @@ def admin_log_in():
             session['admin_logged_in'] = True
             log_event('Login', f'Successful login for username {username}.')
 
-            if username == 'steveissystemadmin':
-                return redirect(url_for('system_admin_login'))
+            if username in system_admin_list:
+                return redirect(url_for('system_dashboard'))
 
             return redirect(url_for('dashboard'))
 
@@ -642,18 +644,8 @@ def admin_log_in():
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
-@app.route('/system_admin_login')
-@admin_login_required
-def system_admin_login():
-    return render_template('admin/system_admin/dashboard.html')
 
-def admin_login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get('admin_logged_in'):
-            return redirect(url_for('admin_log_in'))  # Redirect to admin login if not logged in
-        return f(*args, **kwargs)
-    return decorated_function
+
 
 def is_valid_input(input_str):
     """
@@ -714,6 +706,39 @@ def createVehicle():
 
     return render_template('admin/createVehicleForm.html', form=create_vehicle_form)
 
+
+@app.route('/system_createVehicle', methods=['GET', 'POST'])
+@admin_login_required
+def system_createVehicle():
+    create_vehicle_form = CreateVehicleForm()
+    if request.method == 'POST' and create_vehicle_form.validate_on_submit():
+        brand = create_vehicle_form.brand.data
+        model = create_vehicle_form.model.data
+        price = create_vehicle_form.price.data
+        description = create_vehicle_form.description.data
+
+        if create_vehicle_form.file.data:
+            try:
+                file = save_image_file(create_vehicle_form.file.data)
+            except IsADirectoryError:
+                return redirect(url_for('ErrorPage'))
+            except ValueError:
+                return redirect(url_for('ErrorPage'))
+        else:
+            file = None
+
+        try:
+            new_vehicle = Vehicle(brand=brand, model=model, selling_price=price, image=file, description=description)
+            db.session.add(new_vehicle)
+            db.session.commit()
+            log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_username"]}.')
+            return redirect(url_for('system_MVehicles'))
+        except Exception as e:
+            db.session.rollback()
+
+    return render_template('admin/system_admin/system_createVehicleForm.html', form=create_vehicle_form)
+
+
 @app.route('/ErrorPage')
 def ErrorPage():
     return render_template('admin/ErrorPage.html')
@@ -729,6 +754,16 @@ def dashboard():
     return render_template('admin/dashboard.html', admin_username=admin_username,
                            num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
 
+
+@app.route('/system_admin_dashboard', methods=['GET', 'POST'])
+@admin_login_required
+def system_dashboard():
+    admin_username = session.get('admin_username')
+    num_customers = db.session.query(User).count()
+    num_vehicles = db.session.query(Vehicle).count()
+    num_admins = db.session.query(Admin).count()
+    return render_template('admin/system_admin/system_dashboard.html', admin_username=admin_username,
+                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
 
 @app.route('/manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
@@ -755,7 +790,30 @@ def MCustomers():
 
     return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
 
+@app.route('/system_manageCustomers', methods=['GET', 'POST'])
+@admin_login_required
+def system_MCustomers():
+    admin_username = session.get('admin_username')
 
+    query = db.session.query(User)
+    if request.method == 'POST':
+        full_name_filter = request.form.get('full_name_filter')
+        username_filter = request.form.get('username_filter')
+        email_filter = request.form.get('email_filter')
+        phone_number_filter = request.form.get('phone_number_filter')
+
+        if full_name_filter:
+            query = query.filter(User.full_name.ilike(f"%{full_name_filter}%"))
+        if username_filter:
+            query = query.filter(User.username.ilike(f"%{username_filter}%"))
+        if email_filter:
+            query = query.filter(User.email.ilike(f"%{email_filter}%"))
+        if phone_number_filter:
+            query = query.filter(User.phone_number.ilike(f"%{phone_number_filter}%"))
+
+    customers = query.all()
+
+    return render_template('admin/system_admin/system_manageCustomers.html', admin_username=admin_username, customers=customers)
 
 @app.route('/manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
@@ -783,6 +841,33 @@ def MVehicles():
 
     return render_template('admin/manageVehicles.html', admin_username=admin_username, vehicles=vehicles)
 
+
+@app.route('/system_manageVehicles', methods=['GET', 'POST'])
+@admin_login_required
+def system_MVehicles():
+    admin_username = session.get('admin_username')
+    vehicles = db.session.query(Vehicle).all()
+
+    if request.method == 'POST':
+        brand_filter = request.form.get('brand_filter')
+        model_filter = request.form.get('model_filter')
+        min_price_filter = request.form.get('min_price_filter')
+        max_price_filter = request.form.get('max_price_filter')
+
+        query = db.session.query(Vehicle)
+        if brand_filter:
+            query = query.filter(Vehicle.brand.ilike(f"%{brand_filter}%"))
+        if model_filter:
+            query = query.filter(Vehicle.model.ilike(f"%{model_filter}%"))
+        if min_price_filter:
+            query = query.filter(Vehicle.selling_price >= float(min_price_filter))
+        if max_price_filter:
+            query = query.filter(Vehicle.selling_price <= float(max_price_filter))
+
+        vehicles = query.all()
+
+    return render_template('admin/system_admin/system_manageVehicles.html', admin_username=admin_username, vehicles=vehicles)
+
 @app.route('/delete_vehicle/<int:id>', methods=['POST'])
 @admin_login_required
 def delete_vehicle(id):
@@ -797,7 +882,7 @@ def delete_vehicle(id):
 
 @app.route('/logs', methods=['GET', 'POST'])
 @admin_login_required
-def admin_logs():
+def system_logs():
     admin_username = session.get('admin_username')
 
     if request.method == 'POST':
@@ -823,7 +908,14 @@ def admin_logs():
     else:
         logs = db.session.query(Log).all()
 
-    return render_template('admin/logs.html', admin_username=admin_username, logs=logs)
+    return render_template('admin/system_admin/logs.html', admin_username=admin_username, logs=logs)
+
+
+@app.route('/system_manageFeedback')
+@admin_login_required
+def system_manageFeedback():
+    return render_template('admin/system_admin/system_manageFeedback.html')
+
 
 @app.route('/admin_logout')
 def admin_logout():
