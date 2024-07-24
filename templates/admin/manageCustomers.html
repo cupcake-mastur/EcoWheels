@@ -136,7 +136,7 @@
                 <span class="tooltip">Vehicles</span>
             </li>
             <li>
-                <a href="#" class="nav__link active">
+                <a href="{{ url_for('MCustomers') }}" class="nav__link active">
                     <i class="bx bx-body"></i>
                     <span class="nav-item">Customers</span>
                 </a>
@@ -148,13 +148,6 @@
                     <span class="nav-item">Feedback</span>
                 </a>
                 <span class="tooltip">Customer Feedback</span>
-            </li>
-            <li>
-                <a href="{{url_for('admin_logs')}}">
-                    <i class='bx bx-note'></i>
-                    <span class="nav-item">Logs</span>
-                </a>
-                <span class="tooltip">Logout</span>
             </li>
             <li>
                 <a href="{{ url_for('admin_logout') }}">

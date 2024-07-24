@@ -86,32 +86,39 @@
         </div>
         <ul>
             <li>
-                <a href="{{url_for('dashboard')}}" class="nav__link active">
+                <a href="{{ url_for('system_dashboard') }}" class="nav__link active">
                     <i class="bx bxs-grid-alt"></i>
                     <span class="nav-item">Dashboard</span>
                 </a>
                 <span class="tooltip">Dashboard</span>
             </li>
             <li>
-                <a href="{{url_for('MVehicles')}}" class="nav__link">
+                <a href="{{ url_for('system_MVehicles') }}" class="nav__link">
                     <i class="bx bxs-car"></i>
                     <span class="nav-item">Vehicles</span>
                 </a>
                 <span class="tooltip">Vehicles</span>
             </li>
             <li>
-                <a href="{{url_for('MCustomers')}}" class="nav__link">
+                <a href="{{ url_for('system_MCustomers') }}" class="nav__link">
                     <i class="bx bx-body"></i>
                     <span class="nav-item">Customers</span>
                 </a>
                 <span class="tooltip">Customers</span>
             </li>
              <li>
-                <a href="{{url_for('manageFeedback')}}">
+                <a href="{{url_for('system_manageFeedback')}}">
                     <i class='bx bxs-message-square-dots'></i>
                     <span class="nav-item">Feedback</span>
                 </a>
                 <span class="tooltip">Customer Feedback</span>
+            </li>
+             <li>
+                <a href="{{url_for('system_logs')}}">
+                    <i class='bx bx-note'></i>
+                    <span class="nav-item">Logs</span>
+                </a>
+                <span class="tooltip">Logs</span>
             </li>
             <li>
                 <a href="{{url_for('admin_logout')}}">

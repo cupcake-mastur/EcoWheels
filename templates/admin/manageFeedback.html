@@ -86,7 +86,7 @@
         </div>
         <ul>
             <li>
-                <a href="#" class="nav__link active">
+                <a href="{{url_for('dashboard')}}" class="nav__link">
                     <i class="bx bxs-grid-alt"></i>
                     <span class="nav-item">Dashboard</span>
                 </a>
@@ -107,18 +107,11 @@
                 <span class="tooltip">Customers</span>
             </li>
              <li>
-                <a href="{{url_for('manageFeedback')}}">
+                <a href="{{url_for('manageFeedback')}}" class="nav__link active">
                     <i class='bx bxs-message-square-dots'></i>
                     <span class="nav-item">Feedback</span>
                 </a>
                 <span class="tooltip">Customer Feedback</span>
-            </li>
-             <li>
-                <a href="{{url_for('admin_logs')}}">
-                    <i class='bx bx-note'></i>
-                    <span class="nav-item">Logs</span>
-                </a>
-                <span class="tooltip">Logs</span>
             </li>
             <li>
                 <a href="{{url_for('admin_logout')}}">
@@ -135,7 +128,6 @@
             <h1>EcoWheels Management System</h1>
             <h2>Customer Feedback</h2>
         </div>
-
 
 
     </div>

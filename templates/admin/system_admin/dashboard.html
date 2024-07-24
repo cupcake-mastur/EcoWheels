@@ -86,7 +86,7 @@
         </div>
         <ul>
             <li>
-                <a href="{{url_for('dashboard')}}" class="nav__link active">
+                <a href="#" class="nav__link active">
                     <i class="bx bxs-grid-alt"></i>
                     <span class="nav-item">Dashboard</span>
                 </a>
@@ -112,6 +112,13 @@
                     <span class="nav-item">Feedback</span>
                 </a>
                 <span class="tooltip">Customer Feedback</span>
+            </li>
+             <li>
+                <a href="{{url_for('admin_logs')}}">
+                    <i class='bx bx-note'></i>
+                    <span class="nav-item">Logs</span>
+                </a>
+                <span class="tooltip">Logs</span>
             </li>
             <li>
                 <a href="{{url_for('admin_logout')}}">
