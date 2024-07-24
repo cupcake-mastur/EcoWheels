@@ -12,6 +12,45 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="static/css/Models.css">
     <link rel="stylesheet" href="static/css/Homepage.css">
+    <style>
+        .cart-item {
+          border: 1px solid #ccc;
+          padding: 16px;
+          margin: 16px;
+        }
+        .cart-item button {
+          background-color: #04AA6D;
+          color: white;
+          padding: 10px;
+          border: none;
+          cursor: pointer;
+          border-radius: 5px;
+        }
+        .checkout-btn {
+          background-color: #04AA6D;
+          color: white;
+          padding: 10px;
+          border: none;
+          cursor: pointer;
+          border-radius: 5px;
+          font-size: 20px;
+        }
+        .badge {
+          background-color: red;
+          color: white;
+          border-radius: 50%;
+          padding: 5px 10px;
+          position: absolute;
+          top: -1px;
+          right: -5px;
+          font-size: 14px;
+        }
+        .cart-link {
+          position: relative;
+          display: inline-block;
+          padding-right: 20px;
+        }
+    </style>
 </head>
 <body>
 
@@ -27,15 +66,19 @@
         <li><a href="#">Pricing</a></li>
         <li><a href="#">About</a></li>
         <li><a href="#">Contact us</a></li>
+        <li class="cart-link">
+            <a href="#" data-toggle="modal" data-target="#cartModal">
+                <i class="fas fa-shopping-cart"></i> Cart
+                <span id="cart-count" class="badge"></span>
+            </a>
+        </li>
     </ul>
 </nav>
 <!-- Nav bar ends here -->
 
 <!-- Products -->
 <div class="container">
-
     <h1>Vehicle List</h1>
-
     <div id="products" class="row list-group">
         {% for vehicle in vehicles %}
         <div class="item col-xs-4 col-md-3">
@@ -46,12 +89,11 @@
                     <div class="row">
                         <div class="col-xs-12 col-md-6">
                             <p class="Price">${{ vehicle.selling_price }}</p>
-                            </br>
                             <p>{{ vehicle.description }}</p>
                         </div>
-                        <div class="btn-group">
+                        <div class="col-xs-12 col-md-6">
                             <a class="btn btn-details" href="#">Details</a>
-                            <a class="btn btn-Add" href="#">Add to cart</a>
+                            <button class="btn btn-Add" onclick="addToCart('{{ vehicle.model }}', {{ vehicle.selling_price }})">Add to cart</button>
                         </div>
                     </div>
                 </div>
@@ -61,13 +103,102 @@
     </div>
 </div>
 
+<!-- Cart Modal -->
+<div class="modal fade" id="cartModal" tabindex="-1" role="dialog" aria-labelledby="cartModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cartModalLabel">Shopping Cart</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="cart-items">
+        <!-- Cart items will be displayed here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary checkout-btn" onclick="checkout()">Checkout</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- jQuery and Bootstrap JS -->
-<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+<!-- Initializing the shopping cart -->
+<script>
+    // Initialize cart
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+    function updateCartCount() {
+        const cartCountElement = document.getElementById('cart-count');
+        cartCountElement.innerText = cart.length;
+        cartCountElement.style.display = cart.length > 0 ? 'inline' : 'none';
+    }
+
+    function addToCart(name, price) {
+        // Add product to cart
+        cart.push({name: name, price: price});
+        alert(name + ' added to cart.');
+        // Save cart to localStorage
+        localStorage.setItem('cart', JSON.stringify(cart));
+        // Update the cart count
+        updateCartCount();
+    }
+
+    function displayCart() {
+        let cartItems = document.getElementById('cart-items');
+        cartItems.innerHTML = '';
+        let total = 0;
+        cart.forEach((item, index) => {
+            total += item.price;
+            cartItems.innerHTML += `
+                <div class="cart-item">
+                    <h3>${item.name}</h3>
+                    <p>Price: $${item.price}</p>
+                    <button onclick="removeFromCart(${index})">Remove</button>
+                </div>
+            `;
+        });
+        cartItems.innerHTML += `<h2>Total: $${total}</h2>`;
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        localStorage.setItem('cart', JSON.stringify(cart));
+        displayCart();
+        updateCartCount();
+    }
+
+    async function checkout() {
+        try {
+            const response = await fetch('/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(cart),
+            });
+            const session = await response.json();
+            if (session.url) {
+                window.location.href = session.url;
+            } else {
+                console.error('Error creating checkout session:', session.error);
+            }
+        } catch (error) {
+            console.error('Checkout error:', error);
+        }
+    }
+
+    document.querySelector('[data-target="#cartModal"]').addEventListener('click', displayCart);
+
+    // Update the cart count on page load
+    updateCartCount();
+</script>
 
 </body>
 </html>
