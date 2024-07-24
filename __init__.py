@@ -73,6 +73,7 @@ payment_intents = stripe.PaymentIntent.list(limit=10)
 for intent in payment_intents.data:
     print(f"Payment Intent ID: {intent.id}, Amount: {intent.amount}, Status: {intent.status}")
 
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -81,9 +82,11 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
 @app.route('/')
 def home():
     return render_template("homepage/homepage.html")
+
 
 @app.route('/product_page')
 def product_page():
@@ -96,11 +99,13 @@ def product_page():
     ]
     return render_template('customer/test_product_page(exists till terron creates one hehe).html', all_result=all_result)
 
+
 @app.route('/models')
 def models():
     vehicles = db.session.query(Vehicle).all()
 
     return render_template("homepage/models.html" , vehicles=vehicles)
+
 
 @app.route('/Feedback')
 #@login_required                   #REMOVE COMMENT FOR USER LOG IN TO WORK, FOR TESTING CAN JUST LEAVE THE COMMENT
@@ -134,7 +139,6 @@ def admin_login_required(f):
 def manageFeedback():
 
     return render_template('admin/manageFeedback.html')
-
 
 
 @app.route('/check_session')
@@ -206,9 +210,6 @@ def sign_up():
             app.logger.info(f"User {email} added to database.")
             return redirect(url_for('login'))
     return render_template("customer/sign_up.html", form=create_user_form, error=error)
-
-
-
 
 
 def generate_otp(length=6):
