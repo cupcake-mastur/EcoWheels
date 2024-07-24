@@ -43,6 +43,7 @@
                 <div class="user-details">
                     <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off" data-form-type="general">
                         <input type="hidden" name="form_type" value="general">
+                        {{ form.hidden_tag() }}
                         <div class="required_input">
                             {{ render_field(form.full_name, class="form-control", id="name", placeholder="Enter your name") }}
                         </div>

@@ -2,15 +2,6 @@ import html
 import logging
 import re
 import stripe
-
-from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify, make_response, request
-from flask_mail import Mail, Message
-from Forms import CreateUserForm, UpdateProfileForm, LoginForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
-from werkzeug.security import generate_password_hash, check_password_hash
-from dotenv import load_dotenv, find_dotenv
-from datetime import datetime, timedelta, timezone
-from functools import wraps
-from itsdangerous import URLSafeTimedSerializer
 import hashlib
 import hmac
 import os
@@ -18,11 +9,23 @@ import model
 import random
 import string
 import secrets
+import time
+
+from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify, make_response, request, g
+from flask_wtf import CSRFProtect
+from flask_mail import Mail, Message
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from Forms import CreateUserForm, UpdateProfileForm, LoginForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
+from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv, find_dotenv
+from datetime import datetime, timedelta, timezone
+from functools import wraps
+from itsdangerous import URLSafeTimedSerializer
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists, func
 from werkzeug.utils import secure_filename
 from PIL import Image
-import stripe
 
 from model import *
 
@@ -31,7 +34,7 @@ db = SQLAlchemy()
 
 app = Flask(__name__)
 
-logging.basicConfig(filename='app.log', level=logging.DEBUG,
+logging.basicConfig(filename='app.log', level=logging.INFO,
                     format=f'%(asctime)s %(levelname)s: %(message)s')
 
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
@@ -59,6 +62,12 @@ mail = Mail(app)
 otp_store = {}
 
 user_logged_in = False
+csrf = CSRFProtect(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 with app.app_context():
     db.init_app(app)
@@ -81,6 +90,18 @@ def login_required(f):
             return redirect(url_for('login'))  # Redirect to login if user is not authenticated
         return f(*args, **kwargs)
     return decorated_function
+
+
+def get_remote_address(request):
+    return request.remote_addr
+
+
+@app.errorhandler(429)
+def ratelimit_error(e):
+    app.logger.warning(
+        f"Rate limit exceeded for IP {get_remote_address(request)}. "
+    )
+    return render_template("customer/rate_limit_exceeded.html"), 429
 
 
 @app.route('/')
@@ -162,6 +183,7 @@ def check_session():
 
 
 @app.route('/sign_up', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def sign_up():
     error = None
     create_user_form = CreateUserForm(request.form)
@@ -219,6 +241,7 @@ def generate_otp(length=6):
 
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
     error = None
     print(session)
@@ -283,6 +306,7 @@ def send_otp_email(email, otp):
 
 
 @app.route('/request_new_otp', methods=['POST'])
+@limiter.limit("5 per minute")
 def request_new_otp():
     user_email = session.get('user_email')
     session.pop('otp', None)
@@ -314,6 +338,7 @@ app.jinja_env.filters['hide_credit_card'] = hide_credit_card
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 @login_required
+@limiter.limit("5 per minute")
 def verify_otp():
     error = None
     user_email = session.get('user_email')
@@ -357,6 +382,7 @@ def verify_otp():
 
 @app.route('/profile', methods=['GET'])
 @login_required
+@limiter.limit("5 per minute")
 def profile():
     user_email = session.get('user_email')
 
@@ -369,6 +395,7 @@ def profile():
 
 
 @app.route('/request_password_reset', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def request_password_reset():
     error = None
     request_password_reset_form = RequestPasswordResetForm(request.form)
@@ -398,6 +425,7 @@ def send_password_reset_email(email, reset_url):
 
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def reset_password(token):
     error = None
     reset_password_form = ResetPasswordForm(request.form)
@@ -432,6 +460,7 @@ def reset_password(token):
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
+@limiter.limit("5 per minute")
 def edit_profile():
     error = None
     user_email = session.get('user_email')
@@ -521,6 +550,7 @@ def edit_profile():
 
 
 @app.route('/user/logout')
+@limiter.limit("5 per minute")
 def logout():
     if 'user_email' in session:
         user_email = session.pop('user_email', None)
@@ -534,6 +564,7 @@ def logout():
 
 
 @app.before_request
+@limiter.limit("5 per minute")
 def before_request():
     if 'user_email' in session:
         current_time = datetime.now(timezone.utc).timestamp()
