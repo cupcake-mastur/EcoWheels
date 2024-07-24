@@ -631,7 +631,7 @@ def admin_log_in():
         if admin and admin.check_password(password):
             session['admin_username'] = username
             session['admin_logged_in'] = True
-            log_event('Login', f'Successful login for username {username}.')
+            log_event('Login', f'Successful login for admin {username}.')
 
             if username in system_admin_list:
                 return redirect(url_for('system_dashboard'))
@@ -640,7 +640,7 @@ def admin_log_in():
 
         else:
             error_message = "Incorrect Username or Password"
-            log_event('Login', f'Failed login attempt for username {username}.')
+            log_event('Login', f'Failed login attempt for admin {username}.')
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
@@ -923,7 +923,7 @@ def admin_logout():
         admin_username = session.get('admin_username')
         session.pop('admin_logged_in', None)
         session.pop('admin_username', None)
-        log_event('Logout', f'Successfully logged out Admin {admin_username}')
+        log_event('Logout', f'Successfully logged out admin {admin_username}')
         session.clear()
         session.modified = True
         return redirect(url_for('admin_log_in'))
