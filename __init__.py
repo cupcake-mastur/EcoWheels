@@ -952,7 +952,8 @@ def system_logs():
 @app.route('/system_manageFeedback')
 @admin_login_required
 def system_manageFeedback():
-    return render_template('admin/system_admin/system_manageFeedback.html')
+    admin_username = session.get('admin_username')
+    return render_template('admin/system_admin/system_manageFeedback.html', admin_username=admin_username)
 
 
 @app.route('/admin_logout')
