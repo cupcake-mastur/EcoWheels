@@ -73,6 +73,13 @@ payment_intents = stripe.PaymentIntent.list(limit=10)
 for intent in payment_intents.data:
     print(f"Payment Intent ID: {intent.id}, Amount: {intent.amount}, Status: {intent.status}")
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_email' not in session:
+            return redirect(url_for('login'))  # Redirect to login if user is not authenticated
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/')
 def home():
@@ -96,6 +103,7 @@ def models():
     return render_template("homepage/models.html" , vehicles=vehicles)
 
 @app.route('/Feedback')
+#@login_required                   #REMOVE COMMENT FOR USER LOG IN TO WORK, FOR TESTING CAN JUST LEAVE THE COMMENT
 def feedback():
     if request.method == 'POST':
         name = request.form['name']
@@ -110,6 +118,22 @@ def feedback():
     # Pass the current user's username to the template
     #username = current_user.username
     return render_template('homepage/Feedback.html')
+
+
+def admin_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_log_in'))  # Redirect to admin login if not logged in
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@app.route('/manageFeedback')
+@admin_login_required
+def manageFeedback():
+
+    return render_template('admin/manageFeedback.html')
 
 
 
@@ -184,13 +208,7 @@ def sign_up():
     return render_template("customer/sign_up.html", form=create_user_form, error=error)
 
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_email' not in session:
-            return redirect(url_for('login'))  # Redirect to login if user is not authenticated
-        return f(*args, **kwargs)
-    return decorated_function
+
 
 
 def generate_otp(length=6):
