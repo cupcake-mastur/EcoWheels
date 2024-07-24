@@ -341,12 +341,12 @@ def verify_otp():
                 session.permanent = True
 
                 app.logger.info(f"User {user_email} logged in successfully.")
-                return redirect(user.last_visited_url)
+                return redirect(url_for('home'))
             else:
                 error = "Invalid OTP. Please try again."
                 app.logger.warning(f"Invalid OTP attempt for {user_email}")
         else:
-            error = "OTP has expired. Please request a new OTP."
+            error = "Invalid OTP. Please try again."
             app.logger.warning(f"Expired OTP attempt for {user_email}")
 
     return render_template('customer/verify_otp.html', error=error, user_email=user_email)
@@ -375,8 +375,9 @@ def request_password_reset():
         if user:
             token = s.dumps(email, salt='password-reset-salt')
             reset_url = url_for('reset_password', token=token, _external=True)
-            send_password_reset_email(email, reset_url)  # Implement this function
+            send_password_reset_email(email, reset_url)
             error = "A password reset link has been sent to your email."
+            app.logger.info(f"Reset Link has been sent to {email} successfully.")
         else:
             error = "Email address not found"
     
@@ -401,6 +402,7 @@ def reset_password(token):
         email = s.loads(token, salt='password-reset-salt', max_age=3600)
     except:
         error = "The password reset link is invalid or has expired"
+        app.logger.warning(f"Reset Link for {email} is invalid.")
         return redirect(url_for('request_password_reset'))
 
     if request.method == 'POST':
@@ -417,10 +419,10 @@ def reset_password(token):
             new_password_history = PasswordHistory(user_id=user.id, password_hash=user.password_hash)
             db.session.add(new_password_history)
             db.session.commit()
-            error = "Your password has been reset"
+            error = "Your password has been reset. Please login again."
             return redirect(url_for('login'))
         else:
-            error = "An error occurred. Please try again"
+            error = "An error occurred. Please try again."
             return redirect(url_for('request_password_reset'))
 
     return render_template('customer/reset_password.html', form=reset_password_form, token=token, error=error)
@@ -495,12 +497,17 @@ def edit_profile():
                                 db.session.delete(old_password)
 
         elif form_type == 'payment':
-            # Need to add validation
-            user.card_name = edit_profile_form.card_name.data
-            user.card_number = edit_profile_form.card_number.data
-            user.exp_month = edit_profile_form.exp_month.data
-            user.exp_year = edit_profile_form.exp_year.data
-            user.cvv = edit_profile_form.cvv.data
+            card_name = edit_profile_form.card_name.data
+            card_number = edit_profile_form.card_number.data
+            exp_month = edit_profile_form.exp_month.data
+            exp_year = edit_profile_form.exp_year.data
+            cvv = edit_profile_form.cvv.data
+            #Add validation
+            user.card_name = card_name
+            user.card_number = card_number
+            user.exp_month = exp_month
+            user.exp_year = exp_year
+            user.cvv = cvv
 
         if error:
             return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
@@ -519,7 +526,7 @@ def logout():
         session.clear()
         session.modified = True
         print(session)
-        return redirect(url_for('home'))
+        return render_template('customer/logout_message.html')
     else:
         return render_template('customer/error_msg_not_logged_in.html')
 
@@ -588,32 +595,36 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
+# Log event function
+def log_event(event_type, event_result):
+    log = Log(event_type=event_type, event_result=event_result)
+    db.session.add(log)
+    db.session.commit()
+
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
     form = AdminLoginForm(request.form)
-    error_message = None  # Initialize the error message
+    error_message = None
     if form.validate_on_submit():
-        username = html.escape(form.username.data)  # Escape HTML characters
+        username = html.escape(form.username.data)
         password = html.escape(form.password.data)
 
-        # Manually trigger field validation
         if not form.username.validate(form) or not form.password.validate(form):
             return render_template('admin/admin_log_in.html', form=form)
 
-        # Check for disallowed characters in username and password
         if not is_valid_input(username) or not is_valid_input(password):
             return render_template('admin/admin_log_in.html', form=form)
 
-        # Perform case-sensitive query for the admin with the given username
         admin = db.session.query(Admin).filter(func.binary(Admin.username) == username).first()
 
-        # Compare the hashed input password with the hashed password in the database
         if admin and admin.check_password(password):
-            session['admin_username'] = username  # Store the username in the session
-            session['admin_logged_in'] = True  # Set admin logged in status
+            session['admin_username'] = username
+            session['admin_logged_in'] = True
+            log_event('Login', f'Successful login for username {username}.')
             return redirect(url_for('dashboard'))
         else:
-            error_message = "Incorrect Username or Password"  # Set the error message
+            error_message = "Incorrect Username or Password"
+            log_event('Login', f'Failed login attempt for username {username}.')
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
@@ -663,14 +674,13 @@ def createVehicle():
         price = create_vehicle_form.price.data
         description = create_vehicle_form.description.data
 
-        # Handle image file upload
         if create_vehicle_form.file.data:
             try:
                 file = save_image_file(create_vehicle_form.file.data)
             except IsADirectoryError:
-                return redirect(url_for('ErrorPage'))  # Redirect to error page for folder submission
+                return redirect(url_for('ErrorPage'))
             except ValueError:
-                return redirect(url_for('ErrorPage'))  # Redirect to error page for other errors
+                return redirect(url_for('ErrorPage'))
         else:
             file = None
 
@@ -678,6 +688,7 @@ def createVehicle():
             new_vehicle = Vehicle(brand=brand, model=model, selling_price=price, image=file, description=description)
             db.session.add(new_vehicle)
             db.session.commit()
+            log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_username"]}.')
             return redirect(url_for('MVehicles'))
         except Exception as e:
             db.session.rollback()
@@ -756,23 +767,52 @@ def MVehicles():
 @app.route('/delete_vehicle/<int:id>', methods=['POST'])
 @admin_login_required
 def delete_vehicle(id):
-    # Retrieve the vehicle from the database
     vehicle = db.session.query(Vehicle).get(id)
-
     if vehicle:
-        # Delete the vehicle from the database
         db.session.delete(vehicle)
         db.session.commit()
-
-    # Redirect back to the manageVehicles page
+        log_event('Delete Vehicle', f'Vehicle deleted: {vehicle.brand} {vehicle.model} by {session["admin_username"]}.')
     return redirect(url_for('MVehicles'))
+
+
+
+@app.route('/logs', methods=['GET', 'POST'])
+@admin_login_required
+def admin_logs():
+    admin_username = session.get('admin_username')
+
+    if request.method == 'POST':
+        event_type = request.form.get('event_type')
+        start_date = request.form.get('start_date')
+        end_date = request.form.get('end_date')
+        keyword = request.form.get('keyword')
+
+        query = db.session.query(Log)
+
+        if event_type:
+            query = query.filter(Log.event_type == event_type)
+        if start_date:
+            start_datetime = datetime.strptime(start_date, '%Y-%m-%dT%H:%M')
+            query = query.filter(Log.event_time >= start_datetime)
+        if end_date:
+            end_datetime = datetime.strptime(end_date, '%Y-%m-%dT%H:%M')
+            query = query.filter(Log.event_time <= end_datetime)
+        if keyword:
+            query = query.filter(Log.event_result.ilike(f'%{keyword}%'))
+
+        logs = query.all()
+    else:
+        logs = db.session.query(Log).all()
+
+    return render_template('admin/logs.html', admin_username=admin_username, logs=logs)
 
 @app.route('/admin_logout')
 def admin_logout():
     if 'admin_logged_in' in session:
+        admin_username = session.get('admin_username')
         session.pop('admin_logged_in', None)
         session.pop('admin_username', None)
-        app.logger.info("Admin logged out successfully.")
+        log_event('Logout', f'Successfully logged out Admin {admin_username}')
         session.clear()
         session.modified = True
         return redirect(url_for('admin_log_in'))

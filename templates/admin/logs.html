@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,62 +8,150 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
     <style>
+        #l-table {
+            margin: 0 auto;
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 1.05rem;
+        }
+
+        th.l-tablehead {
+            border: none; /* No border for table header */
+            padding: 20px; /* Adjust spacing */
+            background-color: #eee;
+        }
+
+        td {
+            border: none; /* No border for table cells */
+            padding: 8px; /* Padding inside table cells */
+        }
+
+        tr {
+            border-bottom: none; /* No border below rows */
+        }
+
+        tr.log-success {
+            background-color: rgb(115, 222, 140); /* Green */
+            border: solid 2.5px rgb(91, 189, 114);
+        }
+
+        tr.log-failure {
+            background-color: rgb(247, 118, 116); /* Red */
+            border: solid 3px rgb(237, 64, 62);
+        }
+
+        tr.log-creation {
+            background-color: rgb(245, 200, 66); /* Orange-Yellow */
+            border: solid 2.5px rgb(212, 166, 32);
+        }
+
+        tr.log-deletion {
+            background-color: rgb(250, 164, 65); /* Bright Orange */
+            border: solid 3px rgb(237, 148, 45);
+        }
+
         .container {
             padding-bottom: 3rem;
         }
 
-        .tables-container {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px; /* Adjust the gap as needed */
-            margin: 0 auto;
-            width: 100%;
+        /* Legend Styles */
+        .legend {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            text-align: center; /* Center the legend items */
         }
 
-        .d-table {
+        .legend h3 {
+            margin-bottom: 10px; /* Space below the header */
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping to the next line if needed */
+            justify-content: center; /* Center items horizontally */
+            gap: 15px; /* Space between legend items */
+        }
+
+        .legend-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            border: none;
-            font-size: 1.5rem; /* Adjust the font size for numbers and words */
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 20px;
         }
 
-        .d-icon {
-            font-size: 5rem; /* Adjust the icon size as needed */
-            padding: 20px;
-            border-radius: 8px;
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .legend-item span {
+            font-size: 1rem;
+        }
+
+          /* Filter Form Styles */
+        .filter-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-form label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .filter-form input[type="text"],
+        .filter-form input[type="datetime-local"],
+        .filter-form select,
+        .filter-form button[type="submit"] {
+            font-size: 1.05rem;
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            box-sizing: border-box;
+            border-radius: 4px;
+            border: 1.5px solid #dddddd;
+            outline: none;
+            background: #eeeeee;
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 1.2rem;
+        }
+        .filter-form input[type="text"]:focus,
+        .filter-form input[type="datetime-local"]:focus,
+        .filter-form select:focus,
+        .filter-form button[type="submit"]:focus {
+            background: #ffffff;
+            border-color: #aaaaaa;
+        }
+
+        .filter-form button[type="submit"] {
+            cursor: pointer;
+            background-color: rgb(7, 165, 96);
             color: white;
+            border: none;
+        }
+        .filter-form button[type="submit"]:hover {
+            background-color: rgb(5, 137, 80);
+        }
+        .filter-item {
+            flex: 1;
+            min-width: 250px;
         }
 
-        .d-info {
-            text-align: center;
-            flex-grow: 1;
-        }
-
-        .d-numbers {
-            font-size: 3rem; /* Adjust the font size for the big numbers */
-            font-weight: 500;
-        }
-
-        .d-label {
-            font-size: 2rem; /* Adjust the font size for the words */
-            padding: 10px;
-        }
-
-        #cog-i {
-            background-color: rgb(49, 204, 188);
-        }
-
-        #customer-i {
-            background-color: rgb(250, 206, 72);
-        }
-
-        #car-i {
-            background-color: rgb(232, 102, 51);
+        .filter-item.button-item {
+            flex: 0;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #ffffff;
+            border: none;
+            border-radius:4px;
+            outline: none;
+            cursor: pointer;
+            background:rgb(7, 165, 96) ;
         }
     </style>
 </head>
@@ -72,7 +160,6 @@
     <div class="sidebar">
         <div class="top">
             <div class="logo">
-                <!-- <img src="../static/images/EcoWheels Logo.jpeg" alt="Img" class="org-img"> -->
                 <i class='bx bx-car'></i>
                 <span>EcoWheels</span>
             </div>
@@ -135,8 +222,105 @@
             <h1>EcoWheels Management System</h1>
             <h2>Logs</h2>
         </div>
+
+        <!-- Legend Section -->
+        <div class="container">
+            <div class="legend">
+                <h3>Log Color Legend</h3>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(115, 222, 140); border: solid 2.5px rgb(91, 189, 114);"></div>
+                        <span>Log in/out Success</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(247, 118, 116); border: solid 3px rgb(237, 64, 62);"></div>
+                        <span>Log in/out Failure</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(245, 200, 66); border: solid 2.5px rgb(212, 166, 32);"></div>
+                        <span>Vehicle Creation</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(250, 164, 65); border: solid 3px rgb(237, 148, 45);"></div>
+                        <span>Vehicle Deletion</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+         <!-- Filter Form -->
+       <form method="POST" action="{{ url_for('admin_logs') }}" class="filter-form">
+    <div class="filter-item">
+        <label for="event_type">Event Type:</label>
+        <select id="event_type" name="event_type">
+            <option value="">All</option>
+            <option value="Login">Login</option>
+            <option value="Logout">Logout</option>
+            <option value="Create Vehicle">Create Vehicle</option>
+            <option value="Delete Vehicle">Delete Vehicle</option>
+        </select>
     </div>
-</body>
+        <div class="filter-item">
+            <label for="start_date">Start Date and Time:</label>
+            <input type="datetime-local" id="start_date" name="start_date">
+        </div>
+        <div class="filter-item">
+            <label for="end_date">End Date and Time:</label>
+            <input type="datetime-local" id="end_date" name="end_date">
+        </div>
+        <div class="filter-item">
+            <label for="keyword">Keyword:</label>
+            <input type="text" id="keyword" name="keyword">
+        </div>
+        <div class="filter-item ">
+            <button type="submit" class="filter-item button-item">Filter</button>
+        </div>
+    </form>
+
+
+        <!-- Log Table -->
+        <div class="container">
+            <table id="l-table">
+                <thead>
+                    <tr>
+                        <th class="l-tablehead">Log ID</th>
+                        <th class="l-tablehead">Event Type</th>
+                        <th class="l-tablehead">Event Time</th>
+                        <th class="l-tablehead">Event Result</th>
+                    </tr>
+                    <tr>
+                        <th colspan="4" style="border-bottom: 2px solid #000000;"></th>
+                    </tr>
+                    <tr>
+                        <th colspan="4"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr class="
+                        {% if 'Success' in log.event_result %}
+                            log-success
+                        {% elif 'Failed' in log.event_result %}
+                            log-failure
+                        {% elif 'created' in log.event_result %}
+                            log-creation
+                        {% elif 'deleted' in log.event_result %}
+                            log-deletion
+                        {% endif %}
+                    ">
+                        <td>{{ log.id }}</td>
+                        <td>{{ log.event_type }}</td>
+                        <td>{{ log.event_time }}</td>
+                        <td>
+                            <!-- Bold the usernames in the event result -->
+                            {{ log.event_result | replace(log.event_result.split(' ')[-1], '<strong>' + log.event_result.split(' ')[-1] + '</strong>') | safe }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
 <script>
     let btn = document.querySelector("#btn");
@@ -160,4 +344,5 @@
         });
     });
 </script>
+</body>
 </html>

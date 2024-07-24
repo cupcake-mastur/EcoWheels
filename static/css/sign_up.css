@@ -32,8 +32,8 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
 }
 
 .container .title{
-    padding: 15px;
-    background: #f6f8fa;
+    padding-top: 15px;
+    padding-left: 15px;
 }
 
 .container .title p{
@@ -45,7 +45,7 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
 .login-link {
     color: #007bff;
     text-decoration: none;
-    margin-top: 0px;
+    margin-top: -20px;
 }
 
 .login-link:hover {
@@ -99,6 +99,7 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
   display: inline-block;
   margin: 0 5px;
   margin-left: 165px;
+  margin-top: 3px;
 }
 
 div span {
