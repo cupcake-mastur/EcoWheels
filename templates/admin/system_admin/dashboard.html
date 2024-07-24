@@ -86,7 +86,7 @@
         </div>
         <ul>
             <li>
-                <a href="#" class="nav__link">
+                <a href="#" class="nav__link active">
                     <i class="bx bxs-grid-alt"></i>
                     <span class="nav-item">Dashboard</span>
                 </a>
@@ -107,11 +107,18 @@
                 <span class="tooltip">Customers</span>
             </li>
              <li>
-                <a href="{{url_for('manageFeedback')}}" class="nav__link active">
+                <a href="{{url_for('manageFeedback')}}">
                     <i class='bx bxs-message-square-dots'></i>
                     <span class="nav-item">Feedback</span>
                 </a>
                 <span class="tooltip">Customer Feedback</span>
+            </li>
+             <li>
+                <a href="{{url_for('admin_logs')}}">
+                    <i class='bx bx-note'></i>
+                    <span class="nav-item">Logs</span>
+                </a>
+                <span class="tooltip">Logs</span>
             </li>
             <li>
                 <a href="{{url_for('admin_logout')}}">
@@ -123,12 +130,37 @@
         </ul>
     </div>
 
-    <div class="main-content">  <!--Add stuff within this class -->
+    <div class="main-content">
         <div class="container">
             <h1>EcoWheels Management System</h1>
-            <h2>Customer Feedback</h2>
+            <h2>Dashboard</h2>
         </div>
-        
+
+        <div class="tables-container">
+            <div class="d-table">
+                <i class="bx bx-body d-icon" id="customer-i"></i>
+                <div class="d-info">
+                    <div class="d-numbers">{{ num_customers }}</div>
+                    <div class="d-label">customers</div>
+                </div>
+            </div>
+
+            <div class="d-table">
+                <i class="bx bxs-car d-icon" id="car-i"></i>
+                <div class="d-info">
+                    <div class="d-numbers">{{ num_vehicles }}</div>
+                    <div class="d-label">vehicles</div>
+                </div>
+            </div>
+
+            <div class="d-table">
+                <i class='bx bx-cog d-icon' id="cog-i"></i>
+                <div class="d-info">
+                    <div class="d-numbers">{{ num_admins }}</div>
+                    <div class="d-label">admins</div>
+                </div>
+            </div>
+        </div>
 
     </div>
 </body>
