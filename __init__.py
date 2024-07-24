@@ -112,6 +112,22 @@ def feedback():
     return render_template('homepage/Feedback.html')
 
 
+def admin_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_log_in'))  # Redirect to admin login if not logged in
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@app.route('/manageFeedback')
+@admin_login_required
+def manageFeedback():
+
+    return render_template('admin/manageFeedback.html')
+
+
 
 @app.route('/check_session')
 def check_session():
