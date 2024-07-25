@@ -16,7 +16,7 @@ from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from Forms import CreateUserForm, UpdateProfileForm, LoginForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
+from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta, timezone
@@ -27,7 +27,7 @@ from sqlalchemy import exists, func
 from werkzeug.utils import secure_filename
 from PIL import Image
 from werkzeug.exceptions import BadRequest
-from flask_wtf.csrf import generate_csrf
+from flask_wtf.csrf import generate_csrf, CSRFError
 
 from model import *
 
@@ -97,11 +97,13 @@ def login_required(f):
 def get_remote_address(request):
     return request.remote_addr
 
+
 @limiter.request_filter
 def exempt_routes():
     exempt_endpoints = ['createVehicle', 'system_createVehicle', 'MCustomers', 'system_MCustomers', 'MVehicles', 'system_MVehicles', 'system_logs', 'manageFeedback', 'system_manageFeedback'
-                        'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback']
+                        'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback', 'check_session']
     return request.endpoint in exempt_endpoints
+
 
 @app.errorhandler(429)
 def ratelimit_error(e):
@@ -109,6 +111,11 @@ def ratelimit_error(e):
         f"Rate limit exceeded for IP {get_remote_address(request)}. "
     )
     return render_template("customer/rate_limit_exceeded.html"), 429
+
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    return render_template('error_msg.html', reason=e.description), 400
 
 
 @app.route('/')
@@ -328,7 +335,7 @@ def send_otp_email(email, otp):
 
 
 @app.route('/request_new_otp', methods=['POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("10 per minute")
 def request_new_otp():
     user_email = session.get('user_email')
     session.pop('otp', None)
@@ -359,11 +366,12 @@ app.jinja_env.filters['hide_credit_card'] = hide_credit_card
 
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 @login_required
-@limiter.limit("5 per minute")
 def verify_otp():
     error = None
     user_email = session.get('user_email')
+    otp_form = OTPForm(request.form)
 
     if not user_email:
         return redirect(url_for('login'))
@@ -372,9 +380,17 @@ def verify_otp():
     if not user:
         return redirect(url_for('login'))
 
-    if request.method == 'POST':
-        entered_otp_digits = [request.form.get(f'otp{i}') for i in range(1, 7)]
+    if request.method == 'POST' and otp_form.validate():
+        entered_otp_digits = [
+            otp_form.otp1.data,
+            otp_form.otp2.data,
+            otp_form.otp3.data,
+            otp_form.otp4.data,
+            otp_form.otp5.data,
+            otp_form.otp6.data
+        ]
         entered_otp = ''.join(entered_otp_digits)
+        print(entered_otp)
         otp = session.get('otp')
         otp_generation_time = session.get('otp_generation_time')
         current_time = datetime.now(timezone.utc).timestamp()
@@ -399,7 +415,7 @@ def verify_otp():
             error = "Invalid OTP. Please try again."
             app.logger.warning(f"Expired OTP attempt for {user_email}")
 
-    return render_template('customer/verify_otp.html', error=error, user_email=user_email)
+    return render_template('customer/verify_otp.html', form=otp_form, error=error, user_email=user_email)
 
 
 @app.route('/profile', methods=['GET'])

@@ -24,7 +24,16 @@ class ResetPasswordForm(Form):
                                           validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
 
 
-class CreateUserForm(Form):
+class OTPForm(FlaskForm):
+    otp1 = StringField('', validators=[DataRequired(), Length(max=1)])
+    otp2 = StringField('', validators=[DataRequired(), Length(max=1)])
+    otp3 = StringField('', validators=[DataRequired(), Length(max=1)])
+    otp4 = StringField('', validators=[DataRequired(), Length(max=1)])
+    otp5 = StringField('', validators=[DataRequired(), Length(max=1)])
+    otp6 = StringField('', validators=[DataRequired(), Length(max=1)])
+
+
+class CreateUserForm(FlaskForm):
     email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
     full_name = StringField('Full Name', validators=[validators.DataRequired()])
     username = StringField('Username', validators=[validators.DataRequired()])
@@ -39,7 +48,7 @@ class CreateUserForm(Form):
                                                             message= "New password must contain at least one special character.")])
 
 
-class LoginForm(Form):
+class LoginForm(FlaskForm):
     email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
     password = PasswordField('Password', [validators.DataRequired(), validators.length(min=8, max=30,
                                             message="New password must be between 8 and 30 characters long."), 
@@ -47,7 +56,7 @@ class LoginForm(Form):
                                                             message= "New password must contain at least one special character.")])
 
 
-class UpdateProfileForm(Form):
+class UpdateProfileForm(FlaskForm):
     email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
     full_name = StringField('Full Name', validators=[validators.DataRequired()])
     username = StringField('Username', validators=[validators.DataRequired()])
