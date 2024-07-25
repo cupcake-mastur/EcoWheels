@@ -96,7 +96,7 @@ class AdminLoginForm(FlaskForm):
         Regexp(
             r"^(?!.*['\"])[\w\d@.]{8,}$",
             message=(
-                "Username must contain at least 8 characters and cannot contain ', \" characters or special characters except @.")
+                "Username must contain at least 8 characters and cannot contain ', \" characters or special characters")
         )
     ])
     password = PasswordField('Password', validators=[
