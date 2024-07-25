@@ -167,6 +167,7 @@
 
         <br><br>
        <form method="post" action="{{ url_for('MCustomers') }}" class="filter-form">
+           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="filter-item">
                 <label for="full_name_filter">Full Name:</label>
                 <input type="text" id="full_name_filter" name="full_name_filter" placeholder="Enter full name">

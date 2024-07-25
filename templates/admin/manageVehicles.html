@@ -172,6 +172,7 @@
 
         <!-- Filter Form -->
     <form method="post" action="{{ url_for('MVehicles') }}" class="filter-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="filter-item">
                 <label for="brand_filter">Brand:</label>
                 <input type="text" id="brand_filter" name="brand_filter" placeholder="Enter brand">
@@ -232,6 +233,7 @@
                     <td>{{ vehicle.description }}</td>
                     <td>
                         <form id="deleteForm{{ vehicle.idvehicles }}" action="{{ url_for('delete_vehicle', id=vehicle.idvehicles) }}" method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <div>
                                 <button class="delete-button" type="button" onclick="openPopup({{ vehicle.idvehicles }}, '{{ vehicle.brand }}', '{{ vehicle.model }}')">Delete</button>
                             </div>

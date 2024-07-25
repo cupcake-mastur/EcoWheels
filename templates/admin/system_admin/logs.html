@@ -250,6 +250,7 @@
 
          <!-- Filter Form -->
        <form method="POST" action="{{ url_for('system_logs') }}" class="filter-form">
+           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="filter-item">
         <label for="event_type">Event Type:</label>
         <select id="event_type" name="event_type">
