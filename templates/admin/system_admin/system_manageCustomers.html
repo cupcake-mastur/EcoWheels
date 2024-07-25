@@ -6,6 +6,7 @@
     <title>EcoWheels Admin</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
 
     <style>
         #u-table {
@@ -116,7 +117,7 @@
         </div>
         <div class="user">
             <div>
-                <p class="bold">{{ admin_username }}</p>
+                <p class="bold">{{ admin_username.split('@')[0] }}</p>
                 <p>System Admin</p>
             </div>
         </div>
@@ -157,7 +158,7 @@
                 <span class="tooltip">Logs</span>
             </li>
             <li>
-                <a href="{{ url_for('admin_logout') }}">
+                <a onclick="openLogoutPopup()">
                     <i class="bx bx-log-out"></i>
                     <span class="nav-item">Logout</span>
                 </a>
@@ -253,6 +254,6 @@
             });
         });
     </script>
-
+{% include 'logout_modal.html' %}
 </body>
 </html>

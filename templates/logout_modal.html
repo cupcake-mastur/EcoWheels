@@ -1,0 +1,28 @@
+<div class="popup" id="logout-popup">
+    <div class="overlay"></div>
+    <div class="popup-content">
+        <h2>Are you sure you want to log out?</h2>
+        <div class="controls">
+            <button class="close-btn" type="button">Close</button>
+            <a href="{{ url_for('admin_logout') }}" class="submit-btn" id="Logout-btn">Logout</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLogoutPopup() {
+        const popupNode = document.getElementById('logout-popup');
+        const overlay = popupNode.querySelector('.overlay');
+        const closeBtn = popupNode.querySelector('.close-btn');
+
+        function closePopup() {
+            popupNode.classList.remove('active');
+        }
+
+        popupNode.classList.add('active');
+        overlay.addEventListener('click', closePopup);
+        closeBtn.addEventListener('click', closePopup);
+    }
+
+    document.getElementById('logout-btn').addEventListener('click', openLogoutPopup);
+</script>

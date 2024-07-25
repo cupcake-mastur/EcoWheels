@@ -666,8 +666,8 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-system_admin_list = ['SteveOng','testuser']
-junior_admin_list = ['JamesToh']
+junior_admin_list = ['EmmaJohnson@ecowheels.com', 'NoahWilson@ecowheels.com', 'testuserja@ecowheels.com']
+system_admin_list = ['SophiaMartinez@ecowheels.com', 'JamesCarter@ecowheels.com', 'testusersa@ecowheels.com']
 
 # Log event function
 def log_event(event_type, event_result):
@@ -718,18 +718,21 @@ def admin_log_in():
             session['admin_username'] = username
             session['admin_logged_in'] = True
 
-            if username in system_admin_list:
-                session['admin_role'] = 'system'
-                log_event('Login', f'Successful login for system admin {username}.')
-                return redirect(url_for('system_dashboard'))
-            elif username in junior_admin_list:
+            if username in junior_admin_list:
                 session['admin_role'] = 'junior'
                 log_event('Login', f'Successful login for junior admin {username}.')
                 return redirect(url_for('sub_dashboard'))
-            else:
+
+            elif username not in junior_admin_list and username not in system_admin_list:
                 session['admin_role'] = 'general'
                 log_event('Login', f'Successful login for admin {username}.')
                 return redirect(url_for('dashboard'))
+
+            elif username in system_admin_list:
+                session['admin_role'] = 'system'
+                log_event('Login', f'Successful login for system admin {username}.')
+                return redirect(url_for('system_dashboard'))
+
 
         else:
             error_message = "Incorrect Username or Password"
@@ -1130,7 +1133,6 @@ def admin_logout():
         return redirect(url_for('admin_log_in'))
     else:
         return "Admin is not logged in."
-
 
 if __name__ == '__main__':
     app.run(debug=True)
