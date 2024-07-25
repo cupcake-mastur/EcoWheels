@@ -650,8 +650,8 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-junior_admin_list = ['EmmaJohnson@ecowheels.com', 'NoahWilson@ecowheels.com']
-system_admin_list = ['SophiaMartinez@ecowheels.com', 'JamesCarter@ecowheels.com']
+junior_admin_list = ['EmmaJohnson@ecowheels.com', 'NoahWilson@ecowheels.com', 'testuserja@ecowheels.com']
+system_admin_list = ['SophiaMartinez@ecowheels.com', 'JamesCarter@ecowheels.com', 'testusersa@ecowheels.com']
 
 # Log event function
 def log_event(event_type, event_result):
