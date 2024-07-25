@@ -685,17 +685,16 @@ def admin_login_required(f):
 
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
-    form = AdminLoginForm(request.form)
+    form = AdminLoginForm()
     error_message = None
     if form.validate_on_submit():
         username = html.escape(form.username.data)
         password = html.escape(form.password.data)
 
-        if not form.username.validate(form) or not form.password.validate(form):
-            return render_template('admin/admin_log_in.html', form=form)
-
-        if not is_valid_input(username) or not is_valid_input(password):
-            return render_template('admin/admin_log_in.html', form=form)
+        # Check if the username ends with '@ecowheels.com'
+        if not username.endswith('@ecowheels.com'):
+            error_message = "Incorrect Username or Password"
+            return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
         admin = db.session.query(Admin).filter(func.binary(Admin.username) == username).first()
 
@@ -703,14 +702,13 @@ def admin_log_in():
             session['admin_username'] = username
             session['admin_logged_in'] = True
 
-
             if username in system_admin_list:
                 session['admin_role'] = 'system'
                 log_event('Login', f'Successful login for system admin {username}.')
                 return redirect(url_for('system_dashboard'))
             elif username in junior_admin_list:
                 session['admin_role'] = 'junior'
-                log_event('Login', f'Successful login for junior admin_role {username}.')
+                log_event('Login', f'Successful login for junior admin {username}.')
                 return redirect(url_for('sub_dashboard'))
             else:
                 session['admin_role'] = 'general'
@@ -1116,6 +1114,7 @@ def admin_logout():
         return redirect(url_for('admin_log_in'))
     else:
         return "Admin is not logged in."
+
 
 if __name__ == '__main__':
     app.run(debug=True)
