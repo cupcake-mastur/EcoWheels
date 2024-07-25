@@ -26,6 +26,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists, func
 from werkzeug.utils import secure_filename
 from PIL import Image
+from werkzeug.exceptions import BadRequest
+from flask_wtf.csrf import generate_csrf
 
 from model import *
 
@@ -157,6 +159,20 @@ def admin_login_required(f):
             return redirect(url_for('admin_log_in'))  # Redirect to admin login if not logged in
         return f(*args, **kwargs)
     return decorated_function
+  
+def role_required(*roles):
+    def wrapper(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'admin_logged_in' not in session:
+                return redirect(url_for('admin_log_in'))
+
+            if session.get('admin_role') not in roles:
+                return redirect(url_for('ErrorPage'))
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return wrapper
 
 
 @app.route('/manageFeedback')
@@ -633,14 +649,28 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-system_admin_list = ['steveissystemadmin', 'testuser']
-
+system_admin_list = ['SteveOng','testuser']
+junior_admin_list = ['JamesToh']
 
 # Log event function
 def log_event(event_type, event_result):
     log = Log(event_type=event_type, event_result=event_result)
     db.session.add(log)
     db.session.commit()
+
+def role_required(*roles):
+    def wrapper(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'admin_logged_in' not in session:
+                return redirect(url_for('admin_log_in'))
+
+            if session.get('admin_role') not in roles:
+                return redirect(url_for('ErrorPage'))
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return wrapper
 
 
 def admin_login_required(f):
@@ -651,7 +681,6 @@ def admin_login_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
-
 
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
@@ -672,12 +701,20 @@ def admin_log_in():
         if admin and admin.check_password(password):
             session['admin_username'] = username
             session['admin_logged_in'] = True
-            log_event('Login', f'Successful login for admin {username}.')
+
 
             if username in system_admin_list:
+                session['admin_role'] = 'system'
+                log_event('Login', f'Successful login for system admin {username}.')
                 return redirect(url_for('system_dashboard'))
-
-            return redirect(url_for('dashboard'))
+            elif username in junior_admin_list:
+                session['admin_role'] = 'junior'
+                log_event('Login', f'Successful login for junior admin_role {username}.')
+                return redirect(url_for('sub_dashboard'))
+            else:
+                session['admin_role'] = 'general'
+                log_event('Login', f'Successful login for admin {username}.')
+                return redirect(url_for('dashboard'))
 
         else:
             error_message = "Incorrect Username or Password"
@@ -696,24 +733,36 @@ def is_valid_input(input_str):
 
 
 def save_image_file(form_file):
+    if not form_file or not form_file.filename:
+        raise BadRequest("No file provided or invalid file.")
+
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_file.filename)
     picture_fn = random_hex + f_ext.lower()  # Ensure lowercase extension
     picture_path = os.path.join(current_app.root_path, 'static/vehicle_images', picture_fn)
 
-    # Save file securely
-    form_file.save(picture_path)
+    # Check if the provided file is a directory before saving
+    if hasattr(form_file, 'read'):
+        form_file.seek(0)
+        form_file.save(picture_path)
+    else:
+        raise BadRequest("Uploaded data is not a valid file.")
+
+    # Check if the saved file is actually a file
+    if os.path.isdir(picture_path):
+        os.remove(picture_path)
+        raise BadRequest("Uploaded data is a directory, not a file.")
 
     try:
         Image.open(picture_path).verify()
-    except Exception as e:
+    except Exception:
         os.remove(picture_path)  # Remove the file if verification fails
         raise ValueError("Invalid image file.")
 
     return picture_fn
 
-
 @app.route('/createVehicle', methods=['GET', 'POST'])
+@role_required('general')
 @admin_login_required
 def createVehicle():
     create_vehicle_form = CreateVehicleForm()
@@ -726,9 +775,7 @@ def createVehicle():
         if create_vehicle_form.file.data:
             try:
                 file = save_image_file(create_vehicle_form.file.data)
-            except IsADirectoryError:
-                return redirect(url_for('ErrorPage'))
-            except ValueError:
+            except (BadRequest, ValueError) as e:
                 return redirect(url_for('ErrorPage'))
         else:
             file = None
@@ -739,13 +786,13 @@ def createVehicle():
             db.session.commit()
             log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_username"]}.')
             return redirect(url_for('MVehicles'))
-        except Exception as e:
+        except Exception:
             db.session.rollback()
 
     return render_template('admin/createVehicleForm.html', form=create_vehicle_form)
 
-
 @app.route('/system_createVehicle', methods=['GET', 'POST'])
+@role_required('system')
 @admin_login_required
 def system_createVehicle():
     create_vehicle_form = CreateVehicleForm()
@@ -758,9 +805,7 @@ def system_createVehicle():
         if create_vehicle_form.file.data:
             try:
                 file = save_image_file(create_vehicle_form.file.data)
-            except IsADirectoryError:
-                return redirect(url_for('ErrorPage'))
-            except ValueError:
+            except (BadRequest, ValueError) as e:
                 return redirect(url_for('ErrorPage'))
         else:
             file = None
@@ -771,7 +816,7 @@ def system_createVehicle():
             db.session.commit()
             log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_username"]}.')
             return redirect(url_for('system_MVehicles'))
-        except Exception as e:
+        except Exception:
             db.session.rollback()
 
     return render_template('admin/system_admin/system_createVehicleForm.html', form=create_vehicle_form)
@@ -779,11 +824,13 @@ def system_createVehicle():
 
 @app.route('/ErrorPage')
 def ErrorPage():
-    return render_template('admin/ErrorPage.html')
+    referrer = request.referrer or url_for('home')  # Default to 'home' if no referrer
+    return render_template('admin/ErrorPage.html', referrer=referrer)
 
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('general')
 def dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
@@ -795,6 +842,7 @@ def dashboard():
 
 @app.route('/system_admin_dashboard', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('system')
 def system_dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
@@ -803,12 +851,25 @@ def system_dashboard():
     return render_template('admin/system_admin/system_dashboard.html', admin_username=admin_username,
                            num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
 
+@app.route('/sub_dashboard', methods=['GET', 'POST'])
+@admin_login_required
+@role_required('junior')
+def sub_dashboard():
+    admin_username = session.get('admin_username')
+    num_customers = db.session.query(User).count()
+    num_vehicles = db.session.query(Vehicle).count()
+    num_admins = db.session.query(Admin).count()
+    return render_template('admin/junior_admin/sub_dashboard.html', admin_username=admin_username,
+                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
+
+
 
 @app.route('/manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('general')
 def MCustomers():
     admin_username = session.get('admin_username')
-
+    csrf_token = generate_csrf()  # Generate CSRF token
     query = db.session.query(User)
     if request.method == 'POST':
         full_name_filter = request.form.get('full_name_filter')
@@ -827,14 +888,15 @@ def MCustomers():
 
     customers = query.all()
 
-    return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
+    return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers, csrf_token=csrf_token)
 
 
 @app.route('/system_manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('system')
 def system_MCustomers():
     admin_username = session.get('admin_username')
-
+    csrf_token = generate_csrf()  # Generate CSRF token
     query = db.session.query(User)
     if request.method == 'POST':
         full_name_filter = request.form.get('full_name_filter')
@@ -854,13 +916,44 @@ def system_MCustomers():
     customers = query.all()
 
     return render_template('admin/system_admin/system_manageCustomers.html', admin_username=admin_username,
-                           customers=customers)
+                           customers=customers, csrf_token=csrf_token)
+
+
+@app.route('/sub_manageCustomers', methods=['GET', 'POST'])
+@admin_login_required
+@role_required('junior')
+def sub_MCustomers():
+    admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
+
+    query = db.session.query(User)
+    if request.method == 'POST':
+        full_name_filter = request.form.get('full_name_filter')
+        username_filter = request.form.get('username_filter')
+        email_filter = request.form.get('email_filter')
+        phone_number_filter = request.form.get('phone_number_filter')
+
+        if full_name_filter:
+            query = query.filter(User.full_name.ilike(f"%{full_name_filter}%"))
+        if username_filter:
+            query = query.filter(User.username.ilike(f"%{username_filter}%"))
+        if email_filter:
+            query = query.filter(User.email.ilike(f"%{email_filter}%"))
+        if phone_number_filter:
+            query = query.filter(User.phone_number.ilike(f"%{phone_number_filter}%"))
+
+    customers = query.all()
+
+    return render_template('admin/junior_admin/sub_manageCustomers.html', admin_username=admin_username, customers=customers
+                           , csrf_token=csrf_token)
 
 
 @app.route('/manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('general')
 def MVehicles():
     admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
     vehicles = db.session.query(Vehicle).all()
 
     if request.method == 'POST':
@@ -881,13 +974,15 @@ def MVehicles():
 
         vehicles = query.all()
 
-    return render_template('admin/manageVehicles.html', admin_username=admin_username, vehicles=vehicles)
+    return render_template('admin/manageVehicles.html', admin_username=admin_username, vehicles=vehicles, csrf_token=csrf_token)
 
 
 @app.route('/system_manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('system')
 def system_MVehicles():
     admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
     vehicles = db.session.query(Vehicle).all()
 
     if request.method == 'POST':
@@ -909,7 +1004,36 @@ def system_MVehicles():
         vehicles = query.all()
 
     return render_template('admin/system_admin/system_manageVehicles.html', admin_username=admin_username,
-                           vehicles=vehicles)
+                           vehicles=vehicles, csrf_token=csrf_token)
+
+@app.route('/sub_manageVehicles', methods=['GET', 'POST'])
+@admin_login_required
+@role_required('junior')
+def sub_MVehicles():
+    admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
+    vehicles = db.session.query(Vehicle).all()
+
+    if request.method == 'POST':
+        brand_filter = request.form.get('brand_filter')
+        model_filter = request.form.get('model_filter')
+        min_price_filter = request.form.get('min_price_filter')
+        max_price_filter = request.form.get('max_price_filter')
+
+        query = db.session.query(Vehicle)
+        if brand_filter:
+            query = query.filter(Vehicle.brand.ilike(f"%{brand_filter}%"))
+        if model_filter:
+            query = query.filter(Vehicle.model.ilike(f"%{model_filter}%"))
+        if min_price_filter:
+            query = query.filter(Vehicle.selling_price >= float(min_price_filter))
+        if max_price_filter:
+            query = query.filter(Vehicle.selling_price <= float(max_price_filter))
+
+        vehicles = query.all()
+
+    return render_template('admin/junior_admin/sub_manageVehicles.html', admin_username=admin_username, vehicles=vehicles,
+                           csrf_token=csrf_token)
 
 
 @app.route('/delete_vehicle/<int:id>', methods=['POST'])
@@ -920,13 +1044,20 @@ def delete_vehicle(id):
         db.session.delete(vehicle)
         db.session.commit()
         log_event('Delete Vehicle', f'Vehicle deleted: {vehicle.brand} {vehicle.model} by {session["admin_username"]}.')
-    return redirect(url_for('MVehicles'))
+    if session['admin_role'] == 'system':
+        return redirect(url_for('system_MVehicles'))
+    elif session['admin_role'] == 'general':
+        return redirect(url_for('MVehicles'))
+    else:
+        return redirect(url_for('ErrorPage'))
 
 
 @app.route('/logs', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('system')
 def system_logs():
     admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
 
     if request.method == 'POST':
         event_type = request.form.get('event_type')
@@ -951,25 +1082,36 @@ def system_logs():
     else:
         logs = db.session.query(Log).all()
 
-    return render_template('admin/system_admin/logs.html', admin_username=admin_username, logs=logs)
+    return render_template('admin/system_admin/logs.html', admin_username=admin_username, logs=logs
+                           , csrf_token=csrf_token)
 
 
 @app.route('/system_manageFeedback')
 @admin_login_required
+@role_required('system')
 def system_manageFeedback():
     admin_username = session.get('admin_username')
     return render_template('admin/system_admin/system_manageFeedback.html', admin_username=admin_username)
+
+@app.route('/sub_manageFeedback')
+@admin_login_required
+@role_required('junior')
+def sub_manageFeedback():
+    admin_username = session.get('admin_username')
+    return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username)
 
 
 @app.route('/admin_logout')
 def admin_logout():
     if 'admin_logged_in' in session:
         admin_username = session.get('admin_username')
-        session.pop('admin_logged_in', None)
-        session.pop('admin_username', None)
-        log_event('Logout', f'Successfully logged out admin {admin_username}')
-        session.clear()
-        session.modified = True
+        if session['admin_role'] == 'system':
+            log_event('Logout', f'Successfully logged out system admin {admin_username}')
+        elif session['admin_role'] == 'junior':
+            log_event('Logout', f'Successfully logged out junior admin {admin_username}')
+        else:
+            log_event('Logout', f'Successfully logged out admin {admin_username}')
+        session.clear()  # Clear all session data
         return redirect(url_for('admin_log_in'))
     else:
         return "Admin is not logged in."
