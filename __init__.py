@@ -95,6 +95,10 @@ def login_required(f):
 def get_remote_address(request):
     return request.remote_addr
 
+@limiter.request_filter
+def exempt_routes():
+    exempt_endpoints = ['system_logs', 'MVehicles']
+    return request.endpoint in exempt_endpoints
 
 @app.errorhandler(429)
 def ratelimit_error(e):
