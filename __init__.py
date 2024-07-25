@@ -161,6 +161,7 @@ def admin_login_required(f):
 
 @app.route('/manageFeedback')
 @admin_login_required
+@role_required('general')
 def manageFeedback():
 
     return render_template('admin/manageFeedback.html')
