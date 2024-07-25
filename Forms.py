@@ -94,7 +94,7 @@ class AdminLoginForm(FlaskForm):
         DataRequired(message="Username is required."),
         Length(min=8, max=30, message="Username must be between 8 and 30 characters."),
         Regexp(
-            r"^(?!.*['\"])[\w\d@]{8,}$",
+            r"^(?!.*['\"])[\w\d@.]{8,}$",
             message=(
                 "Username must contain at least 8 characters and cannot contain ', \" characters or special characters except @.")
         )
