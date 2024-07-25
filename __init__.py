@@ -99,7 +99,8 @@ def get_remote_address(request):
 
 @limiter.request_filter
 def exempt_routes():
-    exempt_endpoints = ['system_logs', 'MVehicles']
+    exempt_endpoints = ['createVehicle', 'system_createVehicle', 'MCustomers', 'system_MCustomers', 'MVehicles', 'system_MVehicles', 'system_logs', 'manageFeedback', 'system_manageFeedback'
+                        'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback']
     return request.endpoint in exempt_endpoints
 
 @app.errorhandler(429)
