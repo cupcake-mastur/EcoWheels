@@ -16,7 +16,7 @@ from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from Forms import CreateUserForm, UpdateProfileForm, LoginForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
+from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta, timezone
@@ -27,7 +27,7 @@ from sqlalchemy import exists, func
 from werkzeug.utils import secure_filename
 from PIL import Image
 from model import *
-from flask_wtf.csrf import generate_csrf
+from flask_wtf.csrf import generate_csrf, CSRFError
 from werkzeug.exceptions import BadRequest
 # ------------ For backup excel files -------------- #
 from flask import send_file, jsonify
@@ -74,7 +74,7 @@ mail = Mail(app)
 otp_store = {}
 
 user_logged_in = False
-# csrf = CSRFProtect(app)                                          # REMOVE IF NEEDED
+csrf = CSRFProtect(app)                                          # REMOVE IF NEEDED
 limiter = Limiter(
     get_remote_address,
     app=app,
@@ -119,6 +119,11 @@ def ratelimit_error(e):
         f"Rate limit exceeded for IP {get_remote_address(request)}. "
     )
     return render_template("customer/rate_limit_exceeded.html"), 429
+
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    return render_template('error_msg.html', reason=e.description), 400
 
 
 @app.route('/')
@@ -209,7 +214,6 @@ def check_session():
 
 
 @app.route('/sign_up', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def sign_up():
     error = None
     create_user_form = CreateUserForm(request.form)
@@ -267,7 +271,6 @@ def generate_otp(length=6):
 
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def login():
     error = None
     print(session)
@@ -332,7 +335,6 @@ def send_otp_email(email, otp):
 
 
 @app.route('/request_new_otp', methods=['POST'])
-@limiter.limit("5 per minute")
 def request_new_otp():
     user_email = session.get('user_email')
     session.pop('otp', None)
@@ -364,10 +366,10 @@ app.jinja_env.filters['hide_credit_card'] = hide_credit_card
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 @login_required
-@limiter.limit("5 per minute")
 def verify_otp():
     error = None
     user_email = session.get('user_email')
+    otp_form = OTPForm(request.form)
 
     if not user_email:
         return redirect(url_for('login'))
@@ -376,9 +378,17 @@ def verify_otp():
     if not user:
         return redirect(url_for('login'))
 
-    if request.method == 'POST':
-        entered_otp_digits = [request.form.get(f'otp{i}') for i in range(1, 7)]
+    if request.method == 'POST' and otp_form.validate():
+        entered_otp_digits = [
+            otp_form.otp1.data,
+            otp_form.otp2.data,
+            otp_form.otp3.data,
+            otp_form.otp4.data,
+            otp_form.otp5.data,
+            otp_form.otp6.data
+        ]
         entered_otp = ''.join(entered_otp_digits)
+        print(entered_otp)
         otp = session.get('otp')
         otp_generation_time = session.get('otp_generation_time')
         current_time = datetime.now(timezone.utc).timestamp()
@@ -403,12 +413,11 @@ def verify_otp():
             error = "Invalid OTP. Please try again."
             app.logger.warning(f"Expired OTP attempt for {user_email}")
 
-    return render_template('customer/verify_otp.html', error=error, user_email=user_email)
+    return render_template('customer/verify_otp.html', form=otp_form, error=error, user_email=user_email)
 
 
 @app.route('/profile', methods=['GET'])
 @login_required
-@limiter.limit("5 per minute")
 def profile():
     user_email = session.get('user_email')
 
@@ -421,7 +430,6 @@ def profile():
 
 
 @app.route('/request_password_reset', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def request_password_reset():
     error = None
     request_password_reset_form = RequestPasswordResetForm(request.form)
@@ -451,7 +459,6 @@ def send_password_reset_email(email, reset_url):
 
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def reset_password(token):
     error = None
     reset_password_form = ResetPasswordForm(request.form)
@@ -486,7 +493,6 @@ def reset_password(token):
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
-@limiter.limit("5 per minute")
 def edit_profile():
     error = None
     user_email = session.get('user_email')
@@ -576,7 +582,6 @@ def edit_profile():
 
 
 @app.route('/user/logout')
-@limiter.limit("5 per minute")
 def logout():
     if 'user_email' in session:
         user_email = session.pop('user_email', None)
@@ -590,7 +595,6 @@ def logout():
 
 
 @app.before_request
-@limiter.limit("5 per minute")
 def before_request():
     if 'user_email' in session:
         current_time = datetime.now(timezone.utc).timestamp()
