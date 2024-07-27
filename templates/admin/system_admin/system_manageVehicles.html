@@ -185,7 +185,7 @@
         <div class="button-container">
             <a href="{{ url_for('system_createVehicle') }}"><button id="createVehicle">Add Vehicle</button></a>
 
-            <button id="backupButton">Backup Vehicles</button>
+            <button id="backupButton">Download Vehicles Backup</button>
             <div id="backup-info">
                 {% if vehicle_backup_time != [] %}
                     <p>Last Backup Time: {{ vehicle_backup_time[-1] }}</p>
