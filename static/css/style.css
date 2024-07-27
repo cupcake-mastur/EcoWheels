@@ -166,8 +166,17 @@ a.nav__link.active {
     padding: 1rem;
 }
 
-#createVehicle {
+/* Container for buttons */
+.button-container {
+    display: flex;
+    gap: 1rem; /* Space between buttons */
+    align-items: center; /* Align buttons vertically center */
     margin: 50px;
+}
+
+/* Button styles */
+#createVehicle,
+#backupButton {
     padding: 1rem 2rem;
     border-radius: 10px;
     font-weight: bold;
@@ -177,25 +186,18 @@ a.nav__link.active {
     outline: none;
     cursor: pointer;
     background: rgb(7, 165, 96);
+    transition: background-color 0.3s;
 }
 
-#createVehicle:hover {
-    background-color: rgb(0, 123, 71);
-}
-
-#backupButton{
-    margin: 50px;
-    padding: 1rem 2rem;
-    border-radius: 10px;
-    font-weight: bold;
-    font-size: 1.1rem;
-    color: #ffffff;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    background: rgb(7, 165, 96);
-}
-
+#createVehicle:hover,
 #backupButton:hover {
     background-color: rgb(0, 123, 71);
+}
+
+/* Timestamp styles */
+#backup-info {
+    display: flex;
+    flex-direction: column; /* Stack button and timestamp vertically */
+    align-items: flex-start; /* Align timestamp to start */
+    margin-left: 1rem; /* Space between buttons and timestamp */
 }

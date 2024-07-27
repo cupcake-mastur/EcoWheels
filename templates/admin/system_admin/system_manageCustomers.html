@@ -180,7 +180,16 @@
             <h2>Customers</h2>
         </div>
 
-        <button id="backupButton">Backup Customers</button>
+        <div class="button-container">
+            <button id="backupButton">Backup Customers</button>
+            <div id="backup-info">
+                {% if customer_backup_time != [] %}
+                    <p>Last Backup Time: {{ customer_backup_time[-1] }}</p>
+                {% else %}
+                    <p>No backups have been made yet.</p>
+                {% endif %}
+            </div>
+        </div>
         <br><br>
        <form method="post" action="{{ url_for('system_MCustomers') }}" class="filter-form">
            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

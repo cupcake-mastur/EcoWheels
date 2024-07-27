@@ -180,8 +180,21 @@
             <h2>Vehicles</h2>
         </div>
 
-        <a href="{{ url_for('system_createVehicle') }}"><button id="createVehicle">Add Vehicle</button></a>
-        <button id="backupButton">Backup Vehicles</button>
+
+
+        <div class="button-container">
+            <a href="{{ url_for('system_createVehicle') }}"><button id="createVehicle">Add Vehicle</button></a>
+
+            <button id="backupButton">Backup Vehicles</button>
+            <div id="backup-info">
+                {% if vehicle_backup_time != [] %}
+                    <p>Last Backup Time: {{ vehicle_backup_time[-1] }}</p>
+                {% else %}
+                    <p>No backups have been made yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
         <br><br>
 
         <!-- Filter Form -->

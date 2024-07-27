@@ -234,7 +234,17 @@
             <h1>EcoWheels Management System</h1>
             <h2>Logs</h2>
         </div>
-        <button id="backupButton">Download Logs Backup</button>
+
+        <div class="button-container">
+            <button id="backupButton">Download Logs Backup</button>
+            <div id="backup-info">
+                {% if logs_backup_time != [] %}
+                    <p>Last Backup Time: {{ logs_backup_time[-1] }}</p>
+                {% else %}
+                    <p>No backups have been made yet.</p>
+                {% endif %}
+            </div>
+        </div>
         <br><br>
 
         <!-- Legend Section -->
@@ -350,7 +360,6 @@
             </table>
         </div>
     </div>
-
 <script>
     let btn = document.querySelector("#btn");
     let sidebar = document.querySelector(".sidebar");
