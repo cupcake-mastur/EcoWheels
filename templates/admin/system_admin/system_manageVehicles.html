@@ -181,6 +181,7 @@
         </div>
 
         <a href="{{ url_for('system_createVehicle') }}"><button id="createVehicle">Add Vehicle</button></a>
+        <button id="backupButton">Backup Vehicles</button>
         <br><br>
 
         <!-- Filter Form -->
@@ -346,6 +347,22 @@
             overlay.addEventListener('click', closePopup);
             closeBtn.addEventListener('click', closePopup);
         }
+
+          document.getElementById('backupButton').addEventListener('click', function() {
+            fetch('{{ url_for('backup_vehicles') }}')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'backupVehicle.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                })
+                .catch(error => console.error('Error downloading the backup:', error));
+        });
+
     </script>
     {% include 'logout_modal.html' %}
 </body>
