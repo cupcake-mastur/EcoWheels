@@ -720,12 +720,12 @@ def admin_log_in():
 
             if username not in admin_list and username not in system_admin_list:
                 session['admin_role'] = 'junior'
-                log_event('Login', f'Successful login for admin {username}.')
+                log_event('Login', f'Successful login for junior admin {username}.')
                 return redirect(url_for('sub_dashboard'))
 
             elif username in admin_list:
                 session['admin_role'] = 'general'
-                log_event('Login', f'Successful login for junior admin {username}.')
+                log_event('Login', f'Successful login for admin {username}.')
                 return redirect(url_for('dashboard'))
 
             elif username in system_admin_list:
