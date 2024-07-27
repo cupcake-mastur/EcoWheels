@@ -154,6 +154,13 @@
             cursor: pointer;
             background:rgb(7, 165, 96) ;
         }
+
+        .alert-danger {
+            color: red;
+            font-size: 0.9rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -265,14 +272,23 @@
         <div class="filter-item">
             <label for="start_date">Start Date and Time:</label>
             <input type="datetime-local" id="start_date" name="start_date">
+                {% if errors.start_date %}
+                    <div class="alert alert-danger">{{ errors.start_date }}</div>
+                {% endif %}
         </div>
         <div class="filter-item">
             <label for="end_date">End Date and Time:</label>
             <input type="datetime-local" id="end_date" name="end_date">
+                {% if errors.end_date %}
+                    <div class="alert alert-danger">{{ errors.end_date}}</div>
+                {% endif %}
         </div>
         <div class="filter-item">
             <label for="keyword">Keyword:</label>
             <input type="text" id="keyword" name="keyword">
+                {% if errors.keyword %}
+                    <div class="alert alert-danger">{{ errors.keyword}}</div>
+                {% endif %}
         </div>
         <div class="filter-item ">
             <button type="submit" class="filter-item button-item">Filter</button>

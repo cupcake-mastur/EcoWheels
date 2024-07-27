@@ -102,6 +102,14 @@
             cursor: pointer;
             background:rgb(7, 165, 96) ;
         }
+
+        .alert-danger {
+            color: red;
+            font-size: 0.9rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+        }
+
     </style>
 
 </head>
@@ -172,22 +180,34 @@
             <div class="filter-item">
                 <label for="full_name_filter">Full Name:</label>
                 <input type="text" id="full_name_filter" name="full_name_filter" placeholder="Enter full name">
+                    {% if errors.full_name_filter %}
+                    <div class="alert alert-danger">{{ errors.full_name_filter }}</div>
+                    {% endif %}
             </div>
 
             <div class="filter-item">
                 <label for="username_filter">Username:</label>
                 <input type="text" id="username_filter" name="username_filter" placeholder="Enter username">
+                    {% if errors.username_filter %}
+                    <div class="alert alert-danger">{{ errors.username_filter }}</div>
+                    {% endif %}
             </div>
 
 
             <div class="filter-item">
                 <label for="email_filter">Email:</label>
                 <input type="text" id="email_filter" name="email_filter" placeholder="Enter email">
+                    {% if errors.email_filter %}
+                    <div class="alert alert-danger">{{ errors.email_filter }}</div>
+                    {% endif %}
             </div>
 
             <div class="filter-item">
                 <label for="phone_number_filter">Phone Number:</label>
                 <input type="text" id="phone_number_filter" name="phone_number_filter" placeholder="Enter phone number">
+                    {% if errors.phone_number_filter %}
+                    <div class="alert alert-danger">{{ errors.phone_number_filter }}</div>
+                    {% endif %}
             </div>
 
             <div class="filter-item">

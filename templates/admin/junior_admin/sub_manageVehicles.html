@@ -105,6 +105,13 @@
             background:rgb(7, 165, 96) ;
         }
 
+        .alert-danger {
+            color: red;
+            font-size: 0.9rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+        }
+
     </style>
 </head>
 <body>
@@ -176,22 +183,34 @@
             <div class="filter-item">
                 <label for="brand_filter">Brand:</label>
                 <input type="text" id="brand_filter" name="brand_filter" placeholder="Enter brand">
+                    {% if errors.brand_filter %}
+                    <div class="alert alert-danger">{{ errors.brand_filter }}</div>
+                {% endif %}
             </div>
 
             <div class="filter-item">
                 <label for="model_filter">Model:</label>
                 <input type="text" id="model_filter" name="model_filter" placeholder="Enter model">
+                    {% if errors.model_filter %}
+                    <div class="alert alert-danger">{{ errors.model_filter }}</div>
+                {% endif %}
             </div>
 
 
             <div class="filter-item">
                 <label for="min_price_filter">Min Price:</label>
                 <input type="number" id="min_price_filter" name="min_price_filter" placeholder="Enter min price">
+                {% if errors.min_price_filter %}
+                    <div class="alert alert-danger">{{ errors.min_price_filter }}</div>
+                {% endif %}
             </div>
 
             <div class="filter-item">
                 <label for="max_price_filter">Max Price:</label>
                 <input type="number" id="max_price_filter" name="max_price_filter" placeholder="Enter max price">
+                    {% if errors.max_price_filter %}
+                    <div class="alert alert-danger">{{ errors.max_price_filter }}</div>
+                {% endif %}
             </div>
 
             <div class="filter-item">
