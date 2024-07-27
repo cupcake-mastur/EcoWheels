@@ -26,7 +26,6 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists, func
 from werkzeug.utils import secure_filename
 from PIL import Image
-from model import Feedback
 from model import *
 
 load_dotenv(find_dotenv())
