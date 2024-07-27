@@ -718,28 +718,26 @@ def admin_log_in():
             session['admin_username'] = username
             session['admin_logged_in'] = True
 
-            if username in admin_list:
-                session['admin_role'] = 'general'
-                log_event('Login', f'Successful login for junior admin {username}.')
-                return redirect(url_for('dashboard'))
-
-            elif username not in admin_list and username not in system_admin_list:
+            if username not in admin_list and username not in system_admin_list:
                 session['admin_role'] = 'junior'
                 log_event('Login', f'Successful login for admin {username}.')
                 return redirect(url_for('sub_dashboard'))
+
+            elif username in admin_list:
+                session['admin_role'] = 'general'
+                log_event('Login', f'Successful login for junior admin {username}.')
+                return redirect(url_for('dashboard'))
 
             elif username in system_admin_list:
                 session['admin_role'] = 'system'
                 log_event('Login', f'Successful login for system admin {username}.')
                 return redirect(url_for('system_dashboard'))
 
-
         else:
             error_message = "Incorrect Username or Password"
             log_event('Login', f'Failed login attempt for admin {username}.')
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
-
 
 def is_valid_input(input_str):
     """
