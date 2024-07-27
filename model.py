@@ -57,6 +57,8 @@ class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
+    login_attempts = db.Column(db.Integer, default=0)
+    is_suspended = db.Column(db.Boolean, default=False)
 
     # def set_password(self, password):
     #     # Update existing passwords using werkzeug.security

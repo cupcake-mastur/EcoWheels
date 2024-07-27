@@ -4,62 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoWheels Admin</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" type="text/css" href="../static/css/style.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
-
     <style>
-        #u-table {
+        /* Table Styles */
+        #admin-table {
             margin: 0 auto;
             border-collapse: collapse;
             width: 100%;
             font-size: 1.05rem;
         }
-
-        th.u-tablehead {
+        th.admin-tablehead {
+            padding: 20px;
             background-color: #eee;
-            padding: 20px; /* Adjust spacing */
         }
-
-        tr:last-child td {
-            border-bottom: #12171e;
-        }
-
         td {
             text-align: center;
-            padding: 5px;
+            padding: 8px;
         }
-
         tbody tr:nth-child(odd) {
             background-color: #D3D3D3;
         }
-
         tbody tr:nth-child(even) {
             background-color: #eee;
         }
-
-
-        .container {
-            padding-bottom: 3rem;
+        .suspended {
+            background-color: rgb(247, 118, 116);
+            color: red;
         }
 
+        /* Filter Form Styles */
         .filter-form {
             display: flex;
             gap: 1rem;
             flex-wrap: wrap;
             align-items: center;
         }
-
         .filter-form label {
             display: block;
             font-weight: bold;
             margin-bottom: 0.5rem;
         }
         .filter-form input[type="text"],
-        .filter-form input[type="number"],
+        .filter-form input[type="datetime-local"],
+        .filter-form select,
         .filter-form button[type="submit"] {
             font-size: 1.05rem;
-            display: box;
+            display: block;
             width: 100%;
             padding: 0.75rem;
             box-sizing: border-box;
@@ -71,12 +63,12 @@
             margin-bottom: 1.2rem;
         }
         .filter-form input[type="text"]:focus,
-        .filter-form input[type="number"]:focus,
+        .filter-form input[type="datetime-local"]:focus,
+        .filter-form select:focus,
         .filter-form button[type="submit"]:focus {
             background: #ffffff;
             border-color: #aaaaaa;
         }
-
         .filter-form button[type="submit"] {
             cursor: pointer;
             background-color: rgb(7, 165, 96);
@@ -90,17 +82,16 @@
             flex: 1;
             min-width: 250px;
         }
-
         .filter-item.button-item {
             flex: 0;
             font-weight: bold;
             font-size: 1.1rem;
             color: #ffffff;
             border: none;
-            border-radius:4px;
+            border-radius: 4px;
             outline: none;
             cursor: pointer;
-            background:rgb(7, 165, 96) ;
+            background: rgb(7, 165, 96);
         }
 
         .alert-danger {
@@ -109,11 +100,23 @@
             margin-top: -1rem;
             margin-bottom: 1rem;
         }
-    </style>
 
+        .unsuspend-button {
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+        .unsuspend-button:hover {
+            background-color: #218838;
+        }
+    </style>
 </head>
 <body>
-
     <div class="sidebar">
         <div class="top">
             <div class="logo">
@@ -137,35 +140,35 @@
                 <span class="tooltip">Dashboard</span>
             </li>
             <li>
-                <a href="{{ url_for('system_MVehicles') }}" class="nav__link">
+                <a href="{{url_for('system_MVehicles')}}" class="nav__link">
                     <i class="bx bxs-car"></i>
                     <span class="nav-item">Vehicles</span>
                 </a>
                 <span class="tooltip">Vehicles</span>
             </li>
             <li>
-                <a href="{{url_for('system_MCustomers')}}" class="nav__link active">
+                <a href="{{url_for('system_MCustomers')}}" class="nav__link">
                     <i class="bx bx-body"></i>
                     <span class="nav-item">Customers</span>
                 </a>
                 <span class="tooltip">Customers</span>
             </li>
             <li>
-                <a href="{{url_for('system_manageFeedback')}}">
+                <a href="{{url_for('system_manageFeedback')}}" class="nav__link">
                     <i class='bx bxs-message-square-dots'></i>
                     <span class="nav-item">Feedback</span>
                 </a>
                 <span class="tooltip">Customer Feedback</span>
             </li>
             <li>
-                <a href="{{url_for('system_logs')}}">
+                <a href="{{url_for('system_logs')}}" class="nav__link">
                     <i class='bx bx-note'></i>
                     <span class="nav-item">Logs</span>
                 </a>
                 <span class="tooltip">Logs</span>
             </li>
             <li>
-                <a href="{{url_for('system_manageAdmin')}}">
+                <a href="{{url_for('system_manageAdmin')}}" class="nav__link active">
                     <i class='bx bxs-face'></i>
                     <span class="nav-item">Admins</span>
                 </a>
@@ -184,91 +187,63 @@
     <div class="main-content">
         <div class="container">
             <h1>EcoWheels Management System</h1>
-            <h2>Customers</h2>
+            <h2>Admins</h2>
         </div>
 
-        <div class="button-container">
-            <button id="backupButton">Download Customers Backup</button>
-            <div id="backup-info">
-                {% if customer_backup_time != [] %}
-                    <p>Last Backup Time: {{ customer_backup_time[-1] }}</p>
-                {% else %}
-                    <p>No backups have been made yet.</p>
-                {% endif %}
-            </div>
-        </div>
-        <br><br>
-       <form method="post" action="{{ url_for('system_MCustomers') }}" class="filter-form">
-           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <div class="filter-item">
-                <label for="full_name_filter">Full Name:</label>
-                <input type="text" id="full_name_filter" name="full_name_filter" placeholder="Enter full name">
-                    {% if errors.full_name_filter %}
-                    <div class="alert alert-danger">{{ errors.full_name_filter }}</div>
-                    {% endif %}
-            </div>
-
-            <div class="filter-item">
-                <label for="username_filter">Username:</label>
-                <input type="text" id="username_filter" name="username_filter" placeholder="Enter username">
-                    {% if errors.username_filter %}
-                    <div class="alert alert-danger">{{ errors.username_filter }}</div>
-                    {% endif %}
-            </div>
 
 
-            <div class="filter-item">
-                <label for="email_filter">Email:</label>
-                <input type="text" id="email_filter" name="email_filter" placeholder="Enter email">
-                    {% if errors.email_filter %}
-                    <div class="alert alert-danger">{{ errors.email_filter }}</div>
-                    {% endif %}
-            </div>
-
-            <div class="filter-item">
-                <label for="phone_number_filter">Phone Number:</label>
-                <input type="text" id="phone_number_filter" name="phone_number_filter" placeholder="Enter phone number">
-                    {% if errors.phone_number_filter %}
-                    <div class="alert alert-danger">{{ errors.phone_number_filter }}</div>
-                    {% endif %}
-            </div>
-
-            <div class="filter-item">
-                <button type="submit" class="filter-item button-item">Filter</button>
-            </div>
-
-        </form>
         <br><br>
 
-        <table id="u-table" border="0">
+        <table id="admin-table">
             <thead>
                 <tr>
-                    <th class="u-tablehead">Customer ID</th>
-                    <th class="u-tablehead">Full Name</th>
-                    <th class="u-tablehead">Username</th>
-                    <th class="u-tablehead">Email</th>
-                    <th class="u-tablehead">Phone Number</th>
-
+                    <th class="admin-tablehead">Admin ID</th>
+                    <th class="admin-tablehead">Username</th>
+                    <th class="admin-tablehead">Status</th>
+                    <th class="admin-tablehead">Action</th>
                 </tr>
-                <tr>
-                    <th colspan="6" style="border-bottom: 2px solid #000000;"></th>
-                </tr>
+                    <tr>
+                        <th colspan="4" style="border-bottom: 2px solid #000000;"></th>
+                    </tr>
             </thead>
             <tbody>
-                {% for customer in customers %}
-                <tr>
-                    <td>{{ customer.id }}</td>
-                    <td>{{ customer.full_name }}</td>
-                    <td>{{ customer.username }}</td>
-                    <td>{{ customer.email }}</td>
-                    <td>{{ customer.phone_number }}</td>
+                {% for admin in admins %}
+                <tr class="{% if admin.is_suspended %}suspended{% else %}active{% endif %}">
+                    <td>{{ admin.id }}</td>
+                    <td>{{ admin.username }}</td>
+                    <td>{{ 'Suspended' if admin.is_suspended else 'Active' }}</td>
+                    <td>
+                        {% if admin.is_suspended %}
+                            <form id="unsuspendForm {{ admin.id }}" action="{{ url_for('unsuspend_admin', id=admin.id) }}" method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <div>
+                                <button class="unsuspend-button" type="button">Unsuspend</button>
+                            </div>
+                        </form>
+                        {% else %}
+                        N/A
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
+
     <script>
+        function openLogoutPopup() {
+            document.getElementById("logoutPopup").style.display = "block";
+        }
+
+        function closeLogoutPopup() {
+            document.getElementById("logoutPopup").style.display = "none";
+        }
+
+        function logout() {
+            window.location.href = "{{ url_for('logout') }}";
+        }
+
         let btn = document.querySelector("#btn");
         let sidebar = document.querySelector(".sidebar");
 
@@ -288,21 +263,6 @@
                 removeActiveClasses();
                 link.classList.add("active");
             });
-        });
-
-                  document.getElementById('backupButton').addEventListener('click', function() {
-            fetch('{{ url_for('backup_customers') }}')
-                .then(response => response.blob())
-                .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'backupCustomers.xlsx';
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                })
-                .catch(error => console.log('Error downloading the backup:', error));
         });
     </script>
 {% include 'logout_modal.html' %}
