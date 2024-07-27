@@ -29,6 +29,18 @@ from PIL import Image
 from werkzeug.exceptions import BadRequest
 from flask_wtf.csrf import generate_csrf, CSRFError
 
+# ------- For backup excel files ------------#
+from flask import send_file, jsonify
+import pandas as pd
+from io import BytesIO
+import os
+import openpyxl
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.drawing.image import Image as XLImage
+from openpyxl.styles import PatternFill
+# ------------------------------------------ #
+
 from model import *
 
 load_dotenv(find_dotenv())
@@ -668,6 +680,10 @@ def cancel_page():
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
 admin_list = ['LiamThompson@ecowheels.com', 'OliviaBrown@ecowheels.com', 'testuser@ecowheels.com']
 system_admin_list = ['SophiaMartinez@ecowheels.com', 'JamesCarter@ecowheels.com', 'testusersa@ecowheels.com']
+SGT = pytz.timezone('Asia/Singapore')
+vehicle_backup_time = []
+customer_backup_time = []
+logs_backup_time = []
 
 # Log event function
 def log_event(event_type, event_result):
@@ -738,6 +754,7 @@ def admin_log_in():
             log_event('Login', f'Failed login attempt for admin {username}.')
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
+
 
 def is_valid_input(input_str):
     """
@@ -958,7 +975,7 @@ def system_MCustomers():
     customers = query.all()
 
     return render_template('admin/system_admin/system_manageCustomers.html', admin_username=admin_username,
-                           customers=customers, csrf_token=csrf_token, errors=errors)
+                           customers=customers, csrf_token=csrf_token, errors=errors, customer_backup_time=customer_backup_time)
 
 
 @app.route('/sub_manageCustomers', methods=['GET', 'POST'])
@@ -1084,7 +1101,7 @@ def system_MVehicles():
         vehicles = query.all()
 
     return render_template('admin/system_admin/system_manageVehicles.html', admin_username=admin_username,
-                           vehicles=vehicles, csrf_token=csrf_token, errors=errors)
+                           vehicles=vehicles, csrf_token=csrf_token, errors=errors, vehicle_backup_time=vehicle_backup_time)
 
 @app.route('/sub_manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
@@ -1180,7 +1197,7 @@ def system_logs():
         logs = db.session.query(Log).all()
 
     return render_template('admin/system_admin/logs.html', admin_username=admin_username, logs=logs
-                           , csrf_token=csrf_token, errors=errors)
+                           , csrf_token=csrf_token, errors=errors, logs_backup_time=logs_backup_time)
 
 
 @app.route('/system_manageFeedback')
@@ -1212,6 +1229,165 @@ def admin_logout():
         return redirect(url_for('admin_log_in'))
     else:
         return "Admin is not logged in."
+
+
+@app.route('/backup_vehicles', methods=['GET'])
+@admin_login_required
+@role_required('system')
+def backup_vehicles():
+    vehicles = db.session.query(Vehicle).all()
+    backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
+    vehicle_backup_time.append(backup_time)
+    admin_username = session.get('admin_username')
+    log_event('Backup', f'Backed up Vehicles database by {admin_username}')
+
+    # Create a DataFrame
+    vehicle_data = []
+    for vehicle in vehicles:
+        vehicle_data.append({
+            'Vehicle ID': vehicle.idvehicles,
+            'Brand': vehicle.brand,
+            'Model': vehicle.model,
+            'Selling Price': vehicle.selling_price,
+            'Image': vehicle.image,
+            'Description': vehicle.description
+        })
+
+    df = pd.DataFrame(vehicle_data)
+
+    # Create an Excel workbook and sheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Vehicles"
+
+    # Write the DataFrame to the Excel sheet
+    for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), start=1):
+        for c_idx, value in enumerate(row, start=1):
+            ws.cell(row=r_idx, column=c_idx, value=value)
+
+    # Add images to the Excel sheet
+    row_index = 2  # Start from the second row
+    for vehicle in vehicles:
+        if vehicle.image:
+            img_path = os.path.join(app.static_folder, 'vehicle_images', vehicle.image)
+            if os.path.exists(img_path):
+                img = XLImage(img_path)
+                img.height = 100  # Set image height
+                img.width = 100  # Set image width
+                ws.add_image(img, f'E{row_index}')  # Place the image in the correct cell
+        row_index += 1  # Increment the row index
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Send the file to the user
+    return send_file(output, download_name='backupVehicle.xlsx', as_attachment=True)
+
+@app.route('/backup_customers', methods=['GET'])
+@admin_login_required
+@role_required('system')
+def backup_customers():
+    # Query all customers from the database
+    customers = db.session.query(User).all()
+    backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
+    customer_backup_time.append(backup_time)
+    admin_username = session.get('admin_username')
+    log_event('Backup', f'Backed up Customers database by {admin_username}')
+
+    # Create a DataFrame with relevant customer data
+    customer_data = []
+    for customer in customers:
+        customer_data.append({
+            'Customer ID': customer.id,
+            'Full Name': customer.full_name,
+            'Username': customer.username,
+            'Email': customer.email,
+            'Phone Number': customer.phone_number
+        })
+
+    df = pd.DataFrame(customer_data)
+
+    # Create an Excel workbook and sheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Customers"
+
+    # Write the DataFrame to the Excel sheet
+    for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), start=1):
+        for c_idx, value in enumerate(row, start=1):
+            ws.cell(row=r_idx, column=c_idx, value=value)
+
+    # Save the Excel file to a BytesIO object
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Send the file to the user
+    return send_file(output, download_name='backupCustomers.xlsx', as_attachment=True)
+
+
+
+
+@app.route('/backup_logs', methods=['GET'])
+@admin_login_required
+@role_required('system')
+def backup_logs():
+    logs = db.session.query(Log).all()
+    backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
+    logs_backup_time.append(backup_time)
+    admin_username = session.get('admin_username')
+    log_event('Backup', f'Backed up Logs database by {admin_username}')
+
+    # Create a DataFrame
+    log_data = []
+    for log in logs:
+        log_data.append({
+            'Log ID': log.id,
+            'Event Type': log.event_type,
+            'Event Time': log.event_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'Event Result': log.event_result
+        })
+
+    df = pd.DataFrame(log_data)
+
+    # Create an Excel workbook and sheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Logs"
+
+    # Define color fills for different event types
+    colors = {
+        'Login': '7dde8b',          # Light green
+        'Logout': '7dde8b',         # Light green
+        'Create Vehicle': 'f5c842', # Light orange
+        'Delete Vehicle': 'faa441', # Light orange
+        'Backup': 'c2c2c2'          # Light gray
+    }
+
+    # Apply header styles
+    header_fill = PatternFill(start_color='d9ead3', end_color='d9ead3', fill_type='solid')
+    for c in range(1, len(df.columns) + 1):
+        ws.cell(row=1, column=c).fill = header_fill
+
+    # Write the DataFrame to the Excel sheet
+    for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), start=1):
+        for c_idx, value in enumerate(row, start=1):
+            cell = ws.cell(row=r_idx, column=c_idx, value=value)
+
+            # Apply color based on event type
+            if r_idx > 1:  # Skip header row
+                event_type = df.iloc[r_idx-2]['Event Type']
+                color = colors.get(event_type, 'ffffff')  # Default to white if no color found
+                cell.fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Send the file to the user
+    return send_file(output, download_name='backupLogs.xlsx', as_attachment=True)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
