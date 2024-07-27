@@ -680,6 +680,10 @@ def cancel_page():
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
 admin_list = ['LiamThompson@ecowheels.com', 'OliviaBrown@ecowheels.com', 'testuser@ecowheels.com']
 system_admin_list = ['SophiaMartinez@ecowheels.com', 'JamesCarter@ecowheels.com', 'testusersa@ecowheels.com']
+SGT = pytz.timezone('Asia/Singapore')
+vehicle_backup_time = []
+customer_backup_time = []
+logs_backup_time = []
 
 # Log event function
 def log_event(event_type, event_result):
@@ -971,7 +975,7 @@ def system_MCustomers():
     customers = query.all()
 
     return render_template('admin/system_admin/system_manageCustomers.html', admin_username=admin_username,
-                           customers=customers, csrf_token=csrf_token, errors=errors)
+                           customers=customers, csrf_token=csrf_token, errors=errors, customer_backup_time=customer_backup_time)
 
 
 @app.route('/sub_manageCustomers', methods=['GET', 'POST'])
@@ -1097,7 +1101,7 @@ def system_MVehicles():
         vehicles = query.all()
 
     return render_template('admin/system_admin/system_manageVehicles.html', admin_username=admin_username,
-                           vehicles=vehicles, csrf_token=csrf_token, errors=errors)
+                           vehicles=vehicles, csrf_token=csrf_token, errors=errors, vehicle_backup_time=vehicle_backup_time)
 
 @app.route('/sub_manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
@@ -1193,7 +1197,7 @@ def system_logs():
         logs = db.session.query(Log).all()
 
     return render_template('admin/system_admin/logs.html', admin_username=admin_username, logs=logs
-                           , csrf_token=csrf_token, errors=errors)
+                           , csrf_token=csrf_token, errors=errors, logs_backup_time=logs_backup_time)
 
 
 @app.route('/system_manageFeedback')
@@ -1232,6 +1236,8 @@ def admin_logout():
 @role_required('system')
 def backup_vehicles():
     vehicles = db.session.query(Vehicle).all()
+    backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
+    vehicle_backup_time.append(backup_time)
     admin_username = session.get('admin_username')
     log_event('Backup', f'Backed up Vehicles database by {admin_username}')
 
@@ -1284,6 +1290,8 @@ def backup_vehicles():
 def backup_customers():
     # Query all customers from the database
     customers = db.session.query(User).all()
+    backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
+    customer_backup_time.append(backup_time)
     admin_username = session.get('admin_username')
     log_event('Backup', f'Backed up Customers database by {admin_username}')
 
@@ -1319,13 +1327,15 @@ def backup_customers():
     return send_file(output, download_name='backupCustomers.xlsx', as_attachment=True)
 
 
-SGT = pytz.timezone('Asia/Singapore')
+
 
 @app.route('/backup_logs', methods=['GET'])
 @admin_login_required
 @role_required('system')
 def backup_logs():
     logs = db.session.query(Log).all()
+    backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
+    logs_backup_time.append(backup_time)
     admin_username = session.get('admin_username')
     log_event('Backup', f'Backed up Logs database by {admin_username}')
 
@@ -1377,6 +1387,7 @@ def backup_logs():
 
     # Send the file to the user
     return send_file(output, download_name='backupLogs.xlsx', as_attachment=True)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
