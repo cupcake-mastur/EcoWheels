@@ -109,57 +109,68 @@ a:hover {
 
 }
 /* ~~~~~~~~~~~~~~~~~~~~ Media query ends ~~~~~~~~~~~~~~~~~~~~~*/
-
-.item{
-width: 100%;
-padding:2%;
-margin-top:5px;
-margin:15px;
-box-shadow: 1px 5px 15px #CCC;
+#products {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px; /* Adjust gap as needed */
 }
 
-
-.btn-Add,.btn-details, .btn-Submit{
-  margin-top:40px;
-}
-.btn-details{
-  background:transparent;
-  border-style:solid;
-  border-color:lightgrey;
-  border-radius:0%;
-  width:125px;
-  top:11px;
-  left:5px;
-  color:black;
+.item {
+  flex: 1 1 calc(25% - 30px); /* 4 items per row with margin */
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  padding: 2%;
+  margin-top: 5px;
+  margin: 15px 0; /* Adjusted to avoid doubling margin with flexbox gap */
+  box-shadow: 1px 5px 15px #CCC;
 }
 
-.btn-details:hover{
-  background:lightgrey;
-  color:white;
+.thumbnail img {
+  width: 100%;
+  height: auto;
 }
 
-.btn-Add{
-    width:125px;
-    top:11px;
-    left:5px;
-    background: rgb(7, 165, 96);
-    color: white;
-    border: none;
+.btn-Add, .btn-details, .btn-Submit {
+  margin-top: 20px;
 }
+
+.btn-details {
+  background: transparent;
+  border-style: solid;
+  border-color: lightgrey;
+  border-radius: 0%;
+  width: 125px;
+  top: 11px;
+  left: 5px;
+  color: black;
+}
+
+.btn-details:hover {
+  background: lightgrey;
+  color: white;
+}
+
+.btn-Add {
+  width: 125px;
+  top: 11px;
+  left: 5px;
+  background: rgb(7, 165, 96);
+  color: white;
+  border: none;
+}
+
 .btn-Add:hover {
-    background-color: rgb(5, 137, 80);
-    color: #fff;
+  background-color: rgb(5, 137, 80);
+  color: #fff;
 }
 
-.Price{
-  position:absolute;
-  font-weight:700;
-  font-size:18px;
+.Price {
+  position: absolute;
+  font-weight: 700;
+  font-size: 18px;
 }
 
 
-
-/* FEEDBACK CSS */
+/* FEEDBACK CSS */                                   /* FEEDBACK CSS */
 .btn-Submit{
     width:125px;
     top:11px;

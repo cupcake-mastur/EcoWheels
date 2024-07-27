@@ -26,7 +26,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exists, func
 from werkzeug.utils import secure_filename
 from PIL import Image
-
+from model import Feedback
 from model import *
 
 load_dotenv(find_dotenv())
@@ -62,7 +62,7 @@ mail = Mail(app)
 otp_store = {}
 
 user_logged_in = False
-csrf = CSRFProtect(app)
+# csrf = CSRFProtect(app)                                          # REMOVE IF NEEDED
 limiter = Limiter(
     get_remote_address,
     app=app,
@@ -132,18 +132,18 @@ def models():
     return render_template("homepage/models.html" , vehicles=vehicles)
 
 
-@app.route('/Feedback')
+@app.route('/Feedback', methods=['GET', 'POST'])
 #@login_required                   #REMOVE COMMENT FOR USER LOG IN TO WORK, FOR TESTING CAN JUST LEAVE THE COMMENT
 def feedback():
     if request.method == 'POST':
-        name = request.form['name']
         email = request.form['email']
-        message = request.form['message']
+        message = request.form['feedback']
+        email = request.form.get('email', 'default@example.com')
 
         # Handle the feedback (e.g., save to database)
 
         flash('Thank you for your feedback!', 'success')
-        return redirect(url_for('feedback'))
+        return redirect(url_for('thankyou'))
 
     # Pass the current user's username to the template
     #username = current_user.username
@@ -162,9 +162,18 @@ def admin_login_required(f):
 @app.route('/manageFeedback')
 @admin_login_required
 def manageFeedback():
+    admin_username = session.get('admin_username')
 
-    return render_template('admin/manageFeedback.html')
+    # Query the Feedback table to get all feedback entries
+    feedback_entries = Feedback.query.all()
 
+    # Render the template with the feedback entries
+    return render_template('admin/manageFeedback.html', admin_username=admin_username,
+                           feedback_entries=feedback_entries)
+
+@app.route('/thankyou')
+def thankyou():
+    return render_template("homepage/thankyou.html")
 
 @app.route('/check_session')
 def check_session():
