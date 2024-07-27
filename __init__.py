@@ -27,6 +27,17 @@ from sqlalchemy import exists, func
 from werkzeug.utils import secure_filename
 from PIL import Image
 from model import *
+# ------------ For backup excel files -------------- #
+from flask import send_file, jsonify
+import pandas as pd
+from io import BytesIO
+import os
+import openpyxl
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.drawing.image import Image as XLImage
+from openpyxl.styles import PatternFill
+# ------------------------------------------------- #
 
 load_dotenv(find_dotenv())
 db = SQLAlchemy()
@@ -96,7 +107,8 @@ def get_remote_address(request):
 
 @limiter.request_filter
 def exempt_routes():
-    exempt_endpoints = ['system_logs', 'MVehicles']
+    exempt_endpoints = ['createVehicle', 'system_createVehicle', 'MCustomers', 'system_MCustomers', 'MVehicles', 'system_MVehicles', 'system_logs', 'manageFeedback', 'system_manageFeedback'
+                        'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback']
     return request.endpoint in exempt_endpoints
 
 @app.errorhandler(429)
