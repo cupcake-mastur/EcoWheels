@@ -78,30 +78,33 @@
 
 <!-- Products -->
 <div class="container">
-    <h1>Vehicle List</h1>
-    <div id="products" class="row list-group">
-        {% for vehicle in vehicles %}
-        <div class="item col-xs-4 col-md-3">
-            <div class="thumbnail">
-                <img class="group list-group-image" src="{{ url_for('static', filename=vehicle.image) }}" alt="" />
-                <div class="caption">
-                    <h4 class="group inner list-group-item-heading">{{ vehicle.model }}</h4>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-6">
-                            <p class="Price">${{ vehicle.selling_price }}</p>
-                            <p>{{ vehicle.description }}</p>
-                        </div>
-                        <div class="col-xs-12 col-md-6">
-                            <a class="btn btn-details" href="#">Details</a>
-                            <button class="btn btn-Add" onclick="addToCart('{{ vehicle.model }}', {{ vehicle.selling_price }})">Add to cart</button>
-                        </div>
-                    </div>
-                </div>
+  <h1>Vehicle List</h1>
+  <div id="products" class="row list-group">
+    {% for vehicle in vehicles %}
+      <div class="item col-xs-4 col-md-3">
+        <div class="thumbnail">
+          {% if vehicle.image %}
+            <img src="{{ url_for('static', filename='vehicle_images/' + vehicle.image) }}" alt="Vehicle Image">
+          {% else %}
+            No Image
+          {% endif %}
+          <div class="caption">
+            <h4 class="group inner list-group-item-heading">{{ vehicle.model }}</h4>
+            <div class="row">
+              <div class="col-xs-12 col-md-12">
+                <p class="Price">${{ vehicle.selling_price }}</p>
+                <br>
+                <p>{{ vehicle.description }}</p>
+                <button class="btn btn-Add" onclick="addToCart('{{ vehicle.model }}', {{ vehicle.selling_price }})">Add to cart</button>
+              </div>
             </div>
+          </div>
         </div>
-        {% endfor %}
-    </div>
+      </div>
+    {% endfor %}
+  </div>
 </div>
+
 
 <!-- Cart Modal -->
 <div class="modal fade" id="cartModal" tabindex="-1" role="dialog" aria-labelledby="cartModalLabel" aria-hidden="true">
