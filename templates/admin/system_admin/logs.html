@@ -161,6 +161,10 @@
             margin-top: -1rem;
             margin-bottom: 1rem;
         }
+
+        #backupButton {
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -230,6 +234,8 @@
             <h1>EcoWheels Management System</h1>
             <h2>Logs</h2>
         </div>
+        <button id="backupButton">Download Logs Backup</button>
+        <br><br>
 
         <!-- Legend Section -->
         <div class="container">
@@ -252,6 +258,10 @@
                         <div class="legend-color" style="background-color: rgb(250, 164, 65); border: solid 3px rgb(237, 148, 45);"></div>
                         <span>Vehicle Deletion</span>
                     </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style=" border: solid 3px rgb(194, 194, 194);"></div>
+                        <span>BackUp</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -267,6 +277,7 @@
             <option value="Logout">Logout</option>
             <option value="Create Vehicle">Create Vehicle</option>
             <option value="Delete Vehicle">Delete Vehicle</option>
+            <option value="Backup">Backup</option>
         </select>
     </div>
         <div class="filter-item">
@@ -287,7 +298,7 @@
             <label for="keyword">Keyword:</label>
             <input type="text" id="keyword" name="keyword">
                 {% if errors.keyword %}
-                    <div class="alert alert-danger">{{ errors.keyword}}</div>
+                    <div class="alert alert-danger">{{ errors.keyword }}</div>
                 {% endif %}
         </div>
         <div class="filter-item ">
@@ -361,6 +372,22 @@
             link.classList.add("active");
         });
     });
+
+    document.getElementById('backupButton').addEventListener('click', function() {
+            fetch('{{ url_for('backup_logs') }}')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'backupLogs.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                })
+                .catch(error => console.log('Error downloading the backup:', error));
+        });
+
 </script>
 {% include 'logout_modal.html' %}
 </body>

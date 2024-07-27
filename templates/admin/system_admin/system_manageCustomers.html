@@ -180,6 +180,7 @@
             <h2>Customers</h2>
         </div>
 
+        <button id="backupButton">Backup Customers</button>
         <br><br>
        <form method="post" action="{{ url_for('system_MCustomers') }}" class="filter-form">
            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -271,6 +272,21 @@
                 removeActiveClasses();
                 link.classList.add("active");
             });
+        });
+
+                  document.getElementById('backupButton').addEventListener('click', function() {
+            fetch('{{ url_for('backup_customers') }}')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'backupCustomers.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                })
+                .catch(error => console.log('Error downloading the backup:', error));
         });
     </script>
 {% include 'logout_modal.html' %}
