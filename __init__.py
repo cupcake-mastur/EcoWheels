@@ -665,11 +665,13 @@ vehicle_backup_time = []
 customer_backup_time = []
 logs_backup_time = []
 
+
 # Log event function
 def log_event(event_type, event_result):
     log = Log(event_type=event_type, event_result=event_result)
     db.session.add(log)
     db.session.commit()
+
 
 def role_required(*roles):
     def wrapper(f):
@@ -682,7 +684,9 @@ def role_required(*roles):
                 return redirect(url_for('ErrorPage'))
 
             return f(*args, **kwargs)
+
         return decorated_function
+
     return wrapper
 
 
@@ -695,6 +699,7 @@ def admin_login_required(f):
 
     return decorated_function
 
+
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
     form = AdminLoginForm()
@@ -703,35 +708,52 @@ def admin_log_in():
         username = html.escape(form.username.data)
         password = html.escape(form.password.data)
 
-        # Check if the username ends with '@ecowheels.com'
         if not username.endswith('@ecowheels.com'):
             error_message = "Incorrect Username or Password"
             return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
         admin = db.session.query(Admin).filter(func.binary(Admin.username) == username).first()
 
-        if admin and admin.check_password(password):
-            session['admin_username'] = username
-            session['admin_logged_in'] = True
+        if admin:
+            if admin.is_suspended:
+                error_message = "Your account is suspended due to too many failed login attempts."
+                return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
-            if username not in admin_list and username not in system_admin_list:
-                session['admin_role'] = 'junior'
-                log_event('Login', f'Successful login for junior admin {username}.')
-                return redirect(url_for('sub_dashboard'))
+            if admin.check_password(password):
+                admin.login_attempts = 0
+                db.session.commit()
 
-            elif username in admin_list:
-                session['admin_role'] = 'general'
-                log_event('Login', f'Successful login for admin {username}.')
-                return redirect(url_for('dashboard'))
+                session['admin_username'] = username
+                session['admin_logged_in'] = True
 
-            elif username in system_admin_list:
-                session['admin_role'] = 'system'
-                log_event('Login', f'Successful login for system admin {username}.')
-                return redirect(url_for('system_dashboard'))
+                if username not in admin_list and username not in system_admin_list:
+                    session['admin_role'] = 'junior'
+                    log_event('Login', f'Successful login for junior admin {username}.')
+                    return redirect(url_for('sub_dashboard'))
 
+                elif username in admin_list:
+                    session['admin_role'] = 'general'
+                    log_event('Login', f'Successful login for admin {username}.')
+                    return redirect(url_for('dashboard'))
+
+                elif username in system_admin_list:
+                    session['admin_role'] = 'system'
+                    log_event('Login', f'Successful login for system admin {username}.')
+                    return redirect(url_for('system_dashboard'))
+            else:
+                admin.login_attempts += 1
+                log_event('Login', f'Failed login attempt for admin {username}. Attempt {admin.login_attempts}')
+
+                if admin.login_attempts >= 3:
+                    admin.is_suspended = True
+                    log_event('Login',
+                              f'Account for admin {username} is suspended due to too many failed login attempts.')
+
+                db.session.commit()
+                error_message = "Incorrect Username or Password"
         else:
             error_message = "Incorrect Username or Password"
-            log_event('Login', f'Failed login attempt for admin {username}.')
+            log_event('Login', f'Failed login attempt for non-existent admin {username}.')
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
@@ -774,6 +796,7 @@ def save_image_file(form_file):
 
     return picture_fn
 
+
 @app.route('/createVehicle', methods=['GET', 'POST'])
 @role_required('general')
 @admin_login_required
@@ -803,6 +826,7 @@ def createVehicle():
             db.session.rollback()
 
     return render_template('admin/createVehicleForm.html', form=create_vehicle_form)
+
 
 @app.route('/system_createVehicle', methods=['GET', 'POST'])
 @role_required('system')
@@ -864,6 +888,7 @@ def system_dashboard():
     return render_template('admin/system_admin/system_dashboard.html', admin_username=admin_username,
                            num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
 
+
 @app.route('/sub_dashboard', methods=['GET', 'POST'])
 @admin_login_required
 @role_required('junior')
@@ -874,7 +899,6 @@ def sub_dashboard():
     num_admins = db.session.query(Admin).count()
     return render_template('admin/junior_admin/sub_dashboard.html', admin_username=admin_username,
                            num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
-
 
 
 @app.route('/manageCustomers', methods=['GET', 'POST'])
@@ -955,7 +979,8 @@ def system_MCustomers():
     customers = query.all()
 
     return render_template('admin/system_admin/system_manageCustomers.html', admin_username=admin_username,
-                           customers=customers, csrf_token=csrf_token, errors=errors, customer_backup_time=customer_backup_time)
+                           customers=customers, csrf_token=csrf_token, errors=errors,
+                           customer_backup_time=customer_backup_time)
 
 
 @app.route('/sub_manageCustomers', methods=['GET', 'POST'])
@@ -972,7 +997,6 @@ def sub_MCustomers():
         username_filter = request.form.get('username_filter')
         email_filter = request.form.get('email_filter')
         phone_number_filter = request.form.get('phone_number_filter')
-
 
         if full_name_filter and is_valid_input(full_name_filter):
             query = query.filter(User.full_name.ilike(f"%{full_name_filter}%"))
@@ -996,7 +1020,8 @@ def sub_MCustomers():
 
     customers = query.all()
 
-    return render_template('admin/junior_admin/sub_manageCustomers.html', admin_username=admin_username, customers=customers
+    return render_template('admin/junior_admin/sub_manageCustomers.html', admin_username=admin_username,
+                           customers=customers
                            , csrf_token=csrf_token, errors=errors)
 
 
@@ -1081,7 +1106,9 @@ def system_MVehicles():
         vehicles = query.all()
 
     return render_template('admin/system_admin/system_manageVehicles.html', admin_username=admin_username,
-                           vehicles=vehicles, csrf_token=csrf_token, errors=errors, vehicle_backup_time=vehicle_backup_time)
+                           vehicles=vehicles, csrf_token=csrf_token, errors=errors,
+                           vehicle_backup_time=vehicle_backup_time)
+
 
 @app.route('/sub_manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
@@ -1121,7 +1148,8 @@ def sub_MVehicles():
 
         vehicles = query.all()
 
-    return render_template('admin/junior_admin/sub_manageVehicles.html', admin_username=admin_username, vehicles=vehicles,
+    return render_template('admin/junior_admin/sub_manageVehicles.html', admin_username=admin_username,
+                           vehicles=vehicles,
                            csrf_token=csrf_token, errors=errors)
 
 
@@ -1187,12 +1215,53 @@ def system_manageFeedback():
     admin_username = session.get('admin_username')
     return render_template('admin/system_admin/system_manageFeedback.html', admin_username=admin_username)
 
+
 @app.route('/sub_manageFeedback')
 @admin_login_required
 @role_required('junior')
 def sub_manageFeedback():
     admin_username = session.get('admin_username')
     return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username)
+
+
+@app.route('/system_manageAdmin', methods=['GET'])
+@admin_login_required
+@role_required('system')
+def system_manageAdmin():
+    admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
+    errors = {}
+    if 'admin_logged_in' in session and session['admin_role'] == 'system':
+        admins = db.session.query(Admin).all()
+        suspended_admins = db.session.query(Admin).filter_by(is_suspended=True).all()
+        return render_template('admin/system_admin/system_manageAdmins.html', suspended_admins=suspended_admins,
+                               admin_username=admin_username, admins=admins, errors=errors, csrf_token=csrf_token)
+    else:
+        return redirect(url_for('admin_log_in'))
+
+
+@app.route('/unsuspend_admin', methods=['POST'])
+@admin_login_required
+@role_required('system')
+def unsuspend_admin(id):
+    if 'admin_logged_in' in session and session['admin_role'] == 'system':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        admin = db.session.query(Admin).filter_by(username=username).first()
+        system_admin = db.session.query(Admin).filter_by(username=session['admin_username']).first()
+
+        if admin and system_admin and system_admin.check_password(password):
+            admin.is_suspended = False
+            admin.login_attempts = 0
+            db.session.commit()
+            log_event('Unsuspend',
+                      f'Successful unsuspension of admin {username} by system admin {system_admin.username}.')
+            flash(f'Admin {username} has been unsuspended.', 'success')
+        else:
+            log_event('Unsuspend',
+                      f'Failed unsuspension attempt for admin {username} by system admin {system_admin.username} (incorrect password).')
+            flash('Incorrect password. Unsuspension failed.', 'danger')
 
 
 @app.route('/admin_logout')
@@ -1264,6 +1333,7 @@ def backup_vehicles():
     # Send the file to the user
     return send_file(output, download_name='backupVehicle.xlsx', as_attachment=True)
 
+
 @app.route('/backup_customers', methods=['GET'])
 @admin_login_required
 @role_required('system')
@@ -1307,8 +1377,6 @@ def backup_customers():
     return send_file(output, download_name='backupCustomers.xlsx', as_attachment=True)
 
 
-
-
 @app.route('/backup_logs', methods=['GET'])
 @admin_login_required
 @role_required('system')
@@ -1338,11 +1406,11 @@ def backup_logs():
 
     # Define color fills for different event types
     colors = {
-        'Login': '7dde8b',          # Light green
-        'Logout': '7dde8b',         # Light green
-        'Create Vehicle': 'f5c842', # Light orange
-        'Delete Vehicle': 'faa441', # Light orange
-        'Backup': 'c2c2c2'          # Light gray
+        'Login': '7dde8b',  # Light green
+        'Logout': '7dde8b',  # Light green
+        'Create Vehicle': 'f5c842',  # Light orange
+        'Delete Vehicle': 'faa441',  # Light orange
+        'Backup': 'c2c2c2'  # Light gray
     }
 
     # Apply header styles
@@ -1357,7 +1425,7 @@ def backup_logs():
 
             # Apply color based on event type
             if r_idx > 1:  # Skip header row
-                event_type = df.iloc[r_idx-2]['Event Type']
+                event_type = df.iloc[r_idx - 2]['Event Type']
                 color = colors.get(event_type, 'ffffff')  # Default to white if no color found
                 cell.fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
 
