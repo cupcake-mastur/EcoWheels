@@ -666,7 +666,7 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-junior_admin_list = ['EmmaJohnson@ecowheels.com', 'NoahWilson@ecowheels.com', 'testuserja@ecowheels.com']
+admin_list = ['LiamThompson@ecowheels.com', 'OliviaBrown@ecowheels.com', 'testuser@ecowheels.com']
 system_admin_list = ['SophiaMartinez@ecowheels.com', 'JamesCarter@ecowheels.com', 'testusersa@ecowheels.com']
 
 # Log event function
@@ -718,15 +718,15 @@ def admin_log_in():
             session['admin_username'] = username
             session['admin_logged_in'] = True
 
-            if username in junior_admin_list:
-                session['admin_role'] = 'junior'
-                log_event('Login', f'Successful login for junior admin {username}.')
-                return redirect(url_for('sub_dashboard'))
-
-            elif username not in junior_admin_list and username not in system_admin_list:
+            if username in admin_list:
                 session['admin_role'] = 'general'
-                log_event('Login', f'Successful login for admin {username}.')
+                log_event('Login', f'Successful login for junior admin {username}.')
                 return redirect(url_for('dashboard'))
+
+            elif username not in admin_list and username not in system_admin_list:
+                session['admin_role'] = 'junior'
+                log_event('Login', f'Successful login for admin {username}.')
+                return redirect(url_for('sub_dashboard'))
 
             elif username in system_admin_list:
                 session['admin_role'] = 'system'
@@ -889,24 +889,38 @@ def MCustomers():
     admin_username = session.get('admin_username')
     csrf_token = generate_csrf()  # Generate CSRF token
     query = db.session.query(User)
+    errors = {}
+
     if request.method == 'POST':
         full_name_filter = request.form.get('full_name_filter')
         username_filter = request.form.get('username_filter')
         email_filter = request.form.get('email_filter')
         phone_number_filter = request.form.get('phone_number_filter')
 
-        if full_name_filter:
+        if full_name_filter and is_valid_input(full_name_filter):
             query = query.filter(User.full_name.ilike(f"%{full_name_filter}%"))
-        if username_filter:
+        elif full_name_filter:
+            errors['full_name_filter'] = 'Invalid input for full name filter'
+
+        if username_filter and is_valid_input(username_filter):
             query = query.filter(User.username.ilike(f"%{username_filter}%"))
-        if email_filter:
+        elif username_filter:
+            errors['username_filter'] = 'Invalid input for username filter'
+
+        if email_filter and is_valid_input(email_filter):
             query = query.filter(User.email.ilike(f"%{email_filter}%"))
-        if phone_number_filter:
+        elif email_filter:
+            errors['email_filter'] = 'Invalid input for email filter'
+
+        if phone_number_filter and is_valid_input(phone_number_filter):
             query = query.filter(User.phone_number.ilike(f"%{phone_number_filter}%"))
+        elif phone_number_filter:
+            errors['phone_number_filter'] = 'Invalid input for phone number filter'
 
     customers = query.all()
 
-    return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers, csrf_token=csrf_token)
+    return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers,
+                           csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/system_manageCustomers', methods=['GET', 'POST'])
@@ -916,25 +930,37 @@ def system_MCustomers():
     admin_username = session.get('admin_username')
     csrf_token = generate_csrf()  # Generate CSRF token
     query = db.session.query(User)
+    errors = {}
     if request.method == 'POST':
         full_name_filter = request.form.get('full_name_filter')
         username_filter = request.form.get('username_filter')
         email_filter = request.form.get('email_filter')
         phone_number_filter = request.form.get('phone_number_filter')
 
-        if full_name_filter:
+        if full_name_filter and is_valid_input(full_name_filter):
             query = query.filter(User.full_name.ilike(f"%{full_name_filter}%"))
-        if username_filter:
+        elif full_name_filter:
+            errors['full_name_filter'] = 'Invalid input for full name filter'
+
+        if username_filter and is_valid_input(username_filter):
             query = query.filter(User.username.ilike(f"%{username_filter}%"))
-        if email_filter:
+        elif username_filter:
+            errors['username_filter'] = 'Invalid input for username filter'
+
+        if email_filter and is_valid_input(email_filter):
             query = query.filter(User.email.ilike(f"%{email_filter}%"))
-        if phone_number_filter:
+        elif email_filter:
+            errors['email_filter'] = 'Invalid input for email filter'
+
+        if phone_number_filter and is_valid_input(phone_number_filter):
             query = query.filter(User.phone_number.ilike(f"%{phone_number_filter}%"))
+        elif phone_number_filter:
+            errors['phone_number_filter'] = 'Invalid input for phone number filter'
 
     customers = query.all()
 
     return render_template('admin/system_admin/system_manageCustomers.html', admin_username=admin_username,
-                           customers=customers, csrf_token=csrf_token)
+                           customers=customers, csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/sub_manageCustomers', methods=['GET', 'POST'])
@@ -943,6 +969,7 @@ def system_MCustomers():
 def sub_MCustomers():
     admin_username = session.get('admin_username')
     csrf_token = generate_csrf()  # Generate CSRF token
+    errors = {}
 
     query = db.session.query(User)
     if request.method == 'POST':
@@ -951,19 +978,31 @@ def sub_MCustomers():
         email_filter = request.form.get('email_filter')
         phone_number_filter = request.form.get('phone_number_filter')
 
-        if full_name_filter:
+
+        if full_name_filter and is_valid_input(full_name_filter):
             query = query.filter(User.full_name.ilike(f"%{full_name_filter}%"))
-        if username_filter:
+        elif full_name_filter:
+            errors['full_name_filter'] = 'Invalid input for full name filter'
+
+        if username_filter and is_valid_input(username_filter):
             query = query.filter(User.username.ilike(f"%{username_filter}%"))
-        if email_filter:
+        elif username_filter:
+            errors['username_filter'] = 'Invalid input for username filter'
+
+        if email_filter and is_valid_input(email_filter):
             query = query.filter(User.email.ilike(f"%{email_filter}%"))
-        if phone_number_filter:
+        elif email_filter:
+            errors['email_filter'] = 'Invalid input for email filter'
+
+        if phone_number_filter and is_valid_input(phone_number_filter):
             query = query.filter(User.phone_number.ilike(f"%{phone_number_filter}%"))
+        elif phone_number_filter:
+            errors['phone_number_filter'] = 'Invalid input for phone number filter'
 
     customers = query.all()
 
     return render_template('admin/junior_admin/sub_manageCustomers.html', admin_username=admin_username, customers=customers
-                           , csrf_token=csrf_token)
+                           , csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/manageVehicles', methods=['GET', 'POST'])
@@ -973,6 +1012,7 @@ def MVehicles():
     admin_username = session.get('admin_username')
     csrf_token = generate_csrf()  # Generate CSRF token
     vehicles = db.session.query(Vehicle).all()
+    errors = {}
 
     if request.method == 'POST':
         brand_filter = request.form.get('brand_filter')
@@ -981,18 +1021,30 @@ def MVehicles():
         max_price_filter = request.form.get('max_price_filter')
 
         query = db.session.query(Vehicle)
-        if brand_filter:
+        if brand_filter and is_valid_input(brand_filter):
             query = query.filter(Vehicle.brand.ilike(f"%{brand_filter}%"))
-        if model_filter:
+        elif brand_filter:
+            errors['brand_filter'] = 'Invalid input for brand filter'
+
+        if model_filter and is_valid_input(model_filter):
             query = query.filter(Vehicle.model.ilike(f"%{model_filter}%"))
-        if min_price_filter:
+        elif model_filter:
+            errors['model_filter'] = 'Invalid input for model filter'
+
+        if min_price_filter and is_valid_input(min_price_filter):
             query = query.filter(Vehicle.selling_price >= float(min_price_filter))
-        if max_price_filter:
+        elif min_price_filter:
+            errors['min_price_filter'] = 'Invalid input for minimum price filter'
+
+        if max_price_filter and is_valid_input(max_price_filter):
             query = query.filter(Vehicle.selling_price <= float(max_price_filter))
+        elif max_price_filter:
+            errors['max_price_filter'] = 'Invalid input for maximum price filter'
 
         vehicles = query.all()
 
-    return render_template('admin/manageVehicles.html', admin_username=admin_username, vehicles=vehicles, csrf_token=csrf_token)
+    return render_template('admin/manageVehicles.html', admin_username=admin_username, vehicles=vehicles,
+                           csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/system_manageVehicles', methods=['GET', 'POST'])
@@ -1002,6 +1054,7 @@ def system_MVehicles():
     admin_username = session.get('admin_username')
     csrf_token = generate_csrf()  # Generate CSRF token
     vehicles = db.session.query(Vehicle).all()
+    errors = {}
 
     if request.method == 'POST':
         brand_filter = request.form.get('brand_filter')
@@ -1010,19 +1063,30 @@ def system_MVehicles():
         max_price_filter = request.form.get('max_price_filter')
 
         query = db.session.query(Vehicle)
-        if brand_filter:
+        if brand_filter and is_valid_input(brand_filter):
             query = query.filter(Vehicle.brand.ilike(f"%{brand_filter}%"))
-        if model_filter:
+        elif brand_filter:
+            errors['brand_filter'] = 'Invalid input for brand filter'
+
+        if model_filter and is_valid_input(model_filter):
             query = query.filter(Vehicle.model.ilike(f"%{model_filter}%"))
-        if min_price_filter:
+        elif model_filter:
+            errors['model_filter'] = 'Invalid input for model filter'
+
+        if min_price_filter and is_valid_input(min_price_filter):
             query = query.filter(Vehicle.selling_price >= float(min_price_filter))
-        if max_price_filter:
+        elif min_price_filter:
+            errors['min_price_filter'] = 'Invalid input for minimum price filter'
+
+        if max_price_filter and is_valid_input(max_price_filter):
             query = query.filter(Vehicle.selling_price <= float(max_price_filter))
+        elif max_price_filter:
+            errors['max_price_filter'] = 'Invalid input for maximum price filter'
 
         vehicles = query.all()
 
     return render_template('admin/system_admin/system_manageVehicles.html', admin_username=admin_username,
-                           vehicles=vehicles, csrf_token=csrf_token)
+                           vehicles=vehicles, csrf_token=csrf_token, errors=errors)
 
 @app.route('/sub_manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
@@ -1031,6 +1095,7 @@ def sub_MVehicles():
     admin_username = session.get('admin_username')
     csrf_token = generate_csrf()  # Generate CSRF token
     vehicles = db.session.query(Vehicle).all()
+    errors = {}
 
     if request.method == 'POST':
         brand_filter = request.form.get('brand_filter')
@@ -1039,19 +1104,30 @@ def sub_MVehicles():
         max_price_filter = request.form.get('max_price_filter')
 
         query = db.session.query(Vehicle)
-        if brand_filter:
+        if brand_filter and is_valid_input(brand_filter):
             query = query.filter(Vehicle.brand.ilike(f"%{brand_filter}%"))
-        if model_filter:
+        elif brand_filter:
+            errors['brand_filter'] = 'Invalid input for brand filter'
+
+        if model_filter and is_valid_input(model_filter):
             query = query.filter(Vehicle.model.ilike(f"%{model_filter}%"))
-        if min_price_filter:
+        elif model_filter:
+            errors['model_filter'] = 'Invalid input for model filter'
+
+        if min_price_filter and is_valid_input(min_price_filter):
             query = query.filter(Vehicle.selling_price >= float(min_price_filter))
-        if max_price_filter:
+        elif min_price_filter:
+            errors['min_price_filter'] = 'Invalid input for minimum price filter'
+
+        if max_price_filter and is_valid_input(max_price_filter):
             query = query.filter(Vehicle.selling_price <= float(max_price_filter))
+        elif max_price_filter:
+            errors['max_price_filter'] = 'Invalid input for maximum price filter'
 
         vehicles = query.all()
 
     return render_template('admin/junior_admin/sub_manageVehicles.html', admin_username=admin_username, vehicles=vehicles,
-                           csrf_token=csrf_token)
+                           csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/delete_vehicle/<int:id>', methods=['POST'])
@@ -1076,7 +1152,7 @@ def delete_vehicle(id):
 def system_logs():
     admin_username = session.get('admin_username')
     csrf_token = generate_csrf()  # Generate CSRF token
-
+    errors = {}
     if request.method == 'POST':
         event_type = request.form.get('event_type')
         start_date = request.form.get('start_date')
@@ -1085,23 +1161,28 @@ def system_logs():
 
         query = db.session.query(Log)
 
-        if event_type:
+        if event_type and is_valid_input(event_type):
             query = query.filter(Log.event_type == event_type)
-        if start_date:
+
+        if start_date and is_valid_input(start_date):
             start_datetime = datetime.strptime(start_date, '%Y-%m-%dT%H:%M')
             query = query.filter(Log.event_time >= start_datetime)
-        if end_date:
+
+        if end_date and is_valid_input(end_date):
             end_datetime = datetime.strptime(end_date, '%Y-%m-%dT%H:%M')
             query = query.filter(Log.event_time <= end_datetime)
-        if keyword:
+
+        if keyword and is_valid_input(keyword):
             query = query.filter(Log.event_result.ilike(f'%{keyword}%'))
+        elif keyword:
+            errors['keyword'] = 'Invalid input for keyword'
 
         logs = query.all()
     else:
         logs = db.session.query(Log).all()
 
     return render_template('admin/system_admin/logs.html', admin_username=admin_username, logs=logs
-                           , csrf_token=csrf_token)
+                           , csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/system_manageFeedback')
