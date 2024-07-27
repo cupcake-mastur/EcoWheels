@@ -104,11 +104,8 @@
                 <h5 class="modal-title" id="passwordModalLabel">Confirm Current Password</h5>
             </div>
             <div class="modal-body">
-                {% if error and error_in_modal %}
-                  <p style="color: red; text-align: center;">{{ error }}</p>
-                {% endif %}
                 <form id="passwordForm">
-                    <div class="form-group">
+                    <div class="form-group" style="width: 74%; margin-left: 45.5px;">
                         {{ render_field(form.current_password, class="form-control", id="current_pass_modal", placeholder="Enter your current password") }}
                     </div>
                     <button type="submit" class="btn btn-primary" id="modal_confirm">Confirm</button>

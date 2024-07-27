@@ -74,7 +74,7 @@ mail = Mail(app)
 otp_store = {}
 
 user_logged_in = False
-# csrf = CSRFProtect(app)                                          # REMOVE IF NEEDED
+csrf = CSRFProtect(app)                                          # REMOVE IF NEEDED
 limiter = Limiter(
     get_remote_address,
     app=app,
