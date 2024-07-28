@@ -196,17 +196,52 @@ def thankyou():
     return render_template("homepage/thankyou.html")
 
 
-def track_user_visits(stack, url):
-    stack.push(url)
-    print(f"Visited: {url}")
-    print(f"Current Stack: {stack._theItems}")
+@app.route('/visit', methods=['POST'])
+def log_visit():
+    try:
+        data = request.json
+        url = data.get('url')
+        email = session.get('user_email')
+        user_id = get_user_id_from_email(email)  # Replace with your function to get user_id
+        
+        # Log debug information
+        app.logger.debug(f"Email: {email}")
+        app.logger.debug(f"User ID: {user_id}")
+        app.logger.debug(f"URL: {url}")
+
+        # Ensure user_id is not None
+        if user_id is None:
+            raise ValueError("User ID is None")
+
+        visited_at = datetime.now()
+        
+        # Insert into database
+        new_entry = UserURL(email=email, user_id=user_id, url=url, visited_at=visited_at)
+        db.session.add(new_entry)
+        db.session.commit()
+        
+        return jsonify({'message': 'Visit recorded', 'urls': url}), 200
+    except Exception as e:
+        app.logger.error(f"Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+def get_user_id_from_email(email):
+    user = db.session.query(User).filter_by(email=email).first()
+    return user.id if user else None
 
 
-def get_last_visited_url(stack):
-    if not stack.isEmpty():
-        return stack.peek()
+@app.route('/last_visited')
+def last_visited():
+    user_email = session.get('user_email')
+    
+    if user_email:
+        last_visit = db.session.query(UserURL).filter_by(email=user_email).order_by(UserURL.visited_at.desc()).first()
+        if last_visit:
+            return f"Last visited URL: {last_visit.url}"
+        else:
+            return "No URLs visited yet."
     else:
-        return None
+        return "User email not found in session.", 400
 
 
 @app.route('/check_session')
@@ -623,6 +658,7 @@ def before_request():
         if request.headers.get('X-Check-Session') != 'True':
             session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
             session.modified = True
+
 
 @app.route('/cart')
 def cart_page():

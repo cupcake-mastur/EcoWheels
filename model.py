@@ -36,6 +36,7 @@ class User(db.Model):
     failed_attempts = db.Column(db.Integer, default=0)
     lockout_until = db.Column(db.DateTime, nullable=True)
     password_history = db.relationship('PasswordHistory', backref='user', lazy=True)
+    urls = db.relationship('UserURL', backref='user', lazy=True)
 
     card_name = db.Column(db.String(30))
     card_number = db.Column(db.String(20))
@@ -44,12 +45,21 @@ class User(db.Model):
     cvv = db.Column(db.String(3))
 
 
+class UserURL(db.Model):
+    __tablename__ = 'user_url'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    url = db.Column(db.String(200), nullable=False)
+    visited_at = db.Column(db.DateTime, default=lambda: datetime.now(SGT))
+
+
 class PasswordHistory(db.Model):
     __tablename__ = 'password_history'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    changed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    changed_at = db.Column(db.DateTime, default=lambda: datetime.now(SGT), nullable=False)
 
 
 class Admin(db.Model):
