@@ -51,6 +51,16 @@
             border: solid 3px rgb(237, 148, 45);
         }
 
+        tr.log-suspend {
+            background-color: rgb(250, 115, 100); /* Dark Red */
+            border: solid 3px rgb(252, 84, 50);
+        }
+
+        tr.log-attempt {
+            color: rgb(230, 85, 69); /* Darker Red */
+            border: solid 3px rgb(252, 84, 50);
+        }
+
         .container {
             padding-bottom: 3rem;
         }
@@ -294,6 +304,8 @@
             <option value="Create Vehicle">Create Vehicle</option>
             <option value="Delete Vehicle">Delete Vehicle</option>
             <option value="Backup">Backup</option>
+            <option value="Suspension">Suspension</option>
+            <option value="Unsuspended">UnSuspension</option>
         </select>
     </div>
         <div class="filter-item">
@@ -351,6 +363,10 @@
                             log-creation
                         {% elif 'deleted' in log.event_result %}
                             log-deletion
+                        {% elif 'suspension' in log.event_result %}
+                            log-suspend
+                        {% elif 'Attempted' in log.event_result %}
+                            log-attempt
                         {% endif %}
                     ">
                         <td>{{ log.id }}</td>
