@@ -17,6 +17,7 @@ from flask_mail import Mail, Message
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
+from stack import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta, timezone
@@ -113,6 +114,7 @@ def exempt_routes():
                         'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback']
     return request.endpoint in exempt_endpoints
 
+
 @app.errorhandler(429)
 def ratelimit_error(e):
     app.logger.warning(
@@ -192,6 +194,20 @@ def manageFeedback():
 @app.route('/thankyou')
 def thankyou():
     return render_template("homepage/thankyou.html")
+
+
+def track_user_visits(stack, url):
+    stack.push(url)
+    print(f"Visited: {url}")
+    print(f"Current Stack: {stack._theItems}")
+
+
+def get_last_visited_url(stack):
+    if not stack.isEmpty():
+        return stack.peek()
+    else:
+        return None
+
 
 @app.route('/check_session')
 def check_session():
