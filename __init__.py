@@ -747,6 +747,7 @@ def admin_log_in():
 
         if not username.endswith('@ecowheels.com'):
             error_message = "Incorrect Username or Password"
+            log_event('Login', f'Failed login attempt for non-existent admin {username}.')
             return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
         admin = db.session.query(Admin).filter(func.binary(Admin.username) == username).first()
@@ -754,6 +755,7 @@ def admin_log_in():
         if admin:
             if admin.is_suspended:
                 error_message = "Your account is suspended due to too many failed login attempts."
+                log_event('Suspension', f'Attempted login by suspended admin {username}.')
                 return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
             if admin.check_password(password):
@@ -783,8 +785,8 @@ def admin_log_in():
 
                 if admin.login_attempts >= 3:
                     admin.is_suspended = True
-                    log_event('Login',
-                              f'Account for admin {username} is suspended due to too many failed login attempts.')
+                    log_event('Suspension',
+                              f'Due to too many failed login attempts, active suspension of admin account {username}.')
 
                 db.session.commit()
                 error_message = "Incorrect Username or Password"
@@ -1206,6 +1208,31 @@ def delete_vehicle(id):
         return redirect(url_for('ErrorPage'))
 
 
+@app.route('/unsuspend_admin/<int:id>', methods=['POST'])
+@admin_login_required
+@role_required('system')
+def unsuspend_admin(id):
+    if 'admin_logged_in' in session and session['admin_role'] == 'system':
+        password = request.form.get('password')
+
+        admin = db.session.query(Admin).get(id)
+        system_admin = db.session.query(Admin).filter_by(username=session['admin_username']).first()
+
+        if admin and system_admin and system_admin.check_password(password):
+            admin.is_suspended = False
+            admin.login_attempts = 0
+            db.session.commit()
+            log_event('Unsuspended',
+                      f'Successful unsuspension of admin {admin.username} by system admin {system_admin.username}.')
+            flash(f'Successfully unsuspended admin {admin.username}.', 'success')
+        else:
+            log_event('Unsuspended',
+                      f'Failed unsuspension attempt due to incorrect password for admin {admin.username} by system admin {system_admin.username}.')
+            flash(f'Failed to unsuspend admin {admin.username}. Incorrect password.', 'danger')
+
+    return redirect(url_for('system_manageAdmin'))
+
+
 @app.route('/logs', methods=['GET', 'POST'])
 @admin_login_required
 @role_required('system')
@@ -1221,7 +1248,7 @@ def system_logs():
 
         query = db.session.query(Log)
 
-        if event_type and is_valid_input(event_type):
+        if event_type:
             query = query.filter(Log.event_type == event_type)
 
         if start_date:
@@ -1261,7 +1288,7 @@ def sub_manageFeedback():
     return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username)
 
 
-@app.route('/system_manageAdmin', methods=['GET'])
+@app.route('/system_manageAdmin', methods=['POST'])
 @admin_login_required
 @role_required('system')
 def system_manageAdmin():
@@ -1275,30 +1302,6 @@ def system_manageAdmin():
                                admin_username=admin_username, admins=admins, errors=errors, csrf_token=csrf_token)
     else:
         return redirect(url_for('admin_log_in'))
-
-
-@app.route('/unsuspend_admin', methods=['POST'])
-@admin_login_required
-@role_required('system')
-def unsuspend_admin(id):
-    if 'admin_logged_in' in session and session['admin_role'] == 'system':
-        username = request.form.get('username')
-        password = request.form.get('password')
-
-        admin = db.session.query(Admin).filter_by(username=username).first()
-        system_admin = db.session.query(Admin).filter_by(username=session['admin_username']).first()
-
-        if admin and system_admin and system_admin.check_password(password):
-            admin.is_suspended = False
-            admin.login_attempts = 0
-            db.session.commit()
-            log_event('Unsuspend',
-                      f'Successful unsuspension of admin {username} by system admin {system_admin.username}.')
-            flash(f'Admin {username} has been unsuspended.', 'success')
-        else:
-            log_event('Unsuspend',
-                      f'Failed unsuspension attempt for admin {username} by system admin {system_admin.username} (incorrect password).')
-            flash('Incorrect password. Unsuspension failed.', 'danger')
 
 
 @app.route('/admin_logout')
