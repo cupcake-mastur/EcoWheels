@@ -197,17 +197,13 @@ def thankyou():
 
 
 @app.route('/visit', methods=['POST'])
-def log_visit():
+@csrf.exempt
+def visit():
     try:
         data = request.json
         url = data.get('url')
         email = session.get('user_email')
-        user_id = get_user_id_from_email(email)  # Replace with your function to get user_id
-        
-        # Log debug information
-        app.logger.debug(f"Email: {email}")
-        app.logger.debug(f"User ID: {user_id}")
-        app.logger.debug(f"URL: {url}")
+        user_id = get_user_id_from_email(email)
 
         # Ensure user_id is not None
         if user_id is None:
@@ -215,12 +211,22 @@ def log_visit():
 
         visited_at = datetime.now()
         
-        # Insert into database
-        new_entry = UserURL(email=email, user_id=user_id, url=url, visited_at=visited_at)
-        db.session.add(new_entry)
-        db.session.commit()
+        # Check if the URL has already been visited
+        existing_entry = db.session.query(UserURL).filter_by(email=email, url=url).first()
         
-        return jsonify({'message': 'Visit recorded', 'urls': url}), 200
+        if existing_entry:
+            # If the URL exists, update the visited_at time
+            existing_entry.visited_at = visited_at
+            db.session.commit()
+            message = 'Visit time updated'
+        else:
+            # Insert into database
+            new_entry = UserURL(email=email, user_id=user_id, url=url, visited_at=visited_at)
+            db.session.add(new_entry)
+            db.session.commit()
+            message = 'Visit recorded'
+        
+        return jsonify({'message': message, 'urls': url}), 200
     except Exception as e:
         app.logger.error(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -228,20 +234,6 @@ def log_visit():
 def get_user_id_from_email(email):
     user = db.session.query(User).filter_by(email=email).first()
     return user.id if user else None
-
-
-@app.route('/last_visited')
-def last_visited():
-    user_email = session.get('user_email')
-    
-    if user_email:
-        last_visit = db.session.query(UserURL).filter_by(email=user_email).order_by(UserURL.visited_at.desc()).first()
-        if last_visit:
-            return f"Last visited URL: {last_visit.url}"
-        else:
-            return "No URLs visited yet."
-    else:
-        return "User email not found in session.", 400
 
 
 @app.route('/check_session')

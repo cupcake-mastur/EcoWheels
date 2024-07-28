@@ -4,19 +4,27 @@ document.addEventListener("DOMContentLoaded", function() {
     let currentUrl = window.location.href;
     console.log("Current URL:", currentUrl);
 
-    // Get the CSRF token from the hidden input in the form
-    let csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    // Check if the CSRF token element exists
+    let csrfTokenElement = document.querySelector('input[name="csrf_token"]');
+    let csrfToken = csrfTokenElement ? csrfTokenElement.value : null;
     console.log("CSRF token:", csrfToken);
+
+    // Create the headers object
+    let headers = {
+        'Content-Type': 'application/json'
+    };
+
+    // Add the CSRF token to headers if it exists
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
 
     fetch('/visit', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken // Include the CSRF token in the headers
-        },
+        headers: headers,
         body: JSON.stringify({
             url: currentUrl,
-            csrf_token: csrfToken // Include the CSRF token in the request body
+            csrf_token: csrfToken // Include the CSRF token in the request body if it exists
         })
     })
     .then(response => {
