@@ -199,37 +199,29 @@ def thankyou():
 @app.route('/visit', methods=['POST'])
 @csrf.exempt
 def visit():
-    try:
-        data = request.json
-        url = data.get('url')
-        email = session.get('user_email')
-        user_id = get_user_id_from_email(email)
+    data = request.json
+    url = data.get('url')
+    email = session.get('user_email')
+    user_id = get_user_id_from_email(email)
 
-        # Ensure user_id is not None
-        if user_id is None:
-            raise ValueError("User ID is None")
+    # Ensure user_id is not None
+    if user_id is None:
+        raise ValueError("User ID is None")
 
-        visited_at = datetime.now()
-        
-        # Check if the URL has already been visited
-        existing_entry = db.session.query(UserURL).filter_by(email=email, url=url).first()
-        
-        if existing_entry:
-            # If the URL exists, update the visited_at time
-            existing_entry.visited_at = visited_at
-            db.session.commit()
-            message = 'Visit time updated'
-        else:
-            # Insert into database
-            new_entry = UserURL(email=email, user_id=user_id, url=url, visited_at=visited_at)
-            db.session.add(new_entry)
-            db.session.commit()
-            message = 'Visit recorded'
-        
-        return jsonify({'message': message, 'urls': url}), 200
-    except Exception as e:
-        app.logger.error(f"Error: {e}")
-        return jsonify({'error': str(e)}), 500
+    visited_at = datetime.now()
+
+    # Remove any previous entries for this user
+    db.session.query(UserURL).filter_by(user_id=user_id).delete()
+    db.session.commit()
+
+    # Insert the new entry
+    new_entry = UserURL(email=email, user_id=user_id, url=url, visited_at=visited_at)
+    db.session.add(new_entry)
+    db.session.commit()
+
+    message = 'Latest URL visit recorded'
+
+    return jsonify({'message': message, 'url': url}), 200
 
 def get_user_id_from_email(email):
     user = db.session.query(User).filter_by(email=email).first()
