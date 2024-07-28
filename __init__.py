@@ -1187,11 +1187,11 @@ def system_logs():
         if event_type and is_valid_input(event_type):
             query = query.filter(Log.event_type == event_type)
 
-        if start_date and is_valid_input(start_date):
+        if start_date:
             start_datetime = datetime.strptime(start_date, '%Y-%m-%dT%H:%M')
             query = query.filter(Log.event_time >= start_datetime)
 
-        if end_date and is_valid_input(end_date):
+        if end_date:
             end_datetime = datetime.strptime(end_date, '%Y-%m-%dT%H:%M')
             query = query.filter(Log.event_time <= end_datetime)
 
