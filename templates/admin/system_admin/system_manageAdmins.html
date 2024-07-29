@@ -4,24 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoWheels Admin</title>
-    <link rel="stylesheet" type="text/css" href="../static/css/style.css">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
     <style>
-        /* Table Styles */
-        #admin-table {
+    #a-table {
             margin: 0 auto;
             border-collapse: collapse;
             width: 100%;
             font-size: 1.05rem;
         }
-        th.admin-tablehead {
-            padding: 20px;
+        th.a-tablehead {
             background-color: #eee;
+            padding: 20px;
+        }
+        tr:last-child td {
+            border-bottom: #12171e;
         }
         td {
             text-align: center;
-            padding: 8px;
+            padding: 5px;
         }
         tbody tr:nth-child(odd) {
             background-color: #D3D3D3;
@@ -29,12 +32,19 @@
         tbody tr:nth-child(even) {
             background-color: #eee;
         }
-        .suspended {
-            background-color: rgb(247, 118, 116);
-            color: red;
+        .delete-button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 500;
         }
-
-        /* Filter Form Styles */
+        .delete-button:hover {
+            background-color: #c82333;
+        }
         .filter-form {
             display: flex;
             gap: 1rem;
@@ -47,11 +57,10 @@
             margin-bottom: 0.5rem;
         }
         .filter-form input[type="text"],
-        .filter-form input[type="datetime-local"],
-        .filter-form select,
+        .filter-form input[type="number"],
         .filter-form button[type="submit"] {
             font-size: 1.05rem;
-            display: block;
+            display: box;
             width: 100%;
             padding: 0.75rem;
             box-sizing: border-box;
@@ -63,12 +72,12 @@
             margin-bottom: 1.2rem;
         }
         .filter-form input[type="text"]:focus,
-        .filter-form input[type="datetime-local"]:focus,
-        .filter-form select:focus,
+        .filter-form input[type="number"]:focus,
         .filter-form button[type="submit"]:focus {
             background: #ffffff;
             border-color: #aaaaaa;
         }
+
         .filter-form button[type="submit"] {
             cursor: pointer;
             background-color: rgb(7, 165, 96);
@@ -82,16 +91,17 @@
             flex: 1;
             min-width: 250px;
         }
+
         .filter-item.button-item {
             flex: 0;
             font-weight: bold;
             font-size: 1.1rem;
             color: #ffffff;
             border: none;
-            border-radius: 4px;
+            border-radius:4px;
             outline: none;
             cursor: pointer;
-            background: rgb(7, 165, 96);
+            background:rgb(7, 165, 96) ;
         }
 
         .alert-danger {
@@ -101,22 +111,44 @@
             margin-bottom: 1rem;
         }
 
-        .unsuspend-button {
-            background-color: #28a745;
-            color: #fff;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            font-weight: 500;
+        /* Add modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
         }
-        .unsuspend-button:hover {
-            background-color: #218838;
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
+
     <div class="sidebar">
         <div class="top">
             <div class="logo">
@@ -133,7 +165,7 @@
         </div>
         <ul>
             <li>
-                <a href="{{ url_for('system_dashboard') }}" class="nav__link">
+                <a href="{{url_for('system_dashboard')}}" class="nav__link">
                     <i class="bx bxs-grid-alt"></i>
                     <span class="nav-item">Dashboard</span>
                 </a>
@@ -187,41 +219,33 @@
     <div class="main-content">
         <div class="container">
             <h1>EcoWheels Management System</h1>
-            <h2>Admins</h2>
+            <h2>Manage Admins</h2>
         </div>
-
-
-
-        <br><br>
-
-        <table id="admin-table">
+        <table id="a-table" border="0">
             <thead>
                 <tr>
-                    <th class="admin-tablehead">Admin ID</th>
-                    <th class="admin-tablehead">Username</th>
-                    <th class="admin-tablehead">Status</th>
-                    <th class="admin-tablehead">Action</th>
+                    <th class="a-tablehead">Admin ID</th>
+                    <th class="a-tablehead">Username</th>
+                    <th class="a-tablehead">Role</th>
+                    <th class="a-tablehead">Status</th>
+                    <th class="a-tablehead">Actions</th>
                 </tr>
-                    <tr>
-                        <th colspan="4" style="border-bottom: 2px solid #000000;"></th>
-                    </tr>
+                <tr>
+                    <th colspan="5" style="border-bottom: 2px solid #000000;"></th>
+                </tr>
             </thead>
             <tbody>
                 {% for admin in admins %}
-                <tr class="{% if admin.is_suspended %}suspended{% else %}active{% endif %}">
+                <tr>
                     <td>{{ admin.id }}</td>
                     <td>{{ admin.username }}</td>
+                    <td>{{ admin.role }}</td>
                     <td>{{ 'Suspended' if admin.is_suspended else 'Active' }}</td>
                     <td>
                         {% if admin.is_suspended %}
-                            <form id="unsuspendForm {{ admin.id }}" action="{{ url_for('unsuspend_admin', id=admin.id) }}" method="post">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <div>
-                                <button class="unsuspend-button" type="button">Unsuspend</button>
-                            </div>
-                        </form>
+                        <button class="delete-button" onclick="openUnsuspendModal({{ admin.id }})">Unsuspend</button>
                         {% else %}
-                        N/A
+                        Active
                         {% endif %}
                     </td>
                 </tr>
@@ -230,20 +254,23 @@
         </table>
     </div>
 
+    <!-- Unsuspend Admin Modal -->
+    <div id="unsuspendModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeUnsuspendModal()">&times;</span>
+            <h2>Unsuspend Admin</h2>
+            <form action="{{ url_for('unsuspend_admin') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" id="unsuspendAdminId" name="admin_id">
+                <label for="admin_password">Password:</label>
+                <input type="password" id="admin_password" name="admin_password" required>
+                <button type="submit" class="delete-button">Submit</button>
+            </form>
+        </div>
+    </div>
+
 
     <script>
-        function openLogoutPopup() {
-            document.getElementById("logoutPopup").style.display = "block";
-        }
-
-        function closeLogoutPopup() {
-            document.getElementById("logoutPopup").style.display = "none";
-        }
-
-        function logout() {
-            window.location.href = "{{ url_for('logout') }}";
-        }
-
         let btn = document.querySelector("#btn");
         let sidebar = document.querySelector(".sidebar");
 
@@ -264,7 +291,83 @@
                 link.classList.add("active");
             });
         });
+
+        function openPopup(vehicleId, brand, model) {
+            const popupNode = document.getElementById('popup');
+            const overlay = popupNode.querySelector('.overlay');
+            const closeBtn = popupNode.querySelector('.close-btn');
+            const submitBtn = popupNode.querySelector('#press-n-hold');
+            const vehicleInfo = `${vehicleId} ${brand} ${model}`;
+            const form = document.getElementById(`deleteForm${vehicleId}`);
+
+            document.getElementById('popup-vehicle-info').textContent = vehicleInfo;
+
+            function closePopup() {
+                popupNode.classList.remove('active');
+                isHoldingButton = false;
+                clearTimeout(pressHoldTimer);
+            }
+
+            let pressHoldDuration = 1000;
+            let pressHoldTimer;
+            let isHoldingButton = false;
+
+            function startPressHold() {
+                isHoldingButton = true;
+                pressHoldTimer = setTimeout(() => {
+                    if (isHoldingButton) {
+                        form.submit();
+                    }
+                }, pressHoldDuration);
+            }
+
+            function endPressHold() {
+                clearTimeout(pressHoldTimer);
+                isHoldingButton = false;
+            }
+
+            submitBtn.onmousedown = startPressHold;
+            submitBtn.onmouseup = endPressHold;
+            submitBtn.onmouseleave = endPressHold;
+
+            popupNode.classList.add('active');
+            overlay.addEventListener('click', closePopup);
+            closeBtn.addEventListener('click', closePopup);
+        }
+
+          document.getElementById('backupButton').addEventListener('click', function() {
+            fetch('{{ url_for('backup_vehicles') }}')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'backupVehicle.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                })
+                .catch(error => console.log('Error downloading the backup:', error));
+        });
+
+        function openUnsuspendModal(adminId) {
+            document.getElementById('unsuspendAdminId').value = adminId;
+            document.getElementById('unsuspendModal').style.display = "block";
+        }
+
+        function closeUnsuspendModal() {
+            document.getElementById('unsuspendModal').style.display = "none";
+        }
+
+        // Close the modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('unsuspendModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
     </script>
-{% include 'logout_modal.html' %}
+    {% include 'unsuspend_modal.html' %}
+    {% include 'logout_modal.html' %}
 </body>
 </html>

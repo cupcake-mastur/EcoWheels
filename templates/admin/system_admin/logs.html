@@ -61,6 +61,11 @@
             border: solid 3px rgb(252, 84, 50);
         }
 
+        tr.log-unsuspend {
+            background-color: rgb(93, 196, 77);  /* Dark Green */
+            border: solid 3px rgb(53, 212, 111);
+        }
+
         .container {
             padding-bottom: 3rem;
         }
@@ -230,7 +235,7 @@
                 <span class="tooltip">Logs</span>
             </li>
             <li>
-                <a href="{{url_for('system_manageAdmin')}}">
+                <a href="{{url_for('system_manageAdmin')}}" class="nav__link">
                     <i class='bx bxs-face'></i>
                     <span class="nav-item">Admins</span>
                 </a>
@@ -287,6 +292,14 @@
                     <div class="legend-item">
                         <div class="legend-color" style=" border: solid 3px rgb(194, 194, 194);"></div>
                         <span>BackUp</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style=" background-color: rgb(250, 115, 100); border: solid 3px rgb(252, 84, 50);"></div>
+                        <span>Suspend</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(93, 196, 77); border: solid 3px rgb(53, 212, 111);"></div>
+                        <span>Unsuspend</span>
                     </div>
                 </div>
             </div>
@@ -367,6 +380,8 @@
                             log-suspend
                         {% elif 'Attempted' in log.event_result %}
                             log-attempt
+                        {% elif 'unsuspend' in log.event_result %}
+                            log-unsuspend
                         {% endif %}
                     ">
                         <td>{{ log.id }}</td>

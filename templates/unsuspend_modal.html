@@ -1,0 +1,13 @@
+<div id="unsuspendModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeUnsuspendModal()">&times;</span>
+        <h2>Unsuspend Admin</h2>
+        <form action="{{ url_for('unsuspend_admin') }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" id="unsuspendAdminId" name="admin_id">
+            <label for="admin_password">Password:</label>
+            <input type="password" id="admin_password" name="admin_password" required>
+            <button type="submit" class="delete-button">Submit</button>
+        </form>
+    </div>
+</div>
