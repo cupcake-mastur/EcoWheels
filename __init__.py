@@ -794,11 +794,13 @@ def admin_log_in():
 
                 if admin.login_attempts >= 3:
                     admin.is_suspended = True
+                    error_message = "Your account is suspended due to too many failed login attempts."
                     log_event('Suspension',
                               f'Due to too many failed login attempts, active suspension of admin account {username}.')
+                else:
+                    error_message = "Incorrect Username or Password"
 
                 db.session.commit()
-                error_message = "Incorrect Username or Password"
         else:
             error_message = "Incorrect Username or Password"
             log_event('Login', f'Failed login attempt for non-existent admin {username}.')
