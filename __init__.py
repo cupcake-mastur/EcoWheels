@@ -1217,31 +1217,6 @@ def delete_vehicle(id):
         return redirect(url_for('ErrorPage'))
 
 
-@app.route('/unsuspend_admin/<int:id>', methods=['POST'])
-@admin_login_required
-@role_required('system')
-def unsuspend_admin(id):
-    if 'admin_logged_in' in session and session['admin_role'] == 'system':
-        password = request.form.get('password')
-
-        admin = db.session.query(Admin).get(id)
-        system_admin = db.session.query(Admin).filter_by(username=session['admin_username']).first()
-
-        if admin and system_admin and system_admin.check_password(password):
-            admin.is_suspended = False
-            admin.login_attempts = 0
-            db.session.commit()
-            log_event('Unsuspended',
-                      f'Successful unsuspension of admin {admin.username} by system admin {system_admin.username}.')
-            flash(f'Successfully unsuspended admin {admin.username}.', 'success')
-        else:
-            log_event('Unsuspended',
-                      f'Failed unsuspension attempt due to incorrect password for admin {admin.username} by system admin {system_admin.username}.')
-            flash(f'Failed to unsuspend admin {admin.username}. Incorrect password.', 'danger')
-
-    return redirect(url_for('system_manageAdmin'))
-
-
 @app.route('/logs', methods=['GET', 'POST'])
 @admin_login_required
 @role_required('system')
@@ -1297,7 +1272,7 @@ def sub_manageFeedback():
     return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username)
 
 
-@app.route('/system_manageAdmin', methods=['POST'])
+@app.route('/system_manageAdmin', methods=['GET', 'POST'])
 @admin_login_required
 @role_required('system')
 def system_manageAdmin():
@@ -1306,12 +1281,46 @@ def system_manageAdmin():
     errors = {}
     if 'admin_logged_in' in session and session['admin_role'] == 'system':
         admins = db.session.query(Admin).all()
-        suspended_admins = db.session.query(Admin).filter_by(is_suspended=True).all()
-        return render_template('admin/system_admin/system_manageAdmins.html', suspended_admins=suspended_admins,
-                               admin_username=admin_username, admins=admins, errors=errors, csrf_token=csrf_token)
+        if request.method == 'POST':
+            admin_id = request.form.get('admin_id')
+            admin_to_unsuspend = Admin.query.filter_by(id=admin_id).first()
+            if admin_to_unsuspend:
+                admin_to_unsuspend.is_suspended = False
+                db.session.commit()
+                return redirect(url_for('system_manageAdmin'))
+        return render_template('admin/system_admin/system_manageAdmins.html', admins=admins,
+                               admin_username=admin_username, errors=errors, csrf_token=csrf_token)
     else:
         return redirect(url_for('admin_log_in'))
 
+
+@app.route('/unsuspend_admin', methods=['POST'])
+@admin_login_required
+@role_required('system')
+def unsuspend_admin():
+    admin_username = session.get('admin_username')
+    admin_id = request.form.get('admin_id')
+    admin_password = request.form.get('admin_password')
+
+    if not admin_password:
+        log_event('Unsuspended', f'System admin {admin_username} has failed to unsuspend an admin')
+        return redirect(url_for('system_manageAdmin'))
+
+    current_admin_username = session.get('admin_username')
+    current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
+    if current_admin and current_admin.check_password(admin_password):
+        admin = db.session.query(Admin).filter_by(id=admin_id).first()
+        if admin:
+            admin.is_suspended = False
+            admin.login_attempts = 0  # Reset login attempts
+            db.session.commit()
+            log_event('Unsuspended', f'System admin {current_admin_username} has successfully unsuspended admin {admin.username}')
+        else:
+            flash('Admin not found', 'error')
+    else:
+        flash('Incorrect password', 'error')
+
+    return redirect(url_for('system_manageAdmin'))
 
 @app.route('/admin_logout')
 def admin_logout():
