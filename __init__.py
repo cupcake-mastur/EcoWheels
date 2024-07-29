@@ -199,11 +199,16 @@ def thankyou():
 
 @app.route('/visit', methods=['POST'])
 @csrf.exempt
+@login_required
 def visit():
+    EXEMPT_URL_ROUTES = ['http://127.0.0.1:5000/sign_up', 'http://127.0.0.1:5000/login', 'http://127.0.0.1:5000/verify_otp']
     data = request.json
     url = data.get('url')
     email = session.get('user_email')
     user_id = get_user_id_from_email(email)
+
+    if url in EXEMPT_URL_ROUTES:
+        return jsonify({'message': 'URL is exempt from recording'})
 
     # Ensure user_id is not None
     if user_id is None:
@@ -440,8 +445,12 @@ def verify_otp():
                 session['user_logged_in'] = True
                 session.permanent = True
 
-                app.logger.info(f"User {user_email} logged in successfully.")
-                return redirect(url_for('home'))
+                last_visited = db.session.query(UserURL).filter_by(user_id=user.id).first()
+                if last_visited:
+                    app.logger.info(f"User {user_email} logged in successfully.")
+                    return redirect(last_visited.url)
+                else:
+                    return redirect(url_for('home'))
             else:
                 error = "Invalid OTP. Please try again."
                 app.logger.warning(f"Invalid OTP attempt for {user_email}")
