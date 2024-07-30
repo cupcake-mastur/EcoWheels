@@ -79,7 +79,7 @@ csrf = CSRFProtect(app)                                          # REMOVE IF NEE
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["10 per minute"]
 )
 
 with app.app_context():
@@ -105,22 +105,19 @@ def login_required(f):
     return decorated_function
 
 
-def get_remote_address(request):
-    return request.remote_addr
-
 @limiter.request_filter
 def exempt_routes():
-    exempt_endpoints = ['createVehicle', 'system_createVehicle', 'MCustomers', 'system_MCustomers', 'MVehicles',
-                        'system_MVehicles', 'system_logs', 'manageFeedback', 'system_manageFeedback' 
-                        'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback']
+    exempt_endpoints = [
+        'createVehicle', 'system_createVehicle', 'MCustomers', 'system_MCustomers', 'MVehicles',
+        'system_MVehicles', 'system_logs', 'manageFeedback', 'system_manageFeedback',
+        'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback'
+    ]
     return request.endpoint in exempt_endpoints
 
 
 @app.errorhandler(429)
 def ratelimit_error(e):
-    app.logger.warning(
-        f"Rate limit exceeded for IP {get_remote_address(request)}. "
-    )
+    app.logger.warning(f"Rate limit exceeded for IP {request.remote_addr}.")
     return render_template("customer/rate_limit_exceeded.html"), 429
 
 
@@ -152,24 +149,34 @@ def models():
 
     return render_template("homepage/models.html" , vehicles=vehicles)
 
-
 @app.route('/Feedback', methods=['GET', 'POST'])
-#@login_required                   #REMOVE COMMENT FOR USER LOG IN TO WORK, FOR TESTING CAN JUST LEAVE THE COMMENT
+#@login_required
 def feedback():
     if request.method == 'POST':
-        email = request.form['email']
-        message = request.form['feedback']
         email = request.form.get('email', 'default@example.com')
+        feedback_message = request.form['feedback']
+        rating = request.form['rating']
+        username = 'Anonymous'  # Replace with actual username if available
+        try:
+            # Create a new Feedback entry
+            new_feedback = Feedback(
+                username=username,
+                email=email,
+                feedback=feedback_message,
+                rating=rating
+            )
+            # Add and commit the new feedback to the database
+            db.session.add(new_feedback)
+            db.session.commit()
 
-        # Handle the feedback (e.g., save to database)
+        except Exception as e:
+            db.session.rollback()
+
 
         flash('Thank you for your feedback!', 'success')
         return redirect(url_for('thankyou'))
 
-    # Pass the current user's username to the template
-    #username = current_user.username
     return render_template('homepage/Feedback.html')
-
 
 def admin_login_required(f):
     @wraps(f)
@@ -186,7 +193,8 @@ def manageFeedback():
     admin_username = session.get('admin_username')
 
     # Query the Feedback table to get all feedback entries
-    feedback_entries = Feedback.query.all()
+
+    feedback_entries = db.session.query(Feedback).all()
 
     # Render the template with the feedback entries
     return render_template('admin/manageFeedback.html', admin_username=admin_username,
@@ -639,6 +647,27 @@ def logout():
         return render_template('customer/error_msg_not_logged_in.html')
 
 
+@app.route('/delete_account', methods=['GET', 'POST'])
+def delete_account():    
+    user_email = session.get('user_email')
+    if user_email:
+        user = db.session.query(User).filter_by(email=user_email).first()
+        if user:
+            user_id = user.id
+            # Delete entries from related tables first if necessary
+            db.session.query(UserURL).filter_by(user_id=user_id).delete()
+            db.session.query(PasswordHistory).filter_by(user_id=user_id).delete()
+            db.session.delete(user)
+            db.session.commit()
+            session.clear()
+            session.modified = True
+            return render_template('customer/account_deleted_successfully.html')
+        else:
+            return('User not found.')
+    else:
+        return render_template('customer/error_msg_not_logged_in.html')
+
+
 @app.before_request
 def before_request():
     if 'user_email' in session:
@@ -794,11 +823,13 @@ def admin_log_in():
 
                 if admin.login_attempts >= 3:
                     admin.is_suspended = True
+                    error_message = "Your account is suspended due to too many failed login attempts."
                     log_event('Suspension',
                               f'Due to too many failed login attempts, active suspension of admin account {username}.')
+                else:
+                    error_message = "Incorrect Username or Password"
 
                 db.session.commit()
-                error_message = "Incorrect Username or Password"
         else:
             error_message = "Incorrect Username or Password"
             log_event('Login', f'Failed login attempt for non-existent admin {username}.')
@@ -920,9 +951,8 @@ def dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
-    num_admins = db.session.query(Admin).count()
     return render_template('admin/dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
+                           num_customers=num_customers, num_vehicles=num_vehicles)
 
 
 @app.route('/system_admin_dashboard', methods=['GET', 'POST'])
@@ -944,9 +974,8 @@ def sub_dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
-    num_admins = db.session.query(Admin).count()
     return render_template('admin/junior_admin/sub_dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
+                           num_customers=num_customers, num_vehicles=num_vehicles)
 
 
 @app.route('/manageCustomers', methods=['GET', 'POST'])
