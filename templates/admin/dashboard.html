@@ -15,8 +15,8 @@
 
         .tables-container {
             display: flex;
-            justify-content: space-between;
-            gap: 20px; /* Adjust the gap as needed */
+            justify-content: flex-start; /* Align boxes to the left */
+            gap: 30px; /* Adjust the gap as needed */
             margin: 0 auto;
             width: 100%;
         }
@@ -24,7 +24,7 @@
         .d-table {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start; /* Align items to the start */
             border: none;
             font-size: 1.5rem; /* Adjust the font size for numbers and words */
             background-color: white;
@@ -147,13 +147,7 @@
                 </div>
             </div>
 
-            <div class="d-table">
-                <i class='bx bx-cog d-icon' id="cog-i"></i>
-                <div class="d-info">
-                    <div class="d-numbers">{{ num_admins }}</div>
-                    <div class="d-label">admins</div>
-                </div>
-            </div>
+
         </div>
 
     </div>
