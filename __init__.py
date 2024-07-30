@@ -16,7 +16,7 @@ from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, DeleteAccountForm, AdminLoginForm, CreateVehicleForm
+from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
 from stack import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
