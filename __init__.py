@@ -130,24 +130,34 @@ def models():
 
     return render_template("homepage/models.html" , vehicles=vehicles)
 
-
 @app.route('/Feedback', methods=['GET', 'POST'])
-#@login_required                   #REMOVE COMMENT FOR USER LOG IN TO WORK, FOR TESTING CAN JUST LEAVE THE COMMENT
+#@login_required
 def feedback():
     if request.method == 'POST':
-        email = request.form['email']
-        message = request.form['feedback']
         email = request.form.get('email', 'default@example.com')
+        feedback_message = request.form['feedback']
+        rating = request.form['rating']
+        username = 'Anonymous'  # Replace with actual username if available
+        try:
+            # Create a new Feedback entry
+            new_feedback = Feedback(
+                username=username,
+                email=email,
+                feedback=feedback_message,
+                rating=rating
+            )
+            # Add and commit the new feedback to the database
+            db.session.add(new_feedback)
+            db.session.commit()
 
-        # Handle the feedback (e.g., save to database)
+        except Exception as e:
+            db.session.rollback()
+
 
         flash('Thank you for your feedback!', 'success')
         return redirect(url_for('thankyou'))
 
-    # Pass the current user's username to the template
-    #username = current_user.username
     return render_template('homepage/Feedback.html')
-
 
 def admin_login_required(f):
     @wraps(f)
@@ -164,7 +174,8 @@ def manageFeedback():
     admin_username = session.get('admin_username')
 
     # Query the Feedback table to get all feedback entries
-    feedback_entries = Feedback.query.all()
+
+    feedback_entries = db.session.query(Feedback).all()
 
     # Render the template with the feedback entries
     return render_template('admin/manageFeedback.html', admin_username=admin_username,
