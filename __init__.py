@@ -951,9 +951,8 @@ def dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
-    num_admins = db.session.query(Admin).count()
     return render_template('admin/dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
+                           num_customers=num_customers, num_vehicles=num_vehicles)
 
 
 @app.route('/system_admin_dashboard', methods=['GET', 'POST'])
@@ -975,9 +974,8 @@ def sub_dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
-    num_admins = db.session.query(Admin).count()
     return render_template('admin/junior_admin/sub_dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
+                           num_customers=num_customers, num_vehicles=num_vehicles)
 
 
 @app.route('/manageCustomers', methods=['GET', 'POST'])
