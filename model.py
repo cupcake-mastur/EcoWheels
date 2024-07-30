@@ -16,13 +16,16 @@ class Feedback(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
     feedback = db.Column(db.Text, nullable=False)
     rating = db.Column(db.Enum('good', 'moderate', 'bad', name='rating_enum'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    #timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self):
         return f"<Feedback id={self.id} username={self.username} rating={self.rating}>"
+
+
 
 class User(db.Model):
     __tablename__ = 'users'
