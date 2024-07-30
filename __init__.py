@@ -16,7 +16,7 @@ from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
+from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, DeleteAccountForm, AdminLoginForm, CreateVehicleForm
 from stack import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
@@ -632,6 +632,27 @@ def logout():
         session.modified = True
         print(session)
         return render_template('customer/logout_message.html')
+    else:
+        return render_template('customer/error_msg_not_logged_in.html')
+
+
+@app.route('/delete_account', methods=['GET', 'POST'])
+def delete_account():    
+    user_email = session.get('user_email')
+    if user_email:
+        user = db.session.query(User).filter_by(email=user_email).first()
+        if user:
+            user_id = user.id
+            # Delete entries from related tables first if necessary
+            db.session.query(UserURL).filter_by(user_id=user_id).delete()
+            db.session.query(PasswordHistory).filter_by(user_id=user_id).delete()
+            db.session.delete(user)
+            db.session.commit()
+            session.clear()
+            session.modified = True
+            return render_template('customer/account_deleted_successfully.html')
+        else:
+            return('User not found.')
     else:
         return render_template('customer/error_msg_not_logged_in.html')
 
