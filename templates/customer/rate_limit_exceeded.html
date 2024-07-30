@@ -1,3 +1,6 @@
 {% extends "error_msg.html" %}
 
-{% block message %}Rate limit exceeded.{% endblock %}
+{% block message %}
+<p style="text-align: center;">Request limit reached.</p> 
+<p style="font-size: 17px; color: gray; text-align: center; margin-top: 15px;">Note: Please try again later.</p>
+{% endblock %}

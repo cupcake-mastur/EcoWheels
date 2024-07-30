@@ -79,7 +79,7 @@ csrf = CSRFProtect(app)                                          # REMOVE IF NEE
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["10 per minute"]
 )
 
 with app.app_context():
@@ -105,22 +105,19 @@ def login_required(f):
     return decorated_function
 
 
-def get_remote_address(request):
-    return request.remote_addr
-
 @limiter.request_filter
 def exempt_routes():
-    exempt_endpoints = ['createVehicle', 'system_createVehicle', 'MCustomers', 'system_MCustomers', 'MVehicles',
-                        'system_MVehicles', 'system_logs', 'manageFeedback', 'system_manageFeedback' 
-                        'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback']
+    exempt_endpoints = [
+        'createVehicle', 'system_createVehicle', 'MCustomers', 'system_MCustomers', 'MVehicles',
+        'system_MVehicles', 'system_logs', 'manageFeedback', 'system_manageFeedback',
+        'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback'
+    ]
     return request.endpoint in exempt_endpoints
 
 
 @app.errorhandler(429)
 def ratelimit_error(e):
-    app.logger.warning(
-        f"Rate limit exceeded for IP {get_remote_address(request)}. "
-    )
+    app.logger.warning(f"Rate limit exceeded for IP {request.remote_addr}.")
     return render_template("customer/rate_limit_exceeded.html"), 429
 
 
