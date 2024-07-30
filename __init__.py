@@ -1290,7 +1290,13 @@ def system_logs():
 @role_required('system')
 def system_manageFeedback():
     admin_username = session.get('admin_username')
-    return render_template('admin/system_admin/system_manageFeedback.html', admin_username=admin_username)
+    # Query the Feedback table to get all feedback entries
+
+    feedback_entries = db.session.query(Feedback).all()
+
+    # Render the template with the feedback entries
+    return render_template('admin/system_admin/system_manageFeedback.html', admin_username=admin_username,
+                           feedback_entries=feedback_entries)
 
 
 @app.route('/sub_manageFeedback')
@@ -1298,7 +1304,14 @@ def system_manageFeedback():
 @role_required('junior')
 def sub_manageFeedback():
     admin_username = session.get('admin_username')
-    return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username)
+
+    # Query the Feedback table to get all feedback entries
+
+    feedback_entries = db.session.query(Feedback).all()
+
+    # Render the template with the feedback entries
+    return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username,
+                           feedback_entries=feedback_entries)
 
 
 @app.route('/system_manageAdmin', methods=['GET', 'POST'])
