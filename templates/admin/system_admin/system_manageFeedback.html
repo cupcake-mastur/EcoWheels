@@ -66,6 +66,99 @@
         #car-i {
             background-color: rgb(232, 102, 51);
         }
+        #u-table {
+            margin: 0 auto;
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 1.05rem;
+        }
+
+        th.u-tablehead {
+            background-color: #eee;
+            padding: 20px; /* Adjust spacing */
+        }
+
+        tr:last-child td {
+            border-bottom: #12171e;
+        }
+
+        td {
+            text-align: center;
+            padding: 5px;
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: #D3D3D3;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #eee;
+        }
+
+
+        .container {
+            padding-bottom: 3rem;
+        }
+
+        .filter-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-form label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .filter-form input[type="text"],
+        .filter-form input[type="number"],
+        .filter-form button[type="submit"] {
+            font-size: 1.05rem;
+            display: box;
+            width: 100%;
+            padding: 0.75rem;
+            box-sizing: border-box;
+            border-radius: 4px;
+            border: 1.5px solid #dddddd;
+            outline: none;
+            background: #eeeeee;
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 1.2rem;
+        }
+        .filter-form input[type="text"]:focus,
+        .filter-form input[type="number"]:focus,
+        .filter-form button[type="submit"]:focus {
+            background: #ffffff;
+            border-color: #aaaaaa;
+        }
+
+        .filter-form button[type="submit"] {
+            cursor: pointer;
+            background-color: rgb(7, 165, 96);
+            color: white;
+            border: none;
+        }
+        .filter-form button[type="submit"]:hover {
+            background-color: rgb(5, 137, 80);
+        }
+        .filter-item {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .filter-item.button-item {
+            flex: 0;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #ffffff;
+            border: none;
+            border-radius:4px;
+            outline: none;
+            cursor: pointer;
+            background:rgb(7, 165, 96) ;
+        }
     </style>
 </head>
 <body>
@@ -87,21 +180,21 @@
         </div>
         <ul>
             <li>
-                <a href="{{url_for('system_dashboard')}}" class="nav__link">
+                <a href="{{ url_for('system_dashboard') }}" class="nav__link">
                     <i class="bx bxs-grid-alt"></i>
                     <span class="nav-item">Dashboard</span>
                 </a>
                 <span class="tooltip">Dashboard</span>
             </li>
             <li>
-                <a href="{{url_for('system_MVehicles')}}" class="nav__link">
+                <a href="{{ url_for('system_MVehicles') }}" class="nav__link">
                     <i class="bx bxs-car"></i>
                     <span class="nav-item">Vehicles</span>
                 </a>
                 <span class="tooltip">Vehicles</span>
             </li>
             <li>
-                <a href="{{url_for('system_MCustomers')}}" class="nav__link">
+                <a href="{{ url_for('system_MCustomers') }}" class="nav__link">
                     <i class="bx bx-body"></i>
                     <span class="nav-item">Customers</span>
                 </a>
@@ -114,7 +207,7 @@
                 </a>
                 <span class="tooltip">Customer Feedback</span>
             </li>
-            <li>
+             <li>
                 <a href="{{url_for('system_logs')}}" class="nav__link">
                     <i class='bx bx-note'></i>
                     <span class="nav-item">Logs</span>
@@ -128,7 +221,7 @@
                 </a>
                 <span class="tooltip">Admins</span>
             </li>
-           <li>
+            <li>
                 <a onclick="openLogoutPopup()">
                     <i class="bx bx-log-out"></i>
                     <span class="nav-item">Logout</span>
@@ -138,11 +231,64 @@
         </ul>
     </div>
 
+
     <div class="main-content">  <!--Add stuff within this class -->
         <div class="container">
             <h1>EcoWheels Management System</h1>
             <h2>Customer Feedback</h2>
         </div>
+
+                <br><br>
+<!-- FILTER -->                                                               <!-- FILTER -->
+        <!-- STILL HAVE ISSUES FOR FILTER BUTTON...button leads to manageCustomers -->
+       <form method="post" action="{{ url_for('system_MCustomers') }}" class="filter-form">
+            <div class="filter-item">
+                <label for="username_filter">Customer ID:</label>
+                <input type="text" id="username_filter" name="username_filter" placeholder="Enter username">
+            </div>
+
+
+            <div class="filter-item">
+                <label for="email_filter">Email:</label>
+                <input type="text" id="email_filter" name="email_filter" placeholder="Enter email">
+            </div>
+
+            <div class="filter-item">
+                <label for="phone_number_filter">Rating:</label>
+                <input type="text" id="phone_number_filter" name="phone_number_filter" placeholder="Enter rating">
+            </div>
+
+            <div class="filter-item">
+                <button type="submit" class="filter-item button-item">Filter</button>
+            </div>
+
+        </form>
+<!-- FEEBACK TABLE -->                                                            <!-- FEEBACK TABLE -->
+<table id="u-table" border="0">
+    <thead>
+        <tr>
+            <th class="u-tablehead">Customer ID</th>
+            <th class="u-tablehead">Email</th>
+            <th class="u-tablehead">Rating</th>
+            <th class="u-tablehead">Feedback</th>
+            <th class="u-tablehead">Timestamp</th>
+        </tr>
+        <tr>
+            <th colspan="5" style="border-bottom: 2px solid #000000;"></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for feedback in feedback_entries %}
+        <tr>
+            <td>{{ feedback.id }}</td>
+            <td>{{ feedback.email }}</td>
+            <td>{{ feedback.rating }}</td>
+            <td>{{ feedback.feedback }}</td>
+            <td>{{ feedback.timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
 
     </div>
@@ -172,5 +318,4 @@
 </script>
 {% include 'logout_modal.html' %}
 </body>
-
 </html>
