@@ -5,18 +5,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/verify_otp.css') }}">
 
     <form method="post" class="otp-form" name="otp-form" autocomplete="off">
+        {{ form.hidden_tag() }}
         <div class="title">
             <h3 style="font-size: 30px;">OTP VERIFICATION</h3>
             <p class="info">An OTP has been sent to {{ user_email|hide_email }}</p>
             <p class="msg" style="margin-top: 45px; text-align: center;">Please enter OTP to verify</p>
         </div>
           <div class="otp-input-fields" id="otp">
-            <input type="number" class="otp__digit otp__field__1" name="otp1" onpaste="return false;" required>
-            <input type="number" class="otp__digit otp__field__2" name="otp2" onpaste="return false;" required>
-            <input type="number" class="otp__digit otp__field__3" name="otp3" onpaste="return false;" required>
-            <input type="number" class="otp__digit otp__field__4" name="otp4" onpaste="return false;" required>
-            <input type="number" class="otp__digit otp__field__5" name="otp5" onpaste="return false;" required>
-            <input type="number" class="otp__digit otp__field__6" name="otp6" onpaste="return false;" required>
+            {{ form.otp1(class="otp__digit otp__field__1", onpaste="return false;", required=True) }}
+            {{ form.otp2(class="otp__digit otp__field__2", onpaste="return false;", required=True) }}
+            {{ form.otp3(class="otp__digit otp__field__3", onpaste="return false;", required=True) }}
+            {{ form.otp4(class="otp__digit otp__field__4", onpaste="return false;", required=True) }}
+            {{ form.otp5(class="otp__digit otp__field__5", onpaste="return false;", required=True) }}
+            {{ form.otp6(class="otp__digit otp__field__6", onpaste="return false;", required=True) }}
           </div>
         {% if error %}
             <p style="color: red; text-align: center;">{{ error }}</p>
@@ -24,6 +25,7 @@
         <button type="submit" id="verify">Verify OTP</button>
     </form>
     <form action="{{ url_for('request_new_otp') }}" method="post">
+        {{ form.hidden_tag() }}
         <button type="submit" id="resend">Resend OTP</button>
     </form>
 

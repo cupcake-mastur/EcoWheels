@@ -8,7 +8,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/MaterialDesign-Webfont/3.6.95/css/materialdesignicons.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_page.css') }}">
-<script src="{{ url_for('static', filename='js/last_visited_url.js') }}"></script>
 
 <div class="home-icon">
     <a href="/" class="icon-link">
@@ -79,6 +78,8 @@
                         </div>
                     </div>
                 </div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger" style="margin-top: 20px; width:565px;">Logout</a>
             </div>
         </div>
     </div>

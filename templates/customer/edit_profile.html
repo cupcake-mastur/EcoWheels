@@ -73,6 +73,7 @@
                 <div class="payment-details">
                     <form method="POST" action="{{ url_for('edit_profile') }}" autocomplete="off" data-form-type="payment">
                         <input type="hidden" name="form_type" value="payment">
+                        {{ form.hidden_tag() }}
                         <div class="input_box" style="margin-top: 10px;">
                             {{ render_field(form.card_name, class="form-control", id="card_name", placeholder="Enter your card name") }}
                         </div>
@@ -103,11 +104,8 @@
                 <h5 class="modal-title" id="passwordModalLabel">Confirm Current Password</h5>
             </div>
             <div class="modal-body">
-                {% if error and error_in_modal %}
-                  <p style="color: red; text-align: center;">{{ error }}</p>
-                {% endif %}
                 <form id="passwordForm">
-                    <div class="form-group">
+                    <div class="form-group" style="width: 74%; margin-left: 45.5px;">
                         {{ render_field(form.current_password, class="form-control", id="current_pass_modal", placeholder="Enter your current password") }}
                     </div>
                     <button type="submit" class="btn btn-primary" id="modal_confirm">Confirm</button>

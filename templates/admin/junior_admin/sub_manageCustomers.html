@@ -4,68 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoWheels Admin</title>
-    <link rel="stylesheet" type="text/css" href="../static/css/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
 
     <style>
-        .container {
-            padding-bottom: 3rem;
-        }
-
-        .tables-container {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px; /* Adjust the gap as needed */
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .d-table {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border: none;
-            font-size: 1.5rem; /* Adjust the font size for numbers and words */
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .d-icon {
-            font-size: 5rem; /* Adjust the icon size as needed */
-            padding: 20px;
-            border-radius: 8px;
-            color: white;
-        }
-
-        .d-info {
-            text-align: center;
-            flex-grow: 1;
-        }
-
-        .d-numbers {
-            font-size: 3rem; /* Adjust the font size for the big numbers */
-            font-weight: 500;
-        }
-
-        .d-label {
-            font-size: 2rem; /* Adjust the font size for the words */
-            padding: 10px;
-        }
-
-        #cog-i {
-            background-color: rgb(49, 204, 188);
-        }
-
-        #customer-i {
-            background-color: rgb(250, 206, 72);
-        }
-
-        #car-i {
-            background-color: rgb(232, 102, 51);
-        }
         #u-table {
             margin: 0 auto;
             border-collapse: collapse;
@@ -159,14 +102,21 @@
             cursor: pointer;
             background:rgb(7, 165, 96) ;
         }
+
+        .alert-danger {
+            color: red;
+            font-size: 0.9rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+        }
     </style>
+
 </head>
 <body>
 
     <div class="sidebar">
         <div class="top">
             <div class="logo">
-                <!-- <img src="../static/images/EcoWheels Logo.jpeg" alt="Img" class="org-img"> -->
                 <i class='bx bx-car'></i>
                 <span>EcoWheels</span>
             </div>
@@ -175,33 +125,33 @@
         <div class="user">
             <div>
                 <p class="bold">{{ admin_username.split('@')[0] }}</p>
-                <p>Admin</p>
+                <p>Junior Admin</p>
             </div>
         </div>
         <ul>
             <li>
-                <a href="{{url_for('dashboard')}}" class="nav__link">
+                <a href="{{ url_for('sub_dashboard') }}" class="nav__link">
                     <i class="bx bxs-grid-alt"></i>
                     <span class="nav-item">Dashboard</span>
                 </a>
                 <span class="tooltip">Dashboard</span>
             </li>
             <li>
-                <a href="{{url_for('MVehicles')}}" class="nav__link">
+                <a href="{{ url_for('sub_MVehicles') }}" class="nav__link">
                     <i class="bx bxs-car"></i>
                     <span class="nav-item">Vehicles</span>
                 </a>
                 <span class="tooltip">Vehicles</span>
             </li>
             <li>
-                <a href="{{url_for('MCustomers')}}" class="nav__link">
+                <a href="{{ url_for('sub_MCustomers') }}" class="nav__link active">
                     <i class="bx bx-body"></i>
                     <span class="nav-item">Customers</span>
                 </a>
                 <span class="tooltip">Customers</span>
             </li>
-             <li>
-                <a href="{{url_for('manageFeedback')}}" class="nav__link active">
+            <li>
+                <a href="{{url_for('sub_manageFeedback')}}">
                     <i class='bx bxs-message-square-dots'></i>
                     <span class="nav-item">Feedback</span>
                 </a>
@@ -217,30 +167,46 @@
         </ul>
     </div>
 
-    <div class="main-content">  <!--Add stuff within this class -->
+    <div class="main-content">
         <div class="container">
             <h1>EcoWheels Management System</h1>
-            <h2>Customer Feedback</h2>
+            <h2>Customers</h2>
         </div>
 
-                <br><br>
-<!-- FILTER -->                                                               <!-- FILTER -->
-        <!-- STILL HAVE ISSUES FOR FILTER BUTTON...button leads to manageCustomers -->
-       <form method="post" action="{{ url_for('MCustomers') }}" class="filter-form">
+        <br><br>
+       <form method="post" action="{{ url_for('sub_MCustomers') }}" class="filter-form">
+           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="filter-item">
-                <label for="username_filter">Customer ID:</label>
+                <label for="full_name_filter">Full Name:</label>
+                <input type="text" id="full_name_filter" name="full_name_filter" placeholder="Enter full name">
+                    {% if errors.full_name_filter %}
+                    <div class="alert alert-danger">{{ errors.full_name_filter }}</div>
+                    {% endif %}
+            </div>
+
+            <div class="filter-item">
+                <label for="username_filter">Username:</label>
                 <input type="text" id="username_filter" name="username_filter" placeholder="Enter username">
+                    {% if errors.username_filter %}
+                    <div class="alert alert-danger">{{ errors.username_filter }}</div>
+                    {% endif %}
             </div>
 
 
             <div class="filter-item">
                 <label for="email_filter">Email:</label>
                 <input type="text" id="email_filter" name="email_filter" placeholder="Enter email">
+                    {% if errors.email_filter %}
+                    <div class="alert alert-danger">{{ errors.email_filter }}</div>
+                    {% endif %}
             </div>
 
             <div class="filter-item">
-                <label for="phone_number_filter">Rating:</label>
-                <input type="text" id="phone_number_filter" name="phone_number_filter" placeholder="Enter rating">
+                <label for="phone_number_filter">Phone Number:</label>
+                <input type="text" id="phone_number_filter" name="phone_number_filter" placeholder="Enter phone number">
+                    {% if errors.phone_number_filter %}
+                    <div class="alert alert-danger">{{ errors.phone_number_filter }}</div>
+                    {% endif %}
             </div>
 
             <div class="filter-item">
@@ -248,59 +214,58 @@
             </div>
 
         </form>
-<!-- FEEBACK TABLE -->                                                            <!-- FEEBACK TABLE -->
-<table id="u-table" border="0">
-    <thead>
-        <tr>
-            <th class="u-tablehead">Customer ID</th>
-            <th class="u-tablehead">Email</th>
-            <th class="u-tablehead">Rating</th>
-            <th class="u-tablehead">Feedback</th>
-            <th class="u-tablehead">Timestamp</th>
-        </tr>
-        <tr>
-            <th colspan="5" style="border-bottom: 2px solid #000000;"></th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for feedback in feedback_entries %}
-        <tr>
-            <td>{{ feedback.id }}</td>
-            <td>{{ feedback.email }}</td>
-            <td>{{ feedback.rating }}</td>
-            <td>{{ feedback.feedback }}</td>
-            <td>{{ feedback.timestamp }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        <br><br>
 
+        <table id="u-table" border="0">
+            <thead>
+                <tr>
+                    <th class="u-tablehead">Customer ID</th>
+                    <th class="u-tablehead">Full Name</th>
+                    <th class="u-tablehead">Username</th>
+                    <th class="u-tablehead">Email</th>
+                    <th class="u-tablehead">Phone Number</th>
 
+                </tr>
+                <tr>
+                    <th colspan="6" style="border-bottom: 2px solid #000000;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td>{{ customer.id }}</td>
+                    <td>{{ customer.full_name }}</td>
+                    <td>{{ customer.username }}</td>
+                    <td>{{ customer.email }}</td>
+                    <td>{{ customer.phone_number }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
+    <script>
+        let btn = document.querySelector("#btn");
+        let sidebar = document.querySelector(".sidebar");
 
-<script>
-    let btn = document.querySelector("#btn");
-    let sidebar = document.querySelector(".sidebar");
+        btn.onclick = function () {
+            sidebar.classList.toggle('active');
+        };
 
-    btn.onclick = function () {
-        sidebar.classList.toggle('active');
-    };
+        function removeActiveClasses() {
+            const activeLinks = document.querySelectorAll(".nav__link.active");
+            activeLinks.forEach(link => {
+                link.classList.remove("active");
+            });
+        }
 
-    function removeActiveClasses() {
-        const activeLinks = document.querySelectorAll(".nav__link.active");
-        activeLinks.forEach(link => {
-            link.classList.remove("active");
+        document.querySelectorAll(".nav__link").forEach(link => {
+            link.addEventListener("click", function() {
+                removeActiveClasses();
+                link.classList.add("active");
+            });
         });
-    }
-
-    document.querySelectorAll(".nav__link").forEach(link => {
-        link.addEventListener("click", function() {
-            removeActiveClasses();
-            link.classList.add("active");
-        });
-    });
-</script>
+    </script>
 {% include 'logout_modal.html' %}
 </body>
 </html>

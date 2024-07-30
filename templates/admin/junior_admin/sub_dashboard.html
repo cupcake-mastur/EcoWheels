@@ -82,53 +82,39 @@
         <div class="user">
             <div>
                 <p class="bold">{{ admin_username.split('@')[0] }}</p>
-                <p>System Admin</p>
+                <p>Junior Admin</p>
             </div>
         </div>
         <ul>
             <li>
-                <a href="{{url_for('system_dashboard')}}" class="nav__link">
+                <a href="{{url_for('sub_dashboard')}}" class="nav__link active">
                     <i class="bx bxs-grid-alt"></i>
                     <span class="nav-item">Dashboard</span>
                 </a>
                 <span class="tooltip">Dashboard</span>
             </li>
             <li>
-                <a href="{{url_for('system_MVehicles')}}" class="nav__link">
+                <a href="{{url_for('sub_MVehicles')}}" class="nav__link">
                     <i class="bx bxs-car"></i>
                     <span class="nav-item">Vehicles</span>
                 </a>
                 <span class="tooltip">Vehicles</span>
             </li>
             <li>
-                <a href="{{url_for('system_MCustomers')}}" class="nav__link">
+                <a href="{{url_for('sub_MCustomers')}}" class="nav__link">
                     <i class="bx bx-body"></i>
                     <span class="nav-item">Customers</span>
                 </a>
                 <span class="tooltip">Customers</span>
             </li>
              <li>
-                <a href="{{url_for('system_manageFeedback')}}" class="nav__link active">
+                <a href="{{url_for('sub_manageFeedback')}}">
                     <i class='bx bxs-message-square-dots'></i>
                     <span class="nav-item">Feedback</span>
                 </a>
                 <span class="tooltip">Customer Feedback</span>
             </li>
             <li>
-                <a href="{{url_for('system_logs')}}" class="nav__link">
-                    <i class='bx bx-note'></i>
-                    <span class="nav-item">Logs</span>
-                </a>
-                <span class="tooltip">Logs</span>
-            </li>
-            <li>
-                <a href="{{url_for('system_manageAdmin')}}" class="nav__link">
-                    <i class='bx bxs-face'></i>
-                    <span class="nav-item">Admins</span>
-                </a>
-                <span class="tooltip">Admins</span>
-            </li>
-           <li>
                 <a onclick="openLogoutPopup()">
                     <i class="bx bx-log-out"></i>
                     <span class="nav-item">Logout</span>
@@ -138,12 +124,37 @@
         </ul>
     </div>
 
-    <div class="main-content">  <!--Add stuff within this class -->
+    <div class="main-content">
         <div class="container">
             <h1>EcoWheels Management System</h1>
-            <h2>Customer Feedback</h2>
+            <h2>Dashboard</h2>
         </div>
 
+        <div class="tables-container">
+            <div class="d-table">
+                <i class="bx bx-body d-icon" id="customer-i"></i>
+                <div class="d-info">
+                    <div class="d-numbers">{{ num_customers }}</div>
+                    <div class="d-label">customers</div>
+                </div>
+            </div>
+
+            <div class="d-table">
+                <i class="bx bxs-car d-icon" id="car-i"></i>
+                <div class="d-info">
+                    <div class="d-numbers">{{ num_vehicles }}</div>
+                    <div class="d-label">vehicles</div>
+                </div>
+            </div>
+
+            <div class="d-table">
+                <i class='bx bx-cog d-icon' id="cog-i"></i>
+                <div class="d-info">
+                    <div class="d-numbers">{{ num_admins }}</div>
+                    <div class="d-label">admins</div>
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -172,5 +183,4 @@
 </script>
 {% include 'logout_modal.html' %}
 </body>
-
 </html>

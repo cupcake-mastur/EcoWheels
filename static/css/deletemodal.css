@@ -118,3 +118,71 @@
         background-position: 0%;
     }
 }
+
+
+
+/* static/css/deletemodal.css */
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.popup.active {
+    display: flex;
+}
+
+.overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    top: 0;
+    left: 0;
+}
+
+.popup-content {
+    position: relative;
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    z-index: 1001;
+}
+
+.controls {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: space-around;
+}
+
+.close-btn, .submit-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.close-btn {
+    background: #ccc;
+}
+
+.submit-btn {
+    background: #dc3545;
+    color: white;
+}
+
+.submit-btn:hover {
+    background: #c82333;
+}
+
+#Logout-btn {
+    text-decoration: none;
+
+}

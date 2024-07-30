@@ -16,7 +16,8 @@ from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from Forms import CreateUserForm, UpdateProfileForm, LoginForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
+from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
+from stack import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta, timezone
@@ -27,6 +28,19 @@ from sqlalchemy import exists, func
 from werkzeug.utils import secure_filename
 from PIL import Image
 from model import *
+from flask_wtf.csrf import generate_csrf, CSRFError
+from werkzeug.exceptions import BadRequest
+# ------------ For backup excel files -------------- #
+from flask import send_file, jsonify
+import pandas as pd
+from io import BytesIO
+import os
+import openpyxl
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.drawing.image import Image as XLImage
+from openpyxl.styles import PatternFill
+# ------------------------------------------------- #
 
 load_dotenv(find_dotenv())
 db = SQLAlchemy()
@@ -61,11 +75,11 @@ mail = Mail(app)
 otp_store = {}
 
 user_logged_in = False
-# csrf = CSRFProtect(app)                                          # REMOVE IF NEEDED
+csrf = CSRFProtect(app)                                          # REMOVE IF NEEDED
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["10 per minute"]
 )
 
 with app.app_context():
@@ -91,20 +105,25 @@ def login_required(f):
     return decorated_function
 
 
-def get_remote_address(request):
-    return request.remote_addr
-
 @limiter.request_filter
 def exempt_routes():
-    exempt_endpoints = ['system_logs', 'MVehicles']
+    exempt_endpoints = [
+        'createVehicle', 'system_createVehicle', 'MCustomers', 'system_MCustomers', 'MVehicles',
+        'system_MVehicles', 'system_logs', 'manageFeedback', 'system_manageFeedback',
+        'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback'
+    ]
     return request.endpoint in exempt_endpoints
+
 
 @app.errorhandler(429)
 def ratelimit_error(e):
-    app.logger.warning(
-        f"Rate limit exceeded for IP {get_remote_address(request)}. "
-    )
+    app.logger.warning(f"Rate limit exceeded for IP {request.remote_addr}.")
     return render_template("customer/rate_limit_exceeded.html"), 429
+
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    return render_template('error_msg.html', reason=e.description), 400
 
 
 @app.route('/')
@@ -185,6 +204,44 @@ def manageFeedback():
 def thankyou():
     return render_template("homepage/thankyou.html")
 
+
+@app.route('/visit', methods=['POST'])
+@csrf.exempt
+@login_required
+def visit():
+    EXEMPT_URL_ROUTES = ['http://127.0.0.1:5000/sign_up', 'http://127.0.0.1:5000/login', 'http://127.0.0.1:5000/verify_otp']
+    data = request.json
+    url = data.get('url')
+    email = session.get('user_email')
+    user_id = get_user_id_from_email(email)
+
+    if url in EXEMPT_URL_ROUTES:
+        return jsonify({'message': 'URL is exempt from recording'})
+
+    # Ensure user_id is not None
+    if user_id is None:
+        raise ValueError("User ID is None")
+
+    visited_at = datetime.now()
+
+    # Remove any previous entries for this user
+    db.session.query(UserURL).filter_by(user_id=user_id).delete()
+    db.session.commit()
+
+    # Insert the new entry
+    new_entry = UserURL(email=email, user_id=user_id, url=url, visited_at=visited_at)
+    db.session.add(new_entry)
+    db.session.commit()
+
+    message = 'Latest URL visit recorded'
+
+    return jsonify({'message': message, 'url': url}), 200
+
+def get_user_id_from_email(email):
+    user = db.session.query(User).filter_by(email=email).first()
+    return user.id if user else None
+
+
 @app.route('/check_session')
 def check_session():
     # Log the current state of the session for debugging
@@ -206,7 +263,6 @@ def check_session():
 
 
 @app.route('/sign_up', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def sign_up():
     error = None
     create_user_form = CreateUserForm(request.form)
@@ -264,7 +320,6 @@ def generate_otp(length=6):
 
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def login():
     error = None
     print(session)
@@ -329,7 +384,6 @@ def send_otp_email(email, otp):
 
 
 @app.route('/request_new_otp', methods=['POST'])
-@limiter.limit("5 per minute")
 def request_new_otp():
     user_email = session.get('user_email')
     session.pop('otp', None)
@@ -361,10 +415,10 @@ app.jinja_env.filters['hide_credit_card'] = hide_credit_card
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 @login_required
-@limiter.limit("5 per minute")
 def verify_otp():
     error = None
     user_email = session.get('user_email')
+    otp_form = OTPForm(request.form)
 
     if not user_email:
         return redirect(url_for('login'))
@@ -373,9 +427,17 @@ def verify_otp():
     if not user:
         return redirect(url_for('login'))
 
-    if request.method == 'POST':
-        entered_otp_digits = [request.form.get(f'otp{i}') for i in range(1, 7)]
+    if request.method == 'POST' and otp_form.validate():
+        entered_otp_digits = [
+            otp_form.otp1.data,
+            otp_form.otp2.data,
+            otp_form.otp3.data,
+            otp_form.otp4.data,
+            otp_form.otp5.data,
+            otp_form.otp6.data
+        ]
         entered_otp = ''.join(entered_otp_digits)
+        print(entered_otp)
         otp = session.get('otp')
         otp_generation_time = session.get('otp_generation_time')
         current_time = datetime.now(timezone.utc).timestamp()
@@ -391,8 +453,12 @@ def verify_otp():
                 session['user_logged_in'] = True
                 session.permanent = True
 
-                app.logger.info(f"User {user_email} logged in successfully.")
-                return redirect(url_for('home'))
+                last_visited = db.session.query(UserURL).filter_by(user_id=user.id).first()
+                if last_visited:
+                    app.logger.info(f"User {user_email} logged in successfully.")
+                    return redirect(last_visited.url)
+                else:
+                    return redirect(url_for('home'))
             else:
                 error = "Invalid OTP. Please try again."
                 app.logger.warning(f"Invalid OTP attempt for {user_email}")
@@ -400,12 +466,11 @@ def verify_otp():
             error = "Invalid OTP. Please try again."
             app.logger.warning(f"Expired OTP attempt for {user_email}")
 
-    return render_template('customer/verify_otp.html', error=error, user_email=user_email)
+    return render_template('customer/verify_otp.html', form=otp_form, error=error, user_email=user_email)
 
 
 @app.route('/profile', methods=['GET'])
 @login_required
-@limiter.limit("5 per minute")
 def profile():
     user_email = session.get('user_email')
 
@@ -418,7 +483,6 @@ def profile():
 
 
 @app.route('/request_password_reset', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def request_password_reset():
     error = None
     request_password_reset_form = RequestPasswordResetForm(request.form)
@@ -448,7 +512,6 @@ def send_password_reset_email(email, reset_url):
 
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def reset_password(token):
     error = None
     reset_password_form = ResetPasswordForm(request.form)
@@ -483,7 +546,6 @@ def reset_password(token):
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
-@limiter.limit("5 per minute")
 def edit_profile():
     error = None
     user_email = session.get('user_email')
@@ -573,7 +635,6 @@ def edit_profile():
 
 
 @app.route('/user/logout')
-@limiter.limit("5 per minute")
 def logout():
     if 'user_email' in session:
         user_email = session.pop('user_email', None)
@@ -587,7 +648,6 @@ def logout():
 
 
 @app.before_request
-@limiter.limit("5 per minute")
 def before_request():
     if 'user_email' in session:
         current_time = datetime.now(timezone.utc).timestamp()
@@ -600,6 +660,7 @@ def before_request():
         if request.headers.get('X-Check-Session') != 'True':
             session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
             session.modified = True
+
 
 @app.route('/cart')
 def cart_page():
@@ -651,7 +712,12 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-system_admin_list = ['steveissystemadmin', 'testuser']
+admin_list = ['LiamThompson@ecowheels.com', 'OliviaBrown@ecowheels.com', 'testuser@ecowheels.com']
+system_admin_list = ['SophiaMartinez@ecowheels.com', 'JamesCarter@ecowheels.com', 'testusersa@ecowheels.com']
+SGT = pytz.timezone('Asia/Singapore')
+vehicle_backup_time = []
+customer_backup_time = []
+logs_backup_time = []
 
 
 # Log event function
@@ -659,6 +725,23 @@ def log_event(event_type, event_result):
     log = Log(event_type=event_type, event_result=event_result)
     db.session.add(log)
     db.session.commit()
+
+
+def role_required(*roles):
+    def wrapper(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'admin_logged_in' not in session:
+                return redirect(url_for('admin_log_in'))
+
+            if session.get('admin_role') not in roles:
+                return redirect(url_for('ErrorPage'))
+
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return wrapper
 
 
 def admin_login_required(f):
@@ -673,33 +756,62 @@ def admin_login_required(f):
 
 @app.route('/admin_log_in', methods=['GET', 'POST'])
 def admin_log_in():
-    form = AdminLoginForm(request.form)
+    form = AdminLoginForm()
     error_message = None
     if form.validate_on_submit():
         username = html.escape(form.username.data)
         password = html.escape(form.password.data)
 
-        if not form.username.validate(form) or not form.password.validate(form):
-            return render_template('admin/admin_log_in.html', form=form)
-
-        if not is_valid_input(username) or not is_valid_input(password):
-            return render_template('admin/admin_log_in.html', form=form)
+        if not username.endswith('@ecowheels.com'):
+            error_message = "Incorrect Username or Password"
+            log_event('Login', f'Failed login attempt for non-existent admin {username}.')
+            return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
         admin = db.session.query(Admin).filter(func.binary(Admin.username) == username).first()
 
-        if admin and admin.check_password(password):
-            session['admin_username'] = username
-            session['admin_logged_in'] = True
-            log_event('Login', f'Successful login for admin {username}.')
+        if admin:
+            if admin.is_suspended:
+                error_message = "Your account is suspended due to too many failed login attempts."
+                log_event('Suspension', f'Attempted login by suspended admin {username}.')
+                return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
-            if username in system_admin_list:
-                return redirect(url_for('system_dashboard'))
+            if admin.check_password(password):
+                admin.login_attempts = 0
+                db.session.commit()
 
-            return redirect(url_for('dashboard'))
+                session['admin_username'] = username
+                session['admin_logged_in'] = True
 
+                if username not in admin_list and username not in system_admin_list:
+                    session['admin_role'] = 'junior'
+                    log_event('Login', f'Successful login for junior admin {username}.')
+                    return redirect(url_for('sub_dashboard'))
+
+                elif username in admin_list:
+                    session['admin_role'] = 'general'
+                    log_event('Login', f'Successful login for admin {username}.')
+                    return redirect(url_for('dashboard'))
+
+                elif username in system_admin_list:
+                    session['admin_role'] = 'system'
+                    log_event('Login', f'Successful login for system admin {username}.')
+                    return redirect(url_for('system_dashboard'))
+            else:
+                admin.login_attempts += 1
+                log_event('Login', f'Failed login attempt for admin {username}. Attempt {admin.login_attempts}')
+
+                if admin.login_attempts >= 3:
+                    admin.is_suspended = True
+                    error_message = "Your account is suspended due to too many failed login attempts."
+                    log_event('Suspension',
+                              f'Due to too many failed login attempts, active suspension of admin account {username}.')
+                else:
+                    error_message = "Incorrect Username or Password"
+
+                db.session.commit()
         else:
             error_message = "Incorrect Username or Password"
-            log_event('Login', f'Failed login attempt for admin {username}.')
+            log_event('Login', f'Failed login attempt for non-existent admin {username}.')
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
@@ -714,17 +826,29 @@ def is_valid_input(input_str):
 
 
 def save_image_file(form_file):
+    if not form_file or not form_file.filename:
+        raise BadRequest("No file provided or invalid file.")
+
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_file.filename)
     picture_fn = random_hex + f_ext.lower()  # Ensure lowercase extension
     picture_path = os.path.join(current_app.root_path, 'static/vehicle_images', picture_fn)
 
-    # Save file securely
-    form_file.save(picture_path)
+    # Check if the provided file is a directory before saving
+    if hasattr(form_file, 'read'):
+        form_file.seek(0)
+        form_file.save(picture_path)
+    else:
+        raise BadRequest("Uploaded data is not a valid file.")
+
+    # Check if the saved file is actually a file
+    if os.path.isdir(picture_path):
+        os.remove(picture_path)
+        raise BadRequest("Uploaded data is a directory, not a file.")
 
     try:
         Image.open(picture_path).verify()
-    except Exception as e:
+    except Exception:
         os.remove(picture_path)  # Remove the file if verification fails
         raise ValueError("Invalid image file.")
 
@@ -732,6 +856,7 @@ def save_image_file(form_file):
 
 
 @app.route('/createVehicle', methods=['GET', 'POST'])
+@role_required('general')
 @admin_login_required
 def createVehicle():
     create_vehicle_form = CreateVehicleForm()
@@ -744,9 +869,7 @@ def createVehicle():
         if create_vehicle_form.file.data:
             try:
                 file = save_image_file(create_vehicle_form.file.data)
-            except IsADirectoryError:
-                return redirect(url_for('ErrorPage'))
-            except ValueError:
+            except (BadRequest, ValueError) as e:
                 return redirect(url_for('ErrorPage'))
         else:
             file = None
@@ -757,13 +880,14 @@ def createVehicle():
             db.session.commit()
             log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_username"]}.')
             return redirect(url_for('MVehicles'))
-        except Exception as e:
+        except Exception:
             db.session.rollback()
 
     return render_template('admin/createVehicleForm.html', form=create_vehicle_form)
 
 
 @app.route('/system_createVehicle', methods=['GET', 'POST'])
+@role_required('system')
 @admin_login_required
 def system_createVehicle():
     create_vehicle_form = CreateVehicleForm()
@@ -776,9 +900,7 @@ def system_createVehicle():
         if create_vehicle_form.file.data:
             try:
                 file = save_image_file(create_vehicle_form.file.data)
-            except IsADirectoryError:
-                return redirect(url_for('ErrorPage'))
-            except ValueError:
+            except (BadRequest, ValueError) as e:
                 return redirect(url_for('ErrorPage'))
         else:
             file = None
@@ -789,7 +911,7 @@ def system_createVehicle():
             db.session.commit()
             log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_username"]}.')
             return redirect(url_for('system_MVehicles'))
-        except Exception as e:
+        except Exception:
             db.session.rollback()
 
     return render_template('admin/system_admin/system_createVehicleForm.html', form=create_vehicle_form)
@@ -797,11 +919,13 @@ def system_createVehicle():
 
 @app.route('/ErrorPage')
 def ErrorPage():
-    return render_template('admin/ErrorPage.html')
+    referrer = request.referrer or url_for('home')  # Default to 'home' if no referrer
+    return render_template('admin/ErrorPage.html', referrer=referrer)
 
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('general')
 def dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
@@ -813,6 +937,7 @@ def dashboard():
 
 @app.route('/system_admin_dashboard', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('system')
 def system_dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
@@ -822,36 +947,107 @@ def system_dashboard():
                            num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
 
 
+@app.route('/sub_dashboard', methods=['GET', 'POST'])
+@admin_login_required
+@role_required('junior')
+def sub_dashboard():
+    admin_username = session.get('admin_username')
+    num_customers = db.session.query(User).count()
+    num_vehicles = db.session.query(Vehicle).count()
+    num_admins = db.session.query(Admin).count()
+    return render_template('admin/junior_admin/sub_dashboard.html', admin_username=admin_username,
+                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
+
+
 @app.route('/manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('general')
 def MCustomers():
     admin_username = session.get('admin_username')
-
+    csrf_token = generate_csrf()  # Generate CSRF token
     query = db.session.query(User)
+    errors = {}
+
     if request.method == 'POST':
         full_name_filter = request.form.get('full_name_filter')
         username_filter = request.form.get('username_filter')
         email_filter = request.form.get('email_filter')
         phone_number_filter = request.form.get('phone_number_filter')
 
-        if full_name_filter:
+        if full_name_filter and is_valid_input(full_name_filter):
             query = query.filter(User.full_name.ilike(f"%{full_name_filter}%"))
-        if username_filter:
+        elif full_name_filter:
+            errors['full_name_filter'] = 'Invalid input for full name filter'
+
+        if username_filter and is_valid_input(username_filter):
             query = query.filter(User.username.ilike(f"%{username_filter}%"))
-        if email_filter:
+        elif username_filter:
+            errors['username_filter'] = 'Invalid input for username filter'
+
+        if email_filter and is_valid_input(email_filter):
             query = query.filter(User.email.ilike(f"%{email_filter}%"))
-        if phone_number_filter:
+        elif email_filter:
+            errors['email_filter'] = 'Invalid input for email filter'
+
+        if phone_number_filter and is_valid_input(phone_number_filter):
             query = query.filter(User.phone_number.ilike(f"%{phone_number_filter}%"))
+        elif phone_number_filter:
+            errors['phone_number_filter'] = 'Invalid input for phone number filter'
 
     customers = query.all()
 
-    return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers)
+    return render_template('admin/manageCustomers.html', admin_username=admin_username, customers=customers,
+                           csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/system_manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('system')
 def system_MCustomers():
     admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
+    query = db.session.query(User)
+    errors = {}
+    if request.method == 'POST':
+        full_name_filter = request.form.get('full_name_filter')
+        username_filter = request.form.get('username_filter')
+        email_filter = request.form.get('email_filter')
+        phone_number_filter = request.form.get('phone_number_filter')
+
+        if full_name_filter and is_valid_input(full_name_filter):
+            query = query.filter(User.full_name.ilike(f"%{full_name_filter}%"))
+        elif full_name_filter:
+            errors['full_name_filter'] = 'Invalid input for full name filter'
+
+        if username_filter and is_valid_input(username_filter):
+            query = query.filter(User.username.ilike(f"%{username_filter}%"))
+        elif username_filter:
+            errors['username_filter'] = 'Invalid input for username filter'
+
+        if email_filter and is_valid_input(email_filter):
+            query = query.filter(User.email.ilike(f"%{email_filter}%"))
+        elif email_filter:
+            errors['email_filter'] = 'Invalid input for email filter'
+
+        if phone_number_filter and is_valid_input(phone_number_filter):
+            query = query.filter(User.phone_number.ilike(f"%{phone_number_filter}%"))
+        elif phone_number_filter:
+            errors['phone_number_filter'] = 'Invalid input for phone number filter'
+
+    customers = query.all()
+
+    return render_template('admin/system_admin/system_manageCustomers.html', admin_username=admin_username,
+                           customers=customers, csrf_token=csrf_token, errors=errors,
+                           customer_backup_time=customer_backup_time)
+
+
+@app.route('/sub_manageCustomers', methods=['GET', 'POST'])
+@admin_login_required
+@role_required('junior')
+def sub_MCustomers():
+    admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
+    errors = {}
 
     query = db.session.query(User)
     if request.method == 'POST':
@@ -860,26 +1056,41 @@ def system_MCustomers():
         email_filter = request.form.get('email_filter')
         phone_number_filter = request.form.get('phone_number_filter')
 
-        if full_name_filter:
+        if full_name_filter and is_valid_input(full_name_filter):
             query = query.filter(User.full_name.ilike(f"%{full_name_filter}%"))
-        if username_filter:
+        elif full_name_filter:
+            errors['full_name_filter'] = 'Invalid input for full name filter'
+
+        if username_filter and is_valid_input(username_filter):
             query = query.filter(User.username.ilike(f"%{username_filter}%"))
-        if email_filter:
+        elif username_filter:
+            errors['username_filter'] = 'Invalid input for username filter'
+
+        if email_filter and is_valid_input(email_filter):
             query = query.filter(User.email.ilike(f"%{email_filter}%"))
-        if phone_number_filter:
+        elif email_filter:
+            errors['email_filter'] = 'Invalid input for email filter'
+
+        if phone_number_filter and is_valid_input(phone_number_filter):
             query = query.filter(User.phone_number.ilike(f"%{phone_number_filter}%"))
+        elif phone_number_filter:
+            errors['phone_number_filter'] = 'Invalid input for phone number filter'
 
     customers = query.all()
 
-    return render_template('admin/system_admin/system_manageCustomers.html', admin_username=admin_username,
-                           customers=customers)
+    return render_template('admin/junior_admin/sub_manageCustomers.html', admin_username=admin_username,
+                           customers=customers
+                           , csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('general')
 def MVehicles():
     admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
     vehicles = db.session.query(Vehicle).all()
+    errors = {}
 
     if request.method == 'POST':
         brand_filter = request.form.get('brand_filter')
@@ -888,25 +1099,40 @@ def MVehicles():
         max_price_filter = request.form.get('max_price_filter')
 
         query = db.session.query(Vehicle)
-        if brand_filter:
+        if brand_filter and is_valid_input(brand_filter):
             query = query.filter(Vehicle.brand.ilike(f"%{brand_filter}%"))
-        if model_filter:
+        elif brand_filter:
+            errors['brand_filter'] = 'Invalid input for brand filter'
+
+        if model_filter and is_valid_input(model_filter):
             query = query.filter(Vehicle.model.ilike(f"%{model_filter}%"))
-        if min_price_filter:
+        elif model_filter:
+            errors['model_filter'] = 'Invalid input for model filter'
+
+        if min_price_filter and is_valid_input(min_price_filter):
             query = query.filter(Vehicle.selling_price >= float(min_price_filter))
-        if max_price_filter:
+        elif min_price_filter:
+            errors['min_price_filter'] = 'Invalid input for minimum price filter'
+
+        if max_price_filter and is_valid_input(max_price_filter):
             query = query.filter(Vehicle.selling_price <= float(max_price_filter))
+        elif max_price_filter:
+            errors['max_price_filter'] = 'Invalid input for maximum price filter'
 
         vehicles = query.all()
 
-    return render_template('admin/manageVehicles.html', admin_username=admin_username, vehicles=vehicles)
+    return render_template('admin/manageVehicles.html', admin_username=admin_username, vehicles=vehicles,
+                           csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/system_manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('system')
 def system_MVehicles():
     admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
     vehicles = db.session.query(Vehicle).all()
+    errors = {}
 
     if request.method == 'POST':
         brand_filter = request.form.get('brand_filter')
@@ -915,19 +1141,74 @@ def system_MVehicles():
         max_price_filter = request.form.get('max_price_filter')
 
         query = db.session.query(Vehicle)
-        if brand_filter:
+        if brand_filter and is_valid_input(brand_filter):
             query = query.filter(Vehicle.brand.ilike(f"%{brand_filter}%"))
-        if model_filter:
+        elif brand_filter:
+            errors['brand_filter'] = 'Invalid input for brand filter'
+
+        if model_filter and is_valid_input(model_filter):
             query = query.filter(Vehicle.model.ilike(f"%{model_filter}%"))
-        if min_price_filter:
+        elif model_filter:
+            errors['model_filter'] = 'Invalid input for model filter'
+
+        if min_price_filter and is_valid_input(min_price_filter):
             query = query.filter(Vehicle.selling_price >= float(min_price_filter))
-        if max_price_filter:
+        elif min_price_filter:
+            errors['min_price_filter'] = 'Invalid input for minimum price filter'
+
+        if max_price_filter and is_valid_input(max_price_filter):
             query = query.filter(Vehicle.selling_price <= float(max_price_filter))
+        elif max_price_filter:
+            errors['max_price_filter'] = 'Invalid input for maximum price filter'
 
         vehicles = query.all()
 
     return render_template('admin/system_admin/system_manageVehicles.html', admin_username=admin_username,
-                           vehicles=vehicles)
+                           vehicles=vehicles, csrf_token=csrf_token, errors=errors,
+                           vehicle_backup_time=vehicle_backup_time)
+
+
+@app.route('/sub_manageVehicles', methods=['GET', 'POST'])
+@admin_login_required
+@role_required('junior')
+def sub_MVehicles():
+    admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
+    vehicles = db.session.query(Vehicle).all()
+    errors = {}
+
+    if request.method == 'POST':
+        brand_filter = request.form.get('brand_filter')
+        model_filter = request.form.get('model_filter')
+        min_price_filter = request.form.get('min_price_filter')
+        max_price_filter = request.form.get('max_price_filter')
+
+        query = db.session.query(Vehicle)
+        if brand_filter and is_valid_input(brand_filter):
+            query = query.filter(Vehicle.brand.ilike(f"%{brand_filter}%"))
+        elif brand_filter:
+            errors['brand_filter'] = 'Invalid input for brand filter'
+
+        if model_filter and is_valid_input(model_filter):
+            query = query.filter(Vehicle.model.ilike(f"%{model_filter}%"))
+        elif model_filter:
+            errors['model_filter'] = 'Invalid input for model filter'
+
+        if min_price_filter and is_valid_input(min_price_filter):
+            query = query.filter(Vehicle.selling_price >= float(min_price_filter))
+        elif min_price_filter:
+            errors['min_price_filter'] = 'Invalid input for minimum price filter'
+
+        if max_price_filter and is_valid_input(max_price_filter):
+            query = query.filter(Vehicle.selling_price <= float(max_price_filter))
+        elif max_price_filter:
+            errors['max_price_filter'] = 'Invalid input for maximum price filter'
+
+        vehicles = query.all()
+
+    return render_template('admin/junior_admin/sub_manageVehicles.html', admin_username=admin_username,
+                           vehicles=vehicles,
+                           csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/delete_vehicle/<int:id>', methods=['POST'])
@@ -938,14 +1219,21 @@ def delete_vehicle(id):
         db.session.delete(vehicle)
         db.session.commit()
         log_event('Delete Vehicle', f'Vehicle deleted: {vehicle.brand} {vehicle.model} by {session["admin_username"]}.')
-    return redirect(url_for('MVehicles'))
+    if session['admin_role'] == 'system':
+        return redirect(url_for('system_MVehicles'))
+    elif session['admin_role'] == 'general':
+        return redirect(url_for('MVehicles'))
+    else:
+        return redirect(url_for('ErrorPage'))
 
 
 @app.route('/logs', methods=['GET', 'POST'])
 @admin_login_required
+@role_required('system')
 def system_logs():
     admin_username = session.get('admin_username')
-
+    csrf_token = generate_csrf()  # Generate CSRF token
+    errors = {}
     if request.method == 'POST':
         event_type = request.form.get('event_type')
         start_date = request.form.get('start_date')
@@ -956,41 +1244,265 @@ def system_logs():
 
         if event_type:
             query = query.filter(Log.event_type == event_type)
+
         if start_date:
             start_datetime = datetime.strptime(start_date, '%Y-%m-%dT%H:%M')
             query = query.filter(Log.event_time >= start_datetime)
+
         if end_date:
             end_datetime = datetime.strptime(end_date, '%Y-%m-%dT%H:%M')
             query = query.filter(Log.event_time <= end_datetime)
-        if keyword:
+
+        if keyword and is_valid_input(keyword):
             query = query.filter(Log.event_result.ilike(f'%{keyword}%'))
+        elif keyword:
+            errors['keyword'] = 'Invalid input for keyword'
 
         logs = query.all()
     else:
         logs = db.session.query(Log).all()
 
-    return render_template('admin/system_admin/logs.html', admin_username=admin_username, logs=logs)
+    return render_template('admin/system_admin/logs.html', admin_username=admin_username, logs=logs
+                           , csrf_token=csrf_token, errors=errors, logs_backup_time=logs_backup_time)
 
 
 @app.route('/system_manageFeedback')
 @admin_login_required
+@role_required('system')
 def system_manageFeedback():
     admin_username = session.get('admin_username')
     return render_template('admin/system_admin/system_manageFeedback.html', admin_username=admin_username)
 
 
+@app.route('/sub_manageFeedback')
+@admin_login_required
+@role_required('junior')
+def sub_manageFeedback():
+    admin_username = session.get('admin_username')
+    return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username)
+
+
+@app.route('/system_manageAdmin', methods=['GET', 'POST'])
+@admin_login_required
+@role_required('system')
+def system_manageAdmin():
+    admin_username = session.get('admin_username')
+    csrf_token = generate_csrf()  # Generate CSRF token
+    errors = {}
+    if 'admin_logged_in' in session and session['admin_role'] == 'system':
+        admins = db.session.query(Admin).all()
+        if request.method == 'POST':
+            admin_id = request.form.get('admin_id')
+            admin_to_unsuspend = Admin.query.filter_by(id=admin_id).first()
+            if admin_to_unsuspend:
+                admin_to_unsuspend.is_suspended = False
+                db.session.commit()
+                return redirect(url_for('system_manageAdmin'))
+        return render_template('admin/system_admin/system_manageAdmins.html', admins=admins,
+                               admin_username=admin_username, errors=errors, csrf_token=csrf_token)
+    else:
+        return redirect(url_for('admin_log_in'))
+
+
+@app.route('/unsuspend_admin', methods=['POST'])
+@admin_login_required
+@role_required('system')
+def unsuspend_admin():
+    admin_username = session.get('admin_username')
+    admin_id = request.form.get('admin_id')
+    admin_password = request.form.get('admin_password')
+
+    if not admin_password:
+        log_event('Unsuspended', f'System admin {admin_username} has failed to unsuspend an admin')
+        return redirect(url_for('system_manageAdmin'))
+
+    current_admin_username = session.get('admin_username')
+    current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
+    if current_admin and current_admin.check_password(admin_password):
+        admin = db.session.query(Admin).filter_by(id=admin_id).first()
+        if admin:
+            admin.is_suspended = False
+            admin.login_attempts = 0  # Reset login attempts
+            db.session.commit()
+            log_event('Unsuspended', f'System admin {current_admin_username} has successfully unsuspended admin {admin.username}')
+        else:
+            flash('Admin not found', 'error')
+    else:
+        flash('Incorrect password', 'error')
+
+    return redirect(url_for('system_manageAdmin'))
+
 @app.route('/admin_logout')
 def admin_logout():
     if 'admin_logged_in' in session:
         admin_username = session.get('admin_username')
-        session.pop('admin_logged_in', None)
-        session.pop('admin_username', None)
-        log_event('Logout', f'Successfully logged out admin {admin_username}')
-        session.clear()
-        session.modified = True
+        if session['admin_role'] == 'system':
+            log_event('Logout', f'Successfully logged out system admin {admin_username}')
+        elif session['admin_role'] == 'junior':
+            log_event('Logout', f'Successfully logged out junior admin {admin_username}')
+        else:
+            log_event('Logout', f'Successfully logged out admin {admin_username}')
+        session.clear()  # Clear all session data
         return redirect(url_for('admin_log_in'))
     else:
         return "Admin is not logged in."
 
+
+@app.route('/backup_vehicles', methods=['GET'])
+@admin_login_required
+@role_required('system')
+def backup_vehicles():
+    vehicles = db.session.query(Vehicle).all()
+    backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
+    vehicle_backup_time.append(backup_time)
+    admin_username = session.get('admin_username')
+    log_event('Backup', f'Backed up Vehicles database by {admin_username}')
+
+    # Create a DataFrame
+    vehicle_data = []
+    for vehicle in vehicles:
+        vehicle_data.append({
+            'Vehicle ID': vehicle.idvehicles,
+            'Brand': vehicle.brand,
+            'Model': vehicle.model,
+            'Selling Price': vehicle.selling_price,
+            'Image': vehicle.image,
+            'Description': vehicle.description
+        })
+
+    df = pd.DataFrame(vehicle_data)
+
+    # Create an Excel workbook and sheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Vehicles"
+
+    # Write the DataFrame to the Excel sheet
+    for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), start=1):
+        for c_idx, value in enumerate(row, start=1):
+            ws.cell(row=r_idx, column=c_idx, value=value)
+
+    # Add images to the Excel sheet
+    row_index = 2  # Start from the second row
+    for vehicle in vehicles:
+        if vehicle.image:
+            img_path = os.path.join(app.static_folder, 'vehicle_images', vehicle.image)
+            if os.path.exists(img_path):
+                img = XLImage(img_path)
+                img.height = 100  # Set image height
+                img.width = 100  # Set image width
+                ws.add_image(img, f'E{row_index}')  # Place the image in the correct cell
+        row_index += 1  # Increment the row index
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Send the file to the user
+    return send_file(output, download_name='backupVehicle.xlsx', as_attachment=True)
+
+
+@app.route('/backup_customers', methods=['GET'])
+@admin_login_required
+@role_required('system')
+def backup_customers():
+    # Query all customers from the database
+    customers = db.session.query(User).all()
+    backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
+    customer_backup_time.append(backup_time)
+    admin_username = session.get('admin_username')
+    log_event('Backup', f'Backed up Customers database by {admin_username}')
+
+    # Create a DataFrame with relevant customer data
+    customer_data = []
+    for customer in customers:
+        customer_data.append({
+            'Customer ID': customer.id,
+            'Full Name': customer.full_name,
+            'Username': customer.username,
+            'Email': customer.email,
+            'Phone Number': customer.phone_number
+        })
+
+    df = pd.DataFrame(customer_data)
+
+    # Create an Excel workbook and sheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Customers"
+
+    # Write the DataFrame to the Excel sheet
+    for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), start=1):
+        for c_idx, value in enumerate(row, start=1):
+            ws.cell(row=r_idx, column=c_idx, value=value)
+
+    # Save the Excel file to a BytesIO object
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Send the file to the user
+    return send_file(output, download_name='backupCustomers.xlsx', as_attachment=True)
+
+
+@app.route('/backup_logs', methods=['GET'])
+@admin_login_required
+@role_required('system')
+def backup_logs():
+    logs = db.session.query(Log).all()
+    backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
+    logs_backup_time.append(backup_time)
+    admin_username = session.get('admin_username')
+    log_event('Backup', f'Backed up Logs database by {admin_username}')
+
+    # Create a DataFrame
+    log_data = []
+    for log in logs:
+        log_data.append({
+            'Log ID': log.id,
+            'Event Type': log.event_type,
+            'Event Time': log.event_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'Event Result': log.event_result
+        })
+
+    df = pd.DataFrame(log_data)
+
+    # Create an Excel workbook and sheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Logs"
+
+    # Define color fills for different event types
+    colors = {
+        'Login': '7dde8b',  # Light green
+        'Logout': '7dde8b',  # Light green
+        'Create Vehicle': 'f5c842',  # Light orange
+        'Delete Vehicle': 'faa441',  # Light orange
+        'Backup': 'c2c2c2'  # Light gray
+    }
+
+    # Apply header styles
+    header_fill = PatternFill(start_color='d9ead3', end_color='d9ead3', fill_type='solid')
+    for c in range(1, len(df.columns) + 1):
+        ws.cell(row=1, column=c).fill = header_fill
+
+    # Write the DataFrame to the Excel sheet
+    for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), start=1):
+        for c_idx, value in enumerate(row, start=1):
+            cell = ws.cell(row=r_idx, column=c_idx, value=value)
+
+            # Apply color based on event type
+            if r_idx > 1:  # Skip header row
+                event_type = df.iloc[r_idx - 2]['Event Type']
+                color = colors.get(event_type, 'ffffff')  # Default to white if no color found
+                cell.fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    # Send the file to the user
+    return send_file(output, download_name='backupLogs.xlsx', as_attachment=True)
+  
 if __name__ == '__main__':
     app.run(debug=True)

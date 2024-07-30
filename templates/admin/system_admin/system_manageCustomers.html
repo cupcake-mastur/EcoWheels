@@ -6,6 +6,7 @@
     <title>EcoWheels Admin</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
 
     <style>
         #u-table {
@@ -101,6 +102,13 @@
             cursor: pointer;
             background:rgb(7, 165, 96) ;
         }
+
+        .alert-danger {
+            color: red;
+            font-size: 0.9rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+        }
     </style>
 
 </head>
@@ -116,7 +124,7 @@
         </div>
         <div class="user">
             <div>
-                <p class="bold">{{ admin_username }}</p>
+                <p class="bold">{{ admin_username.split('@')[0] }}</p>
                 <p>System Admin</p>
             </div>
         </div>
@@ -143,21 +151,28 @@
                 <span class="tooltip">Customers</span>
             </li>
             <li>
-                <a href="{{url_for('system_manageFeedback')}}">
+                <a href="{{url_for('system_manageFeedback')}}" class="nav__link">
                     <i class='bx bxs-message-square-dots'></i>
                     <span class="nav-item">Feedback</span>
                 </a>
                 <span class="tooltip">Customer Feedback</span>
             </li>
             <li>
-                <a href="{{url_for('system_logs')}}">
+                <a href="{{url_for('system_logs')}}" class="nav__link">
                     <i class='bx bx-note'></i>
                     <span class="nav-item">Logs</span>
                 </a>
                 <span class="tooltip">Logs</span>
             </li>
             <li>
-                <a href="{{ url_for('admin_logout') }}">
+                <a href="{{url_for('system_manageAdmin')}}" class="nav__link">
+                    <i class='bx bxs-face'></i>
+                    <span class="nav-item">Admins</span>
+                </a>
+                <span class="tooltip">Admins</span>
+            </li>
+            <li>
+                <a onclick="openLogoutPopup()">
                     <i class="bx bx-log-out"></i>
                     <span class="nav-item">Logout</span>
                 </a>
@@ -172,27 +187,50 @@
             <h2>Customers</h2>
         </div>
 
+        <div class="button-container">
+            <button id="backupButton">Download Customers Backup</button>
+            <div id="backup-info">
+                {% if customer_backup_time != [] %}
+                    <p>Last Backup Time: {{ customer_backup_time[-1] }}</p>
+                {% else %}
+                    <p>No backups have been made yet.</p>
+                {% endif %}
+            </div>
+        </div>
         <br><br>
        <form method="post" action="{{ url_for('system_MCustomers') }}" class="filter-form">
+           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="filter-item">
                 <label for="full_name_filter">Full Name:</label>
                 <input type="text" id="full_name_filter" name="full_name_filter" placeholder="Enter full name">
+                    {% if errors.full_name_filter %}
+                    <div class="alert alert-danger">{{ errors.full_name_filter }}</div>
+                    {% endif %}
             </div>
 
             <div class="filter-item">
                 <label for="username_filter">Username:</label>
                 <input type="text" id="username_filter" name="username_filter" placeholder="Enter username">
+                    {% if errors.username_filter %}
+                    <div class="alert alert-danger">{{ errors.username_filter }}</div>
+                    {% endif %}
             </div>
 
 
             <div class="filter-item">
                 <label for="email_filter">Email:</label>
                 <input type="text" id="email_filter" name="email_filter" placeholder="Enter email">
+                    {% if errors.email_filter %}
+                    <div class="alert alert-danger">{{ errors.email_filter }}</div>
+                    {% endif %}
             </div>
 
             <div class="filter-item">
                 <label for="phone_number_filter">Phone Number:</label>
                 <input type="text" id="phone_number_filter" name="phone_number_filter" placeholder="Enter phone number">
+                    {% if errors.phone_number_filter %}
+                    <div class="alert alert-danger">{{ errors.phone_number_filter }}</div>
+                    {% endif %}
             </div>
 
             <div class="filter-item">
@@ -251,7 +289,22 @@
                 link.classList.add("active");
             });
         });
-    </script>
 
+                  document.getElementById('backupButton').addEventListener('click', function() {
+            fetch('{{ url_for('backup_customers') }}')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'backupCustomers.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                })
+                .catch(error => console.log('Error downloading the backup:', error));
+        });
+    </script>
+{% include 'logout_modal.html' %}
 </body>
 </html>

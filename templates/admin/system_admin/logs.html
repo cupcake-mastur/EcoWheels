@@ -6,6 +6,7 @@
     <title>EcoWheels Admin</title>
     <link rel="stylesheet" type="text/css" href="../static/css/style.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
 
     <style>
         #l-table {
@@ -48,6 +49,21 @@
         tr.log-deletion {
             background-color: rgb(250, 164, 65); /* Bright Orange */
             border: solid 3px rgb(237, 148, 45);
+        }
+
+        tr.log-suspend {
+            background-color: rgb(250, 115, 100); /* Dark Red */
+            border: solid 3px rgb(252, 84, 50);
+        }
+
+        tr.log-attempt {
+            color: rgb(230, 85, 69); /* Darker Red */
+            border: solid 3px rgb(252, 84, 50);
+        }
+
+        tr.log-unsuspend {
+            background-color: rgb(93, 196, 77);  /* Dark Green */
+            border: solid 3px rgb(53, 212, 111);
         }
 
         .container {
@@ -153,6 +169,17 @@
             cursor: pointer;
             background:rgb(7, 165, 96) ;
         }
+
+        .alert-danger {
+            color: red;
+            font-size: 0.9rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+        }
+
+        #backupButton {
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -167,7 +194,7 @@
         </div>
         <div class="user">
             <div>
-                <p class="bold">{{ admin_username }}</p>
+                <p class="bold">{{ admin_username.split('@')[0] }}</p>
                 <p>System Admin</p>
             </div>
         </div>
@@ -208,7 +235,14 @@
                 <span class="tooltip">Logs</span>
             </li>
             <li>
-                <a href="{{url_for('admin_logout')}}">
+                <a href="{{url_for('system_manageAdmin')}}" class="nav__link">
+                    <i class='bx bxs-face'></i>
+                    <span class="nav-item">Admins</span>
+                </a>
+                <span class="tooltip">Admins</span>
+            </li>
+            <li>
+                <a onclick="openLogoutPopup()">
                     <i class="bx bx-log-out"></i>
                     <span class="nav-item">Logout</span>
                 </a>
@@ -221,6 +255,17 @@
         <div class="container">
             <h1>EcoWheels Management System</h1>
             <h2>Logs</h2>
+        </div>
+
+        <div class="button-container">
+            <button id="backupButton">Download Logs Backup</button>
+            <div id="backup-info">
+                {% if logs_backup_time != [] %}
+                    <p>Last Backup Time: {{ logs_backup_time[-1] }}</p>
+                {% else %}
+                    <p>No backups have been made yet.</p>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Legend Section -->
@@ -244,12 +289,25 @@
                         <div class="legend-color" style="background-color: rgb(250, 164, 65); border: solid 3px rgb(237, 148, 45);"></div>
                         <span>Vehicle Deletion</span>
                     </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style=" border: solid 3px rgb(194, 194, 194);"></div>
+                        <span>BackUp</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style=" background-color: rgb(250, 115, 100); border: solid 3px rgb(252, 84, 50);"></div>
+                        <span>Suspend</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(93, 196, 77); border: solid 3px rgb(53, 212, 111);"></div>
+                        <span>Unsuspend</span>
+                    </div>
                 </div>
             </div>
         </div>
 
          <!-- Filter Form -->
        <form method="POST" action="{{ url_for('system_logs') }}" class="filter-form">
+           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="filter-item">
         <label for="event_type">Event Type:</label>
         <select id="event_type" name="event_type">
@@ -258,19 +316,31 @@
             <option value="Logout">Logout</option>
             <option value="Create Vehicle">Create Vehicle</option>
             <option value="Delete Vehicle">Delete Vehicle</option>
+            <option value="Backup">Backup</option>
+            <option value="Suspension">Suspension</option>
+            <option value="Unsuspended">UnSuspension</option>
         </select>
     </div>
         <div class="filter-item">
             <label for="start_date">Start Date and Time:</label>
             <input type="datetime-local" id="start_date" name="start_date">
+                {% if errors.start_date %}
+                    <div class="alert alert-danger">{{ errors.start_date }}</div>
+                {% endif %}
         </div>
         <div class="filter-item">
             <label for="end_date">End Date and Time:</label>
             <input type="datetime-local" id="end_date" name="end_date">
+                {% if errors.end_date %}
+                    <div class="alert alert-danger">{{ errors.end_date}}</div>
+                {% endif %}
         </div>
         <div class="filter-item">
             <label for="keyword">Keyword:</label>
             <input type="text" id="keyword" name="keyword">
+                {% if errors.keyword %}
+                    <div class="alert alert-danger">{{ errors.keyword }}</div>
+                {% endif %}
         </div>
         <div class="filter-item ">
             <button type="submit" class="filter-item button-item">Filter</button>
@@ -306,6 +376,12 @@
                             log-creation
                         {% elif 'deleted' in log.event_result %}
                             log-deletion
+                        {% elif 'suspension' in log.event_result %}
+                            log-suspend
+                        {% elif 'Attempted' in log.event_result %}
+                            log-attempt
+                        {% elif 'unsuspend' in log.event_result %}
+                            log-unsuspend
                         {% endif %}
                     ">
                         <td>{{ log.id }}</td>
@@ -321,7 +397,6 @@
             </table>
         </div>
     </div>
-
 <script>
     let btn = document.querySelector("#btn");
     let sidebar = document.querySelector(".sidebar");
@@ -343,6 +418,23 @@
             link.classList.add("active");
         });
     });
+
+    document.getElementById('backupButton').addEventListener('click', function() {
+            fetch('{{ url_for('backup_logs') }}')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'backupLogs.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                })
+                .catch(error => console.log('Error downloading the backup:', error));
+        });
+
 </script>
+{% include 'logout_modal.html' %}
 </body>
 </html>
