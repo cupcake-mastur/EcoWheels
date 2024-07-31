@@ -13,11 +13,11 @@ class CustomValidators:
             if not re.match(r'^[0-9]+$', field.data):
                 raise validators.ValidationError('Only numeric characters are allowed.')
 
-class RequestPasswordResetForm(Form):
+class RequestPasswordResetForm(FlaskForm):
     email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
 
 
-class ResetPasswordForm(Form):
+class ResetPasswordForm(FlaskForm):
     password = PasswordField('New Password', [validators.DataRequired(), validators.length(min=8, max=30), 
                                           validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'))])
     confirm_password = PasswordField('Confirm New Password', [validators.DataRequired(), validators.length(min=8, max=30), 

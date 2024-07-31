@@ -517,14 +517,13 @@ def reset_password(token):
     reset_password_form = ResetPasswordForm(request.form)
     try:
         email = s.loads(token, salt='password-reset-salt', max_age=3600)
-    except:
-        error = "The password reset link is invalid or has expired"
-        app.logger.warning(f"Reset Link for {email} is invalid.")
-        return redirect(url_for('request_password_reset'))
+    except Exception as e:
+        error = "The password reset link is invalid or has expired."
+        app.logger.warning(f"Reset Link is invalid or expired: {e}")
 
-    if request.method == 'POST':
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
+    if request.method == 'POST' and reset_password_form.validate():
+        new_password = reset_password_form.password.data
+        confirm_password = reset_password_form.confirm_password.data
 
         if new_password != confirm_password:
             error = "Passwords do not match"
@@ -535,11 +534,21 @@ def reset_password(token):
             user.password_hash = generate_password_hash(new_password)
             new_password_history = PasswordHistory(user_id=user.id, password_hash=user.password_hash)
             db.session.add(new_password_history)
+
+            all_passwords = (db.session.query(PasswordHistory).filter_by(user_id=user.id).
+                                order_by(PasswordHistory.changed_at.desc()).all())
+            if len(all_passwords) > 3:
+                for old_password in all_passwords[3:]:
+                    db.session.delete(old_password)
+                    
             db.session.commit()
             return render_template('customer/password_reset_success.html')
         else:
             error = "An error occurred. Please try again."
-            return redirect(url_for('request_password_reset'))
+            app.logger.error(f"User with email {email} not found.")
+    elif request.method == 'POST':
+        error = "Form validation failed."
+        app.logger.warning(f"Form validation failed for email {email}.")
 
     return render_template('customer/reset_password.html', form=reset_password_form, token=token, error=error)
 
