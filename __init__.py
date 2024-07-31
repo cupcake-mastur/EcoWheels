@@ -1353,7 +1353,7 @@ def unsuspend_admin():
     admin_id = request.form.get('admin_id')
     admin_password = request.form.get('admin_password')
 
-    if not admin_password:
+    if not admin_password or not is_valid_input(admin_password):
         log_event('Unsuspended', f'System admin {admin_username} has failed to unsuspend an admin')
         return redirect(url_for('system_manageAdmin'))
 
