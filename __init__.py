@@ -742,8 +742,8 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-admin_list = ['LiamThompson@ecowheels.com', 'OliviaBrown@ecowheels.com', 'testuser@ecowheels.com']
-system_admin_list = ['SophiaMartinez@ecowheels.com', 'JamesCarter@ecowheels.com', 'testusersa@ecowheels.com']
+admin_list = json.loads(os.environ.get("ADMIN_LIST", "[]"))
+system_admin_list = json.loads(os.environ.get("SYSTEM_ADMIN_LIST", "[]"))
 SGT = pytz.timezone('Asia/Singapore')
 vehicle_backup_time = []
 customer_backup_time = []
