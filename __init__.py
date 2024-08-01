@@ -40,6 +40,7 @@ from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import PatternFill
+import json
 # ------------------------------------------------- #
 
 load_dotenv(find_dotenv())
