@@ -298,7 +298,9 @@ def sign_up():
             if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
                 error = "Special characters are not allowed in the full name or username."
             elif not any(char in special_chars for char in password):
-                error = "Password must contain at least one special character."    
+                error = "Password must contain at least one special character."  
+            elif not any(char.isupper() for char in password) or not any(char.islower() for char in password):
+                error = "Password must contain at least one uppercase and lowercase letter."
 
         if error is None:
             hashed_password = generate_password_hash(password)
@@ -579,19 +581,34 @@ def edit_profile():
             new_password = edit_profile_form.new_password.data
             confirm_new_password = edit_profile_form.confirm_new_password.data
 
-            # Validate current password if provided
+            if phone_number != user.phone_number:
+                if len(str(phone_number)) != 8:
+                    error = "Phone number must be 8 digits."
+                else:
+                    phone_number_exists = db.session.query(User).filter(User.phone_number == phone_number, User.id != user.id).first()
+                    if phone_number_exists:
+                        error = "Phone number already exists."
+
+            if email != user.email:
+                email_exists = db.session.query(User).filter(User.email == email, User.id != user.id).first()
+                if email_exists:
+                    error = "Email already exists."
+
             if current_password and not check_password_hash(user.password_hash, current_password):
                 error = 'Current password is incorrect.'
             elif new_password and new_password != confirm_new_password:
                 error = 'New passwords do not match.'
-            elif len(str(phone_number)) != 8:
-                error = "Phone number must be 8 digits."
             else:
                 special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
                 if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
                     error = "Special characters are not allowed in the full name or username."
-                elif new_password and not any(char in special_chars for char in new_password):
-                    error = "Password must contain at least one special character."    
+                elif new_password:
+                    if not any(char in special_chars for char in new_password):
+                        error = "Password must contain at least one special character."
+                    elif not any(char.isupper() for char in new_password):
+                        error = "Password must contain at least one uppercase and lowercase letter."
+                    elif not any(char.islower() for char in new_password):
+                        error = "Password must contain at least one uppercase and lowercase letter."     
 
                 # Check last 3 passwords
                 if not error:
