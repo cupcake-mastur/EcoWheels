@@ -496,8 +496,8 @@ def request_password_reset():
             token = s.dumps(email, salt='password-reset-salt')
             reset_url = url_for('reset_password', token=token, _external=True)
             send_password_reset_email(email, reset_url)
-            error = "A password reset link has been sent to your email."
             app.logger.info(f"Reset Link has been sent to {email} successfully.")
+            return render_template('customer/request_password_success.html')
         else:
             error = "Email address not found"
     
@@ -518,13 +518,17 @@ def send_password_reset_email(email, reset_url):
 def reset_password(token):
     error = None
     reset_password_form = ResetPasswordForm(request.form)
+    email = None
     try:
-        email = s.loads(token, salt='password-reset-salt', max_age=3600)
+        email = s.loads(token, salt='password-reset-salt', max_age=60)
     except Exception as e:
-        error = "The password reset link is invalid or has expired."
         app.logger.warning(f"Reset Link is invalid or expired: {e}")
+        return render_template('customer/invalid_token.html')
 
     if request.method == 'POST' and reset_password_form.validate():
+        if email is None:
+            return render_template('customer/invalid_token.html')
+        
         new_password = reset_password_form.password.data
         confirm_password = reset_password_form.confirm_password.data
 
