@@ -722,32 +722,46 @@ def cart_page():
 def create_checkout_session():
     try:
         data = request.get_json()
-        line_items = [{
-            'price_data': {
-                'currency': 'usd',
-                'product_data': {
-                    'name': item['name'],
-                },
-                'unit_amount': int(item['price'] * 100),  # Stripe expects the amount in cents
-            },
-            'quantity': 1,
-        } for item in data]
-
+        model = data['model']
+        amount = data['amount']
+        
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
-            line_items=line_items,
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': model,
+                        'metadata': {'model': model}  # Include metadata
+                    },
+                    'unit_amount': int(amount * 100),
+                },
+                'quantity': 1,
+            }],
             mode='payment',
-            success_url='http://127.0.0.1:5000/payment_success',  # Update with your success URL
-            cancel_url='http://yourdomain.com/cancel',  # Update with your cancel URL
+            success_url='http://127.0.0.1:5000/success',
+            cancel_url='http://127.0.0.1:5000/cancel',
         )
-
         return jsonify({'url': session.url})
     except Exception as e:
-        return jsonify(error=str(e)), 403
-
-@app.route('/payment_success')
+        return jsonify(error=str(e)), 400
 def success_page():
     return render_template('customer/payment_success.html')
+
+@app.route('/purchased-items')
+def purchased_items():
+    payment_intents = stripe.PaymentIntent.list(limit=10)
+    purchased_items = []
+    for intent in payment_intents.data:
+        if intent.status == 'succeeded':
+            item = {
+                'model': intent.metadata.get('model'),
+                'amount': intent.amount / 100,
+                'currency': intent.currency.upper(),
+                'purchase_date': datetime.fromtimestamp(intent.created)
+            }
+            purchased_items.append(item)
+    return render_template('admin/purchased_items.html', purchased_items=purchased_items)    
 
 @app.route('/cancel')
 def cancel_page():

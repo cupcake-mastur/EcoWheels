@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchased Items</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <h1>Purchased Items</h1>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Model</th>
+                <th>Amount</th>
+                <th>Currency</th>
+                <th>Purchase Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in purchased_items %}
+            <tr>
+                <td>{{ item.model }}</td>
+                <td>{{ item.amount }}</td>
+                <td>{{ item.currency }}</td>
+                <td>{{ item.purchase_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

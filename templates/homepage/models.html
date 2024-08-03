@@ -1,54 +1,29 @@
-{% extends "base.html" %}
-{% block title %}Car Models{% endblock %}
-
-{% block content %}
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Models</title>
     <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet"
-     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome CSS -->
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
-     integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="static/css/Models.css">
-    <link rel="stylesheet" href="static/css/Homepage.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/Models.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/Homepage.css') }}">
     <style>
-        .cart-item {
-          border: 1px solid #ccc;
-          padding: 16px;
-          margin: 16px;
+        .wishlist-btn {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: red;
         }
-        .cart-item button {
-          background-color: #04AA6D;
-          color: white;
-          padding: 10px;
-          border: none;
-          cursor: pointer;
-          border-radius: 5px;
+        .wishlist-btn i {
+            color: red;
         }
-        .checkout-btn {
-          background-color: #04AA6D;
-          color: white;
-          padding: 10px;
-          border: none;
-          cursor: pointer;
-          border-radius: 5px;
-          font-size: 20px;
-        }
-        .badge {
-          background-color: red;
-          color: white;
-          border-radius: 50%;
-          padding: 5px 10px;
-          position: absolute;
-          top: -1px;
-          right: -5px;
-          font-size: 14px;
-        }
-        .cart-link {
-          position: relative;
-          display: inline-block;
-          padding-right: 20px;
+        .wishlist-btn.active i {
+            color: pink;
         }
     </style>
 </head>
@@ -57,7 +32,7 @@
 <!-- Navbar -->
 <nav>
     <label class="logo">EcoWheel</label>
-    <input type="checkbox" id="check" />
+    <input type="checkbox" id="check"/>
     <label for="check" class="hamberger-btn">
         <i class="fas fa-bars"></i>
     </label>
@@ -66,142 +41,114 @@
         <li><a href="#">Pricing</a></li>
         <li><a href="#">About</a></li>
         <li><a href="#">Contact us</a></li>
-        <li class="cart-link">
-            <a href="#" data-toggle="modal" data-target="#cartModal">
-                <i class="fas fa-shopping-cart"></i> Cart
-                <span id="cart-count" class="badge"></span>
-            </a>
-        </li>
+        <li><a href="#" data-toggle="modal" data-target="#wishlistModal">
+            <i class="fas fa-heart"></i> Wishlist
+            <span id="wishlist-count" class="badge"></span>
+        </a></li>
     </ul>
 </nav>
-<!-- Nav bar ends here -->
 
 <!-- Products -->
 <div class="container">
-  <h1>Vehicle List</h1>
-  <div id="products" class="row list-group">
-    {% for vehicle in vehicles %}
-      <div class="item col-xs-4 col-md-3">
-        <div class="thumbnail">
-          {% if vehicle.image %}
-            <img src="{{ url_for('static', filename='vehicle_images/' + vehicle.image) }}" alt="Vehicle Image">
-          {% else %}
-            No Image
-          {% endif %}
-          <div class="caption">
-            <h4 class="group inner list-group-item-heading">{{ vehicle.model }}</h4>
-            <div class="row">
-              <div class="col-xs-12 col-md-12">
-                <p class="Price">${{ vehicle.selling_price }}</p>
-                <br>
-                <p>{{ vehicle.description }}</p>
-                <button class="btn btn-Add" onclick="addToCart('{{ vehicle.model }}', {{ vehicle.selling_price }})">Add to cart</button>
-              </div>
+    <h1>Vehicle List</h1>
+    <div id="products" class="row list-group">
+        {% for vehicle in vehicles %}
+        <div class="item col-xs-4 col-md-3">
+            <div class="thumbnail">
+                {% if vehicle.image %}
+                <img src="{{ url_for('static', filename='vehicle_images/' + vehicle.image) }}" alt="Vehicle Image">
+                {% else %}
+                No Image
+                {% endif %}
+                <div class="caption">
+                    <h4 class="group inner list-group-item-heading">{{ vehicle.model }}</h4>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-12">
+                            <p class="Price">${{ vehicle.selling_price }}</p>
+                            <br>
+                            <p>{{ vehicle.description }}</p>
+                            <button class="wishlist-btn" onclick="toggleWishlist('{{ vehicle.model }}', {{ vehicle.selling_price }})">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                            <button class="btn btn-primary" onclick="redirectToStripe()">Buy Now</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    {% endfor %}
-  </div>
-</div>
-
-
-<!-- Cart Modal -->
-<div class="modal fade" id="cartModal" tabindex="-1" role="dialog" aria-labelledby="cartModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="cartModalLabel">Shopping Cart</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body" id="cart-items">
-        <!-- Cart items will be displayed here -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary checkout-btn" onclick="checkout()">Checkout</button>
-      </div>
+        {% endfor %}
     </div>
-  </div>
 </div>
 
-<!-- jQuery and Bootstrap JS -->
-<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<!-- Wishlist Modal -->
+<div class="modal fade" id="wishlistModal" tabindex="-1" role="dialog" aria-labelledby="wishlistModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="wishlistModalLabel">Wishlist</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="wishlist-items">
+                <!-- Wishlist items will be displayed here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-<!-- Initializing the shopping cart -->
+<!-- Include jQuery and Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+<!-- Custom Script -->
 <script>
-    // Initialize cart
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    // Initialize wishlist
+    let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
 
-    function updateCartCount() {
-        const cartCountElement = document.getElementById('cart-count');
-        cartCountElement.innerText = cart.length;
-        cartCountElement.style.display = cart.length > 0 ? 'inline' : 'none';
+    function updateWishlistCount() {
+        const wishlistCountElement = document.getElementById('wishlist-count');
+        wishlistCountElement.innerText = wishlist.length;
+        wishlistCountElement.style.display = wishlist.length > 0 ? 'inline' : 'none';
     }
 
-    function addToCart(name, price) {
-        // Add product to cart
-        cart.push({name: name, price: price});
-        alert(name + ' added to cart.');
-        // Save cart to localStorage
-        localStorage.setItem('cart', JSON.stringify(cart));
-        // Update the cart count
-        updateCartCount();
+    function toggleWishlist(name, price) {
+        let itemIndex = wishlist.findIndex(item => item.name === name);
+        if (itemIndex === -1) {
+            wishlist.push({name: name, price: price});
+        } else {
+            wishlist.splice(itemIndex, 1);
+        }
+        localStorage.setItem('wishlist', JSON.stringify(wishlist));
+        updateWishlistCount();
     }
 
-    function displayCart() {
-        let cartItems = document.getElementById('cart-items');
-        cartItems.innerHTML = '';
-        let total = 0;
-        cart.forEach((item, index) => {
-            total += item.price;
-            cartItems.innerHTML += `
-                <div class="cart-item">
+    function displayWishlist() {
+        let wishlistItems = document.getElementById('wishlist-items');
+        wishlistItems.innerHTML = '';
+        wishlist.forEach(item => {
+            wishlistItems.innerHTML += `
+                <div class="wishlist-item">
                     <h3>${item.name}</h3>
                     <p>Price: $${item.price}</p>
-                    <button onclick="removeFromCart(${index})">Remove</button>
                 </div>
             `;
         });
-        cartItems.innerHTML += `<h2>Total: $${total}</h2>`;
     }
 
-    function removeFromCart(index) {
-        cart.splice(index, 1);
-        localStorage.setItem('cart', JSON.stringify(cart));
-        displayCart();
-        updateCartCount();
+    function redirectToStripe() {
+        window.location.href = "https://buy.stripe.com/test_bIYbKl071cZk95SeUV";
     }
 
-    async function checkout() {
-        try {
-            const response = await fetch('/create-checkout-session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(cart),
-            });
-            const session = await response.json();
-            if (session.url) {
-                window.location.href = session.url;
-            } else {
-                console.error('Error creating checkout session:', session.error);
-            }
-        } catch (error) {
-            console.error('Checkout error:', error);
-        }
-    }
+    document.querySelector('[data-target="#wishlistModal"]').addEventListener('click', displayWishlist);
 
-    document.querySelector('[data-target="#cartModal"]').addEventListener('click', displayCart);
-
-    // Update the cart count on page load
-    updateCartCount();
+    // Update the wishlist count on page load
+    updateWishlistCount();
 </script>
 
 </body>
-{% endblock %}
+</html>
