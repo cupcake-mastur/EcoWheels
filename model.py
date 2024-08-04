@@ -1,3 +1,4 @@
+import pyotp
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -72,6 +73,7 @@ class Admin(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     login_attempts = db.Column(db.Integer, default=0)
     is_suspended = db.Column(db.Boolean, default=False)
+    totp_secret = db.Column(db.String(500), nullable=True)  # Add this field for TOTP secret
 
     # def set_password(self, password):
     #     # Update existing passwords using werkzeug.security
@@ -79,6 +81,7 @@ class Admin(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
 
 
 class Vehicle(db.Model):
