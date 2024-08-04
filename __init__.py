@@ -491,18 +491,43 @@ def profile():
 def request_password_reset():
     error = None
     request_password_reset_form = RequestPasswordResetForm(request.form)
+
     if request.method == 'POST':
         email = request.form.get('email')
         user = db.session.query(User).filter_by(email=email).first()
+
+        # Record the request regardless of the user existence
+        reset_request = db.session.query(PasswordResetRequest).filter_by(email=email).first()
+
+        if not reset_request:
+            reset_request = PasswordResetRequest(email=email)
+            db.session.add(reset_request)
+        else:
+            # If reset_request exists, check if the user can request a reset
+            if not reset_request.can_request():
+                error = (
+                    "Password reset request limit exceeded. "
+                    "Please try again later."
+                )
+                return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
+
+        reset_request.record_request()
+        db.session.commit()
+
         if user:
+            # Set the user_id after the initial commit to ensure user exists
+            reset_request.user_id = user.id
+            db.session.commit()
+
             token = s.dumps(email, salt='password-reset-salt')
             reset_url = url_for('reset_password', token=token, _external=True)
             send_password_reset_email(email, reset_url)
             app.logger.info(f"Reset Link has been sent to {email} successfully.")
             return render_template('customer/request_password_success.html')
         else:
-            error = "Email address not found"
-    
+            error = "Email address not found."
+            return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
+
     return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
 
 

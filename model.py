@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Float, LargeBinary, Text
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 import pytz
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -64,6 +64,39 @@ class PasswordHistory(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     changed_at = db.Column(db.DateTime, default=lambda: datetime.now(SGT), nullable=False)
+
+
+class PasswordResetRequest(db.Model):
+    __tablename__ = 'password_reset_request'
+    id = Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    email = db.Column(db.String(120), nullable=False)
+    request_count = Column(db.Integer, default=0)
+    last_request_time = Column(db.DateTime, default=lambda: datetime.now(SGT), nullable=False)
+
+    def __init__(self, email, user_id=None):
+        self.user_id = user_id
+        self.email = email
+        self.request_count = 0
+        self.last_request_time = datetime.now(SGT)
+
+    def can_request(self):
+        now = datetime.now(SGT)
+        if self.request_count is None:
+            self.request_count = 0
+        if self.last_request_time is None:
+            self.last_request_time = now
+        
+        if self.last_request_time.tzinfo is None:
+            self.last_request_time = SGT.localize(self.last_request_time)
+        
+        if self.request_count < 3 or (now - self.last_request_time) > timedelta(seconds=40):
+            return True
+        return False
+    
+    def record_request(self):
+        self.request_count += 1
+        self.last_request_time = datetime.now(SGT)
 
 
 class Admin(db.Model):
