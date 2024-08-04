@@ -31,6 +31,8 @@ from model import *
 from flask_wtf.csrf import generate_csrf, CSRFError
 from werkzeug.exceptions import BadRequest
 import json
+import qrcode
+import pyotp
 # ------------ For backup excel files -------------- #
 from flask import send_file, jsonify
 import pandas as pd
@@ -41,7 +43,6 @@ from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import PatternFill
-import json
 # ------------------------------------------------- #
 
 load_dotenv(find_dotenv())
@@ -787,6 +788,18 @@ customer_backup_time = []
 logs_backup_time = []
 
 
+# create totp
+def create_system_admin(username, password):
+    totp_secret = pyotp.random_base32()  # Generate a random TOTP secret
+    admin = Admin(
+        username=username,
+        password_hash=generate_password_hash(password),
+        totp_secret=totp_secret
+    )
+    db.session.add(admin)
+    db.session.commit()
+
+
 # Log event function
 def log_event(event_type, event_result):
     log = Log(event_type=event_type, event_result=event_result)
@@ -829,7 +842,7 @@ def admin_log_in():
         username = html.escape(form.username.data)
         password = html.escape(form.password.data)
 
-        if not username.endswith('@ecowheels.com'):
+        if not (username.endswith('@ecowheels.com') or username.endswith('@mymail.nyp.edu.sg')):
             error_message = "Incorrect Username or Password"
             log_event('Login', f'Failed login attempt for non-existent admin {username}.')
             return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
@@ -847,22 +860,29 @@ def admin_log_in():
                 db.session.commit()
 
                 session['admin_username'] = username
+
+                if username in system_admin_list:
+                    # If system admin, create TOTP secret if not already created
+                    if not admin.totp_secret:
+                        totp_secret = pyotp.random_base32()  # Generate a random TOTP secret
+                        admin.totp_secret = totp_secret
+                        db.session.commit()
+
+                    # Redirect to 2FA verification
+                    session['admin_role'] = 'system'
+                    session['admin_logged_in'] = False  # Not fully logged in yet
+                    return redirect(url_for('verify_2fa'))
+
                 session['admin_logged_in'] = True
 
-                if username not in admin_list and username not in system_admin_list:
+                if username not in admin_list:
                     session['admin_role'] = 'junior'
                     log_event('Login', f'Successful login for junior admin {username}.')
                     return redirect(url_for('sub_dashboard'))
-
-                elif username in admin_list:
+                else:
                     session['admin_role'] = 'general'
                     log_event('Login', f'Successful login for admin {username}.')
                     return redirect(url_for('dashboard'))
-
-                elif username in system_admin_list:
-                    session['admin_role'] = 'system'
-                    log_event('Login', f'Successful login for system admin {username}.')
-                    return redirect(url_for('system_dashboard'))
             else:
                 admin.login_attempts += 1
                 log_event('Login', f'Failed login attempt for admin {username}. Attempt {admin.login_attempts}')
@@ -881,6 +901,60 @@ def admin_log_in():
             log_event('Login', f'Failed login attempt for non-existent admin {username}.')
 
     return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
+
+
+# Route to verify 2FA for system admin
+@app.route('/verify_2fa', methods=['GET', 'POST'])
+def verify_2fa():
+    csrf_token = generate_csrf()  # Generate CSRF token
+    if 'admin_username' not in session:
+        return redirect(url_for('admin_log_in'))
+
+    username = session['admin_username']
+    admin = db.session.query(Admin).filter_by(username=username).first()
+
+    if not admin or admin.totp_secret is None:
+        return redirect(url_for('admin_log_in'))
+
+    error_message = None
+    if request.method == 'POST':
+        token = request.form.get('token')
+        totp = pyotp.TOTP(admin.totp_secret)
+        if totp.verify(token) and is_valid_input(token):
+            session['admin_logged_in'] = True
+            admin.login_attempts = 0
+            db.session.commit()
+
+            log_event('Login', f'Successful 2FA login for system admin {username}.')
+            return redirect(url_for('system_dashboard'))
+        else:
+            error_message = "Invalid 2FA code. Please try again."
+            log_event('Login', f'Failed 2FA attempt for system admin {username}.')
+
+    return render_template('admin/system_admin/verify_2fa.html', error_message=error_message, csrf_token=csrf_token)
+
+
+# Route to serve the QR code image
+@app.route('/qr_code')
+def qr_code():
+    if 'admin_username' not in session:
+        return redirect(url_for('admin_log_in'))
+
+    username = session['admin_username']
+    admin = db.session.query(Admin).filter_by(username=username).first()
+
+    if not admin or admin.totp_secret is None:
+        return redirect(url_for('admin_log_in'))
+
+    totp = pyotp.TOTP(admin.totp_secret)
+    uri = totp.provisioning_uri(name=username, issuer_name="EcoWheels")
+    img = qrcode.make(uri)
+    img = img.resize((200, 200))  # Resize the QR code to 200x200 pixels
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+
+    return send_file(buf, mimetype='image/png')
 
 
 def is_valid_input(input_str):
@@ -1402,13 +1476,15 @@ def unsuspend_admin():
             admin.is_suspended = False
             admin.login_attempts = 0  # Reset login attempts
             db.session.commit()
-            log_event('Unsuspended', f'System admin {current_admin_username} has successfully unsuspended admin {admin.username}')
+            log_event('Unsuspended',
+                      f'System admin {current_admin_username} has successfully unsuspended admin {admin.username}')
         else:
             flash('Admin not found', 'error')
     else:
         flash('Incorrect password', 'error')
 
     return redirect(url_for('system_manageAdmin'))
+
 
 @app.route('/admin_logout')
 def admin_logout():
