@@ -788,18 +788,6 @@ customer_backup_time = []
 logs_backup_time = []
 
 
-# create totp
-def create_system_admin(username, password):
-    totp_secret = pyotp.random_base32()  # Generate a random TOTP secret
-    admin = Admin(
-        username=username,
-        password_hash=generate_password_hash(password),
-        totp_secret=totp_secret
-    )
-    db.session.add(admin)
-    db.session.commit()
-
-
 # Log event function
 def log_event(event_type, event_result):
     log = Log(event_type=event_type, event_result=event_result)
@@ -838,15 +826,18 @@ def admin_login_required(f):
 def admin_log_in():
     form = AdminLoginForm()
     error_message = None
+
     if form.validate_on_submit():
         username = html.escape(form.username.data)
         password = html.escape(form.password.data)
 
+        # Validate email suffix
         if not (username.endswith('@ecowheels.com') or username.endswith('@mymail.nyp.edu.sg')):
             error_message = "Incorrect Username or Password"
             log_event('Login', f'Failed login attempt for non-existent admin {username}.')
             return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
+        # Query the admin user from the database
         admin = db.session.query(Admin).filter(func.binary(Admin.username) == username).first()
 
         if admin:
@@ -862,9 +853,9 @@ def admin_log_in():
                 session['admin_username'] = username
 
                 if username in system_admin_list:
-                    # If system admin, create TOTP secret if not already created
+                    # Generate TOTP secret for system admin if not already created
                     if not admin.totp_secret:
-                        totp_secret = pyotp.random_base32()  # Generate a random TOTP secret
+                        totp_secret = pyotp.random_base32()
                         admin.totp_secret = totp_secret
                         db.session.commit()
 
