@@ -30,6 +30,7 @@ from PIL import Image
 from model import *
 from flask_wtf.csrf import generate_csrf, CSRFError
 from werkzeug.exceptions import BadRequest
+import json
 # ------------ For backup excel files -------------- #
 from flask import send_file, jsonify
 import pandas as pd
