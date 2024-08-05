@@ -741,9 +741,10 @@ def before_request():
             session.modified = True
 
 
-@app.route('/cart')
-def cart_page():
-    return render_template('customer/shopping_cart.html')
+# @app.route('/cart')
+# def cart_page():
+#     return render_template('customer/shopping_cart.html')
+
 
 @app.route('/create-checkout-session', methods=['POST'])
 def create_checkout_session():
@@ -788,7 +789,58 @@ def purchased_items():
                 'purchase_date': datetime.fromtimestamp(intent.created)
             }
             purchased_items.append(item)
-    return render_template('admin/purchased_items.html', purchased_items=purchased_items)    
+    return render_template('admin/purchased_items.html', purchased_items=purchased_items)   
+
+@app.route('/fetch-payments', methods=['GET'])
+def fetch_payments():
+    # Fetch the latest 10 payment intents
+    payment_intents = stripe.PaymentIntent.list(limit=10)
+
+    for payment_intent in payment_intents['data']:
+        customer_email = payment_intent['receipt_email']
+        amount_total = payment_intent['amount_received'] / 100.0  # Stripe amounts are in cents
+        currency = payment_intent['currency']
+        payment_intent_id = payment_intent['id']
+        purchase_date = datetime.fromtimestamp(payment_intent['created'])
+
+        # Check if the payment intent already exists in the database
+        existing_purchase = Purchase.query.filter_by(payment_intent_id=payment_intent_id).first()
+        if not existing_purchase:
+            purchase = Purchase(
+                customer_email=customer_email,
+                amount_total=amount_total,
+                currency=currency,
+                payment_intent_id=payment_intent_id,
+                purchase_date=purchase_date
+            )
+            db.session.add(purchase)
+
+    db.session.commit()
+    return jsonify({'status': 'success'}), 200
+    
+def handle_checkout_session(session):
+    customer_email = session.get('customer_details', {}).get('email')
+    amount_total = session.get('amount_total')
+    currency = session.get('currency')
+    payment_intent_id = session.get('payment_intent')
+    purchase_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    # Assuming you have a SQLAlchemy model `Purchase`
+    new_purchase = Purchase(
+        customer_email=customer_email,
+        amount_total=amount_total / 100,  # Convert from cents to dollars
+        currency=currency.upper(),
+        payment_intent_id=payment_intent_id,
+        purchase_date=purchase_date
+    )
+
+    db.session.add(new_purchase)
+    db.session.commit() 
+
+
+@app.route('/payment_success')
+def success_page():
+    return render_template('customer/payment_success.html')
 
 @app.route('/cancel')
 def cancel_page():
@@ -1675,4 +1727,4 @@ def backup_logs():
     return send_file(output, download_name='backupLogs.xlsx', as_attachment=True)
   
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port = 5000)
