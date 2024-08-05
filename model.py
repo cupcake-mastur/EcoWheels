@@ -119,12 +119,15 @@ class Admin(db.Model):
 
 class Vehicle(db.Model):
     __tablename__ = 'vehicles'
+    product_id = db.Column(db.String(50), primary_key=True)
     idvehicles = db.Column(db.Integer, primary_key=True, autoincrement=True)
     brand = db.Column(db.String(50), nullable=False)
     model = db.Column(db.String(50), nullable=False)
     selling_price = db.Column(db.Float, nullable=False)
     image = db.Column(db.String(100), nullable=True)  # Adjusted to allow NULL values
     description = db.Column(db.Text, nullable=True)
+    stripe_link = db.Column(db.String(100), nullable=True)
+    
 
 
 SGT = pytz.timezone('Asia/Singapore')
