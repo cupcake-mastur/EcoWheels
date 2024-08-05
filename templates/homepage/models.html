@@ -95,7 +95,7 @@
                             <p class="Price">${{ vehicle.selling_price }}</p>
                             <br>
                             <p>{{ vehicle.description }}</p>
-                            <button class="wishlist-btn" data-name="{{ vehicle.model }}" onclick="toggleWishlist('{{ vehicle.model }}', '{{ vehicle.selling_price }}', this)">
+                            <button class="wishlist-btn" data-id="{{ vehicle.idvehicles }}" data-name="{{ vehicle.model }}" data-price="{{ vehicle.selling_price }}" onclick="toggleWishlist(this)">
                                 <i class="fas fa-heart"></i>
                             </button>
                             <button class="btn btn-primary" onclick="window.location.href='{{ vehicle.stripe_link }}'">Buy Now</button>
@@ -143,10 +143,13 @@
         wishlistCountElement.style.display = wishlist.length > 0 ? 'inline' : 'none';
     }
 
-    function toggleWishlist(name, price, element) {
-        const index = wishlist.findIndex(item => item.name === name);
+    function toggleWishlist(element) {
+        const id = element.getAttribute('data-id');
+        const name = element.getAttribute('data-name');
+        const price = element.getAttribute('data-price');
+        const index = wishlist.findIndex(item => item.id === id);
         if (index === -1) {
-            wishlist.push({name: name, price: price});
+            wishlist.push({id: id, name: name, price: price});
             element.classList.add('active');
         } else {
             wishlist.splice(index, 1);
@@ -164,8 +167,20 @@
             wishlistItems.innerHTML += `<div class="wishlist-item">
                 <h3>${item.name}</h3>
                 <p>Price: $${item.price}</p>
+                <button class="btn btn-danger" onclick="removeFromWishlist('${item.id}')">Remove</button>
             </div>`;
         });
+    }
+
+    function removeFromWishlist(id) {
+        const index = wishlist.findIndex(item => item.id === id);
+        if (index !== -1) {
+            wishlist.splice(index, 1);
+            document.querySelector(`.wishlist-btn[data-id="${id}"]`).classList.remove('active');
+            localStorage.setItem('wishlist', JSON.stringify(wishlist));
+            updateWishlistCount();
+            displayWishlist();
+        }
     }
 
     document.querySelector('[data-target="#wishlistModal"]').addEventListener('click', displayWishlist);
@@ -174,8 +189,8 @@
     window.onload = function() {
         const wishlistButtons = document.querySelectorAll('.wishlist-btn');
         wishlistButtons.forEach(button => {
-            const name = button.getAttribute('data-name');
-            if (wishlist.findIndex(item => item.name === name) !== -1) {
+            const id = button.getAttribute('data-id');
+            if (wishlist.findIndex(item => item.id === id) !== -1) {
                 button.classList.add('active');
             }
         });
