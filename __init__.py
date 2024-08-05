@@ -17,7 +17,6 @@ from flask_mail import Mail, Message
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
-from stack import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta, timezone
@@ -59,7 +58,7 @@ app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 s = URLSafeTimedSerializer(os.environ.get("SECRET_KEY"))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session timeout after 30 minutes
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=1)  # Session timeout after 30 minutes
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Only send cookie over HTTPS
@@ -78,7 +77,7 @@ mail = Mail(app)
 otp_store = {}
 
 user_logged_in = False
-csrf = CSRFProtect(app)                                          # REMOVE IF NEEDED
+csrf = CSRFProtect(app)                                       
 limiter = Limiter(
     get_remote_address,
     app=app,
@@ -88,6 +87,8 @@ limiter = Limiter(
 with app.app_context():
     db.init_app(app)
     db.create_all()  # Create sql tables
+
+SGT = pytz.timezone('Asia/Singapore')
 
 #the stripe key for payment (SORRY ILL HIDE DIS LTR ON)
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51Pe8BfFIE5otqt7EOKvQqa9Q21pxw6sOSStBTVsAqYPW89hggCJQjVoQd71erh65UnljQgmMPJDs0MnkkqsZ3E8C00WpoPI9Xz')
@@ -153,13 +154,20 @@ def models():
     return render_template("homepage/models.html" , vehicles=vehicles)
 
 @app.route('/Feedback', methods=['GET', 'POST'])
-#@login_required
+@login_required
 def feedback():
+    user_email = session.get('user_email')
+    user = db.session.query(User).filter_by(email=user_email).first()
+    if user:
+        username = user.username  # Update username if user is found
+    else:
+        username = 'Anonymous'  # Replace with actual username if available
+
     if request.method == 'POST':
         email = request.form.get('email', 'default@example.com')
         feedback_message = request.form['feedback']
         rating = request.form['rating']
-        username = 'Anonymous'  # Replace with actual username if available
+
         try:
             # Create a new Feedback entry
             new_feedback = Feedback(
@@ -179,7 +187,8 @@ def feedback():
         flash('Thank you for your feedback!', 'success')
         return redirect(url_for('thankyou'))
 
-    return render_template('homepage/Feedback.html')
+    return render_template('homepage/Feedback.html', username=username)
+
 
 def admin_login_required(f):
     @wraps(f)
@@ -339,7 +348,10 @@ def login():
         user = db.session.query(User).filter_by(email=email).first()
 
         if user:
-            current_time = datetime.now(timezone.utc)
+            current_time = datetime.now(SGT)
+
+            if user.lockout_until and user.lockout_until.tzinfo is None:
+                user.lockout_until = SGT.localize(user.lockout_until)
 
             if user.lockout_until and user.lockout_until > current_time:
                 error = "Account is locked. Please try again later."
@@ -525,8 +537,8 @@ def request_password_reset():
             app.logger.info(f"Reset Link has been sent to {email} successfully.")
             return render_template('customer/request_password_success.html')
         else:
-            error = "Email address not found."
-            return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
+            app.logger.warning(f"Invalid email {email} entered.")
+            return render_template('customer/request_password_success.html')
 
     return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
 
@@ -614,12 +626,12 @@ def edit_profile():
             else:
                 phone_number_exists = db.session.query(User).filter(User.phone_number == phone_number, User.id != user.id).first()
                 if phone_number_exists:
-                    error = "Phone number already exists."
+                    error = "Phone number is already registered."
 
         if email != user.email:
             email_exists = db.session.query(User).filter(User.email == email, User.id != user.id).first()
             if email_exists:
-                error = "Email already exists."
+                error = "Email is already registered."
 
         if current_password and not check_password_hash(user.password_hash, current_password):
             error = 'Current password is incorrect.'

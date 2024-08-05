@@ -1,30 +1,34 @@
-let formType = '';
+let currentForm = null;
 
-    function showPasswordModal(type) {
-        formType = type;
-        $('#passwordModal').modal('show');
+function showPasswordModal(form) {
+    currentForm = form;
+    $('#passwordModal').modal('show');
+}
+
+$('#passwordForm').on('submit', function(event) {
+    event.preventDefault();
+    const currentPassword = $('#current_pass_modal').val();
+    if (currentPassword && currentForm) {
+        $('<input>').attr({
+            type: 'hidden',
+            name: 'current_password',
+            value: currentPassword
+        }).appendTo(currentForm);
+        currentForm.submit();
     }
+});
 
-    $('#passwordForm').on('submit', function(event) {
-        event.preventDefault();
-        const currentPassword = $('#current_pass_modal').val();
-        if (currentPassword && formType) {
-            const form = $(`form[data-form-type=${formType}]`);
-            $('<input>').attr({
-                type: 'hidden',
-                name: 'current_password',
-                value: currentPassword
-            }).appendTo(form);
-            form.submit();
-        }
+$(document).ready(function () {
+    $('#myTab a').on('click', function (e) {
+        e.preventDefault();
+        $(this).tab('show');
     });
 
-    $(document).ready(function () {
-        $('#myTab a').on('click', function (e) {
-            e.preventDefault();
-            $(this).tab('show');
-        });
+    // Attach click event to save changes button
+    $('#saveChanges_g').on('click', function() {
+        showPasswordModal($('#editProfileForm'));
     });
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     var policyModal = document.getElementById("policyModal");

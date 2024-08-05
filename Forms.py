@@ -6,13 +6,6 @@ from wtforms.validators import DataRequired, Length, Regexp, NumberRange
 import re
 
 
-class CustomValidators:
-    @staticmethod
-    def validate_numeric(form, field):
-        if field.data:
-            if not field.data.isdigit():
-                raise validators.ValidationError('Input must be numeric.')
-
 class RequestPasswordResetForm(FlaskForm):
     email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
 
@@ -71,30 +64,6 @@ class UpdateProfileForm(FlaskForm):
                                             message="New password must be between 8 and 30 characters long."), 
                                           validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'), 
                                                             message= "New password must contain at least one special character.")])
-
-    card_name = StringField('Card Name', validators=[validators.Optional(), validators.length(max=30), 
-                                                     validators.Regexp(
-                                                        regex=re.compile(r'^[a-zA-Z\s]*$'), 
-                                                        message="Card name can only contain letters and spaces.")])
-    card_number = StringField('Card Number', validators=[
-        validators.Optional(),
-        validators.length(min=16, max=16)
-    ])
-    exp_month = StringField('Expiry Month', validators=[
-        validators.Optional(),
-        validators.length(min=2, max=2),
-        CustomValidators.validate_numeric
-    ])
-    exp_year = StringField('Expiry Year', validators=[
-        validators.Optional(),
-        validators.length(min=4, max=4),
-        CustomValidators.validate_numeric
-    ])
-    cvv = StringField('CVV', validators=[
-        validators.Optional(), 
-        validators.length(min=3, max=3),
-        CustomValidators.validate_numeric
-    ])
 
 
 class AdminLoginForm(FlaskForm):

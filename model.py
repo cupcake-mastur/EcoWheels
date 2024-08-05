@@ -42,12 +42,6 @@ class User(db.Model):
     password_history = db.relationship('PasswordHistory', backref='user', lazy=True)
     urls = db.relationship('UserURL', backref='user', lazy=True)
 
-    card_name = db.Column(db.String(30))
-    card_number = db.Column(db.String(20))
-    exp_month = db.Column(db.String(2))
-    exp_year = db.Column(db.String(4))
-    cvv = db.Column(db.String(3))
-
 
 class UserURL(db.Model):
     __tablename__ = 'user_url'

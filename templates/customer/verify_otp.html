@@ -11,6 +11,11 @@
             <p class="info">An OTP has been sent to {{ user_email|hide_email }}</p>
             <p class="msg" style="margin-top: 45px; text-align: center;">Please enter OTP to verify</p>
         </div>
+        
+        {% if error %}
+        <p style="color: red; text-align: center;">{{ error }}</p>
+        {% endif %}
+
           <div class="otp-input-fields" id="otp">
             {{ form.otp1(class="otp__digit otp__field__1", onpaste="return false;", required=True) }}
             {{ form.otp2(class="otp__digit otp__field__2", onpaste="return false;", required=True) }}
@@ -19,9 +24,7 @@
             {{ form.otp5(class="otp__digit otp__field__5", onpaste="return false;", required=True) }}
             {{ form.otp6(class="otp__digit otp__field__6", onpaste="return false;", required=True) }}
           </div>
-        {% if error %}
-            <p style="color: red; text-align: center;">{{ error }}</p>
-        {% endif %}
+
         <button type="submit" id="verify">Verify OTP</button>
     </form>
     <form action="{{ url_for('request_new_otp') }}" method="post">
