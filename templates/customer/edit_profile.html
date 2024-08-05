@@ -79,6 +79,7 @@
                         </div>
                         <div class="input_box">
                             {{ render_field(form.card_number, class="form-control", id="card_number", placeholder="Enter your card number") }}
+                            <input type="hidden" id="card_number_actual" name="card_number_actual">
                         </div>
                         <div class="input_box">
                             {{ render_field(form.exp_month, class="form-control", id="exp_month", placeholder="Enter your expiry month") }}
@@ -136,5 +137,38 @@
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/last_visited_url.js') }}"></script>
 <script src="{{ url_for('static', filename='js/edit_profile.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var cardInput = document.getElementById('card_number');
+        var cardInputActual = document.getElementById('card_number_actual');
+
+        cardInput.addEventListener('input', function() {
+            var value = this.value.replace(/\D/g, ''); // Remove non-numeric characters
+            var maskedValue = value;
+
+            // Ensure max length of 16 digits
+            if (value.length > 16) {
+                value = value.slice(0, 16);
+            }
+
+            // Mask all but last 4 digits
+            if (value.length == 16) {
+                maskedValue = '*'.repeat(12) + value.slice(-4);
+            } else {
+                maskedValue = value;
+            }
+
+            this.value = maskedValue;
+            cardInputActual.value = value; // Store actual value in hidden input
+        });
+
+        document.querySelector('form[data-form-type="payment"]').addEventListener('submit', function() {
+            // Ensure the hidden field is updated before form submission
+            cardInputActual.value = cardInputActual.value.replace(/\*/g, ''); // Remove any potential asterisks
+        });
+    });
+</script>
+
+
 
 {% endblock %}

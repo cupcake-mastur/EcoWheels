@@ -10,8 +10,8 @@ class CustomValidators:
     @staticmethod
     def validate_numeric(form, field):
         if field.data:
-            if not re.match(r'^[0-9]+$', field.data):
-                raise validators.ValidationError('Only numeric characters are allowed.')
+            if not field.data.isdigit():
+                raise validators.ValidationError('Input must be numeric.')
 
 class RequestPasswordResetForm(FlaskForm):
     email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
@@ -72,11 +72,13 @@ class UpdateProfileForm(FlaskForm):
                                           validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'), 
                                                             message= "New password must contain at least one special character.")])
 
-    card_name = StringField('Card Name', validators=[validators.Optional(), validators.length(max=30)])
+    card_name = StringField('Card Name', validators=[validators.Optional(), validators.length(max=30), 
+                                                     validators.Regexp(
+                                                        regex=re.compile(r'^[a-zA-Z\s]*$'), 
+                                                        message="Card name can only contain letters and spaces.")])
     card_number = StringField('Card Number', validators=[
         validators.Optional(),
-        validators.length(min=16, max=16),
-        CustomValidators.validate_numeric
+        validators.length(min=16, max=16)
     ])
     exp_month = StringField('Expiry Month', validators=[
         validators.Optional(),
