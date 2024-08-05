@@ -506,7 +506,7 @@ def request_password_reset():
             # If reset_request exists, check if the user can request a reset
             if not reset_request.can_request():
                 error = (
-                    "Password reset request limit exceeded. "
+                    "Password reset request limit exceeded.\n" 
                     "Please try again later."
                 )
                 return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)

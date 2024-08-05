@@ -90,13 +90,19 @@ class PasswordResetRequest(db.Model):
         if self.last_request_time.tzinfo is None:
             self.last_request_time = SGT.localize(self.last_request_time)
         
-        if self.request_count < 3 or (now - self.last_request_time) > timedelta(seconds=40):
+        if (now - self.last_request_time) > timedelta(seconds=40):
+            self.request_count = 0  # Reset the count if the time difference exceeds the threshold
+            self.last_request_time = now  # Update the last request time
+            db.session.commit()  # Commit the changes to the database
+        
+        if self.request_count < 3:
             return True
         return False
     
     def record_request(self):
         self.request_count += 1
         self.last_request_time = datetime.now(SGT)
+        db.session.commit()
 
 
 class Admin(db.Model):
