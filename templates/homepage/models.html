@@ -17,13 +17,39 @@
             border: none;
             cursor: pointer;
             font-size: 20px;
-            color: red;
+            color: white;
+            position: relative;
         }
         .wishlist-btn i {
-            color: red;
+            transition: color 0.2s;
+            text-shadow: 0 0 2px black;
+        }
+        .wishlist-btn:hover i {
+            color: lightcoral;
         }
         .wishlist-btn.active i {
-            color: pink;
+            color: red;
+        }
+        .badge {
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 5px 10px;
+            position: absolute;
+            top: 0;
+            right: -10px;
+            font-size: 14px;
+            transform: translate(100%, -50%);
+        }
+        .wishlist-count {
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 14px;
+            position: relative;
+            top: -2px;
+            margin-left: 5px;
         }
     </style>
 </head>
@@ -41,10 +67,12 @@
         <li><a href="#">Pricing</a></li>
         <li><a href="#">About</a></li>
         <li><a href="#">Contact us</a></li>
-        <li><a href="#" data-toggle="modal" data-target="#wishlistModal">
-            <i class="fas fa-heart"></i> Wishlist
-            <span id="wishlist-count" class="badge"></span>
-        </a></li>
+        <li>
+            <a href="#" data-toggle="modal" data-target="#wishlistModal">
+                Wishlist <i class="fas fa-heart"></i> 
+                <span id="wishlist-count" class="wishlist-count"></span>
+            </a>
+        </li>
     </ul>
 </nav>
 
@@ -67,10 +95,10 @@
                             <p class="Price">${{ vehicle.selling_price }}</p>
                             <br>
                             <p>{{ vehicle.description }}</p>
-                            <button class="wishlist-btn" onclick="toggleWishlist('{{ vehicle.model }}', {{ vehicle.selling_price }})">
+                            <button class="wishlist-btn" data-name="{{ vehicle.model }}" onclick="toggleWishlist('{{ vehicle.model }}', '{{ vehicle.selling_price }}', this)">
                                 <i class="fas fa-heart"></i>
                             </button>
-                            <button class="btn btn-primary" onclick="redirectToStripe()">Buy Now</button>
+                            <button class="btn btn-primary" onclick="window.location.href='{{ vehicle.stripe_link }}'">Buy Now</button>
                         </div>
                     </div>
                 </div>
@@ -107,7 +135,6 @@
 
 <!-- Custom Script -->
 <script>
-    // Initialize wishlist
     let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
 
     function updateWishlistCount() {
@@ -116,37 +143,45 @@
         wishlistCountElement.style.display = wishlist.length > 0 ? 'inline' : 'none';
     }
 
-    function toggleWishlist(name, price) {
-        let itemIndex = wishlist.findIndex(item => item.name === name);
-        if (itemIndex === -1) {
+    function toggleWishlist(name, price, element) {
+        const index = wishlist.findIndex(item => item.name === name);
+        if (index === -1) {
             wishlist.push({name: name, price: price});
+            element.classList.add('active');
         } else {
-            wishlist.splice(itemIndex, 1);
+            wishlist.splice(index, 1);
+            element.classList.remove('active');
         }
         localStorage.setItem('wishlist', JSON.stringify(wishlist));
         updateWishlistCount();
+        displayWishlist();
     }
 
     function displayWishlist() {
-        let wishlistItems = document.getElementById('wishlist-items');
+        const wishlistItems = document.getElementById('wishlist-items');
         wishlistItems.innerHTML = '';
         wishlist.forEach(item => {
-            wishlistItems.innerHTML += `
-                <div class="wishlist-item">
-                    <h3>${item.name}</h3>
-                    <p>Price: $${item.price}</p>
-                </div>
-            `;
+            wishlistItems.innerHTML += `<div class="wishlist-item">
+                <h3>${item.name}</h3>
+                <p>Price: $${item.price}</p>
+            </div>`;
         });
-    }
-
-    function redirectToStripe() {
-        window.location.href = "https://buy.stripe.com/test_bIYbKl071cZk95SeUV";
     }
 
     document.querySelector('[data-target="#wishlistModal"]').addEventListener('click', displayWishlist);
 
-    // Update the wishlist count on page load
+    // Ensure that wishlist state is correct on page load
+    window.onload = function() {
+        const wishlistButtons = document.querySelectorAll('.wishlist-btn');
+        wishlistButtons.forEach(button => {
+            const name = button.getAttribute('data-name');
+            if (wishlist.findIndex(item => item.name === name) !== -1) {
+                button.classList.add('active');
+            }
+        });
+        updateWishlistCount();
+    };
+
     updateWishlistCount();
 </script>
 
