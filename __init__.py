@@ -58,7 +58,7 @@ app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 s = URLSafeTimedSerializer(os.environ.get("SECRET_KEY"))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=1)  # Session timeout after 30 minutes
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session timeout after 30 minutes
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Only send cookie over HTTPS
@@ -706,6 +706,7 @@ def delete_account():
             # Delete entries from related tables first (because of foreign key constraints)
             db.session.query(UserURL).filter_by(user_id=user_id).delete()
             db.session.query(PasswordHistory).filter_by(user_id=user_id).delete()
+            db.session.query(PasswordResetRequest).filter_by(user_id=user.id).delete()
             db.session.delete(user)
             db.session.commit()
             session.clear()
