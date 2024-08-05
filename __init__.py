@@ -453,7 +453,7 @@ def verify_otp():
                 session.pop('otp', None)
                 session.pop('otp_generation_time', None)
 
-                session['user'] = user_email  # Set user in session
+                session['user_email'] = user_email  # Set user in session
                 session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
                 session['user_logged_in'] = True
                 session.permanent = True
@@ -600,94 +600,73 @@ def edit_profile():
     edit_profile_form = UpdateProfileForm(request.form, obj=user)
 
     if request.method == 'POST' and edit_profile_form.validate():
-        form_type = request.form.get('form_type')
-        print(f"Form Type Received: {form_type}")
+        full_name = edit_profile_form.full_name.data
+        username = edit_profile_form.username.data
+        email = edit_profile_form.email.data
+        phone_number = edit_profile_form.phone_number.data
+        current_password = edit_profile_form.current_password.data
+        new_password = edit_profile_form.new_password.data
+        confirm_new_password = edit_profile_form.confirm_new_password.data
 
-        if form_type == 'general':
-            full_name = edit_profile_form.full_name.data
-            username = edit_profile_form.username.data
-            email = edit_profile_form.email.data
-            phone_number = edit_profile_form.phone_number.data
-            current_password = edit_profile_form.current_password.data
-            new_password = edit_profile_form.new_password.data
-            confirm_new_password = edit_profile_form.confirm_new_password.data
-
-            if phone_number != user.phone_number:
-                if len(str(phone_number)) != 8:
-                    error = "Phone number must be 8 digits."
-                else:
-                    phone_number_exists = db.session.query(User).filter(User.phone_number == phone_number, User.id != user.id).first()
-                    if phone_number_exists:
-                        error = "Phone number already exists."
-
-            if email != user.email:
-                email_exists = db.session.query(User).filter(User.email == email, User.id != user.id).first()
-                if email_exists:
-                    error = "Email already exists."
-
-            if current_password and not check_password_hash(user.password_hash, current_password):
-                error = 'Current password is incorrect.'
-            elif new_password and new_password != confirm_new_password:
-                error = 'New passwords do not match.'
+        if phone_number != user.phone_number:
+            if len(str(phone_number)) != 8:
+                error = "Phone number must be 8 digits."
             else:
-                special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
-                if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
-                    error = "Special characters are not allowed in the full name or username."
-                elif new_password:
-                    if not any(char in special_chars for char in new_password):
-                        error = "Password must contain at least one special character."
-                    elif not any(char.isupper() for char in new_password):
-                        error = "Password must contain at least one uppercase and lowercase letter."
-                    elif not any(char.islower() for char in new_password):
-                        error = "Password must contain at least one uppercase and lowercase letter."     
+                phone_number_exists = db.session.query(User).filter(User.phone_number == phone_number, User.id != user.id).first()
+                if phone_number_exists:
+                    error = "Phone number already exists."
 
-                # Check last 3 passwords
-                if not error:
-                    recent_passwords = (db.session.query(PasswordHistory).filter_by(user_id=user.id).
-                                        order_by(PasswordHistory.changed_at.desc()).limit(3).all())
-                    for past_password in recent_passwords:
-                        if check_password_hash(past_password.password_hash, new_password):
-                            error = 'New password cannot be the same as any of the last 3 passwords.'
-                            break
+        if email != user.email:
+            email_exists = db.session.query(User).filter(User.email == email, User.id != user.id).first()
+            if email_exists:
+                error = "Email already exists."
 
-                if not error:
-                    user.full_name = full_name
-                    user.username = username
-                    user.email = email
-                    user.phone_number = phone_number
+        if current_password and not check_password_hash(user.password_hash, current_password):
+            error = 'Current password is incorrect.'
+        elif new_password and new_password != confirm_new_password:
+            error = 'New passwords do not match.'
+        else:
+            special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
+            if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
+                error = "Special characters are not allowed in the full name or username."
+            elif new_password:
+                if not any(char in special_chars for char in new_password):
+                    error = "Password must contain at least one special character."
+                elif not any(char.isupper() for char in new_password):
+                    error = "Password must contain at least one uppercase letter."
+                elif not any(char.islower() for char in new_password):
+                    error = "Password must contain at least one lowercase letter."
 
-                    # Update password if new password is provided and matches confirmation
-                    if new_password:
-                        user.password_hash = generate_password_hash(new_password)
-                        new_password_history = PasswordHistory(user_id=user.id, password_hash=user.password_hash)
-                        db.session.add(new_password_history)
+            # Check last 3 passwords
+            if not error:
+                recent_passwords = db.session.query(PasswordHistory).filter_by(user_id=user.id).order_by(PasswordHistory.changed_at.desc()).limit(3).all()
+                for past_password in recent_passwords:
+                    if check_password_hash(past_password.password_hash, new_password):
+                        error = 'New password cannot be the same as any of the last 3 passwords.'
+                        break
 
-                        # Keep only the last 3 password hashes
-                        # Most recent password changes are listed first (because of the desc)
-                        all_passwords = (db.session.query(PasswordHistory).filter_by(user_id=user.id).
-                                         order_by(PasswordHistory.changed_at.desc()).all())
-                        if len(all_passwords) > 3:
-                            for old_password in all_passwords[3:]:
-                                db.session.delete(old_password)
+            if not error:
+                user.full_name = full_name
+                user.username = username
+                user.email = email
+                user.phone_number = phone_number
 
-        elif form_type == 'payment':
-            card_name = edit_profile_form.card_name.data
-            card_number = edit_profile_form.card_number.data
-            exp_month = edit_profile_form.exp_month.data
-            exp_year = edit_profile_form.exp_year.data
-            cvv = edit_profile_form.cvv.data
-            #Add validation
-            user.card_name = card_name
-            user.card_number = card_number
-            user.exp_month = exp_month
-            user.exp_year = exp_year
-            user.cvv = cvv
+                # Update password if new password is provided and matches confirmation
+                if new_password:
+                    user.password_hash = generate_password_hash(new_password)
+                    new_password_history = PasswordHistory(user_id=user.id, password_hash=user.password_hash)
+                    db.session.add(new_password_history)
 
-        if error:
-            return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
+                    # Keep only the last 3 password hashes
+                    # Most recent password changes are listed first (because of the desc)
+                    all_passwords = db.session.query(PasswordHistory).filter_by(user_id=user.id).order_by(PasswordHistory.changed_at.desc()).all()
+                    if len(all_passwords) > 3:
+                        for old_password in all_passwords[3:]:
+                            db.session.delete(old_password)
 
-        db.session.commit()
-        error = 'Profile updated successfully.'
+        if not error:
+            db.session.commit()
+            error = 'Profile updated successfully.'
 
     return render_template('customer/edit_profile.html', user=user, form=edit_profile_form, error=error)
 
@@ -695,10 +674,10 @@ def edit_profile():
 @app.route('/user/logout')
 def logout():
     if 'user_email' in session:
-        user_email = session.pop('user_email', None)
-        app.logger.info(f"User {user_email} logged out successfully.")
+        user_email = session.get('user_email')
         session.clear()
         session.modified = True
+        app.logger.info(f"User {user_email} logged out successfully.")
         print(session)
         return render_template('customer/logout_message.html')
     else:
@@ -712,7 +691,7 @@ def delete_account():
         user = db.session.query(User).filter_by(email=user_email).first()
         if user:
             user_id = user.id
-            # Delete entries from related tables first if necessary
+            # Delete entries from related tables first (because of foreign key constraints)
             db.session.query(UserURL).filter_by(user_id=user_id).delete()
             db.session.query(PasswordHistory).filter_by(user_id=user_id).delete()
             db.session.delete(user)
@@ -721,7 +700,7 @@ def delete_account():
             session.modified = True
             return render_template('customer/account_deleted_successfully.html')
         else:
-            return('User not found.')
+            return render_template('error_msg.html')
     else:
         return render_template('customer/error_msg_not_logged_in.html')
 

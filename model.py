@@ -91,9 +91,9 @@ class PasswordResetRequest(db.Model):
             self.last_request_time = SGT.localize(self.last_request_time)
         
         if (now - self.last_request_time) > timedelta(seconds=40):
-            self.request_count = 0  # Reset the count if the time difference exceeds the threshold
-            self.last_request_time = now  # Update the last request time
-            db.session.commit()  # Commit the changes to the database
+            self.request_count = 0  
+            self.last_request_time = now  
+            db.session.commit() 
         
         if self.request_count < 3:
             return True
