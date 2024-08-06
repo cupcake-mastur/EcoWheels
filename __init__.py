@@ -884,6 +884,26 @@ vehicle_backup_time = []
 customer_backup_time = []
 logs_backup_time = []
 
+# Session time-out
+def admin_session_timeout_check(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        now = datetime.now().timestamp()
+        last_activity = session.get('admin_last_activity', None)
+
+        if last_activity and now - last_activity > 15 * 60:  # 15 minutes timeout
+            admin_username = session.get('admin_username')
+            session.pop('admin_logged_in', None)
+            session.pop('admin_username', None)
+            session.pop('admin_role', None)
+            session.pop('admin_last_activity', None)
+            log_event("Logout", f"Inactivity for 15 minutes led to {admin_username}'s session timeout")
+            return redirect(url_for('admin_log_in'))
+
+        session['admin_last_activity'] = now
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 # Log event function
 def log_event(event_type, event_result):
@@ -947,19 +967,19 @@ def admin_log_in():
                 admin.login_attempts = 0
                 db.session.commit()
 
+                session.permanent = True  # Make the session permanent to use PERMANENT_SESSION_LIFETIME
                 session['admin_username'] = username
+                session['admin_last_activity'] = datetime.now().timestamp()
 
                 if username in system_admin_list:
-                    # Generate TOTP secret for system admin if not already created
                     if not admin.totp_secret:
                         totp_secret = pyotp.random_base32()
                         admin.totp_secret = totp_secret
                         db.session.commit()
 
-                    # Redirect to 2FA verification
                     session['admin_role'] = 'system'
-                    session['admin_logged_in'] = False  # Not fully logged in yet
-                    return redirect(url_for('verify_2fa'))
+                    session['admin_logged_in'] = False
+                    return redirect(url_for('verify_2fa')) # system admin 2fa
 
                 session['admin_logged_in'] = True
 
@@ -1087,6 +1107,7 @@ def save_image_file(form_file):
 @app.route('/createVehicle', methods=['GET', 'POST'])
 @role_required('general')
 @admin_login_required
+@admin_session_timeout_check
 def createVehicle():
     create_vehicle_form = CreateVehicleForm()
     if request.method == 'POST' and create_vehicle_form.validate_on_submit():
@@ -1118,6 +1139,7 @@ def createVehicle():
 @app.route('/system_createVehicle', methods=['GET', 'POST'])
 @role_required('system')
 @admin_login_required
+@admin_session_timeout_check
 def system_createVehicle():
     create_vehicle_form = CreateVehicleForm()
     if request.method == 'POST' and create_vehicle_form.validate_on_submit():
@@ -1154,6 +1176,7 @@ def ErrorPage():
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('general')
 def dashboard():
     admin_username = session.get('admin_username')
@@ -1165,6 +1188,7 @@ def dashboard():
 
 @app.route('/system_admin_dashboard', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_dashboard():
     admin_username = session.get('admin_username')
@@ -1177,6 +1201,7 @@ def system_dashboard():
 
 @app.route('/sub_dashboard', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('junior')
 def sub_dashboard():
     admin_username = session.get('admin_username')
@@ -1188,6 +1213,7 @@ def sub_dashboard():
 
 @app.route('/manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('general')
 def MCustomers():
     admin_username = session.get('admin_username')
@@ -1229,6 +1255,7 @@ def MCustomers():
 
 @app.route('/system_manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_MCustomers():
     admin_username = session.get('admin_username')
@@ -1270,6 +1297,7 @@ def system_MCustomers():
 
 @app.route('/sub_manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('junior')
 def sub_MCustomers():
     admin_username = session.get('admin_username')
@@ -1312,6 +1340,7 @@ def sub_MCustomers():
 
 @app.route('/manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('general')
 def MVehicles():
     admin_username = session.get('admin_username')
@@ -1354,6 +1383,7 @@ def MVehicles():
 
 @app.route('/system_manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_MVehicles():
     admin_username = session.get('admin_username')
@@ -1397,6 +1427,7 @@ def system_MVehicles():
 
 @app.route('/sub_manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('junior')
 def sub_MVehicles():
     admin_username = session.get('admin_username')
@@ -1456,6 +1487,7 @@ def delete_vehicle(id):
 
 @app.route('/logs', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_logs():
     admin_username = session.get('admin_username')
@@ -1495,6 +1527,7 @@ def system_logs():
 
 @app.route('/system_manageFeedback')
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_manageFeedback():
     admin_username = session.get('admin_username')
@@ -1509,6 +1542,7 @@ def system_manageFeedback():
 
 @app.route('/sub_manageFeedback')
 @admin_login_required
+@admin_session_timeout_check
 @role_required('junior')
 def sub_manageFeedback():
     admin_username = session.get('admin_username')
@@ -1524,6 +1558,7 @@ def sub_manageFeedback():
 
 @app.route('/system_manageAdmin', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_manageAdmin():
     admin_username = session.get('admin_username')
@@ -1584,7 +1619,10 @@ def admin_logout():
             log_event('Logout', f'Successfully logged out junior admin {admin_username}')
         else:
             log_event('Logout', f'Successfully logged out admin {admin_username}')
-        session.clear()  # Clear all session data
+        session.pop('admin_logged_in', None)
+        session.pop('admin_username', None)
+        session.pop('admin_role', None)
+        session.pop('admin_last_activity', None)
         return redirect(url_for('admin_log_in'))
     else:
         return "Admin is not logged in."
@@ -1745,6 +1783,7 @@ def backup_logs():
 
     # Send the file to the user
     return send_file(output, download_name='backupLogs.xlsx', as_attachment=True)
+
   
 if __name__ == '__main__':
     app.run(debug=True, port = 5000)
