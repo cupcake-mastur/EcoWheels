@@ -504,30 +504,42 @@ def request_password_reset():
     error = None
     request_password_reset_form = RequestPasswordResetForm(request.form)
 
-    if request.method == 'POST':
+    if request.method == 'POST' and request_password_reset_form.validate():
         email = request.form.get('email')
         user = db.session.query(User).filter_by(email=email).first()
 
-        # Record the request regardless of the user existence
-        reset_request = db.session.query(PasswordResetRequest).filter_by(email=email).first()
+        recent_reset_requests = db.session.query(PasswordResetRequest).filter(
+            PasswordResetRequest.last_request_time >= datetime.now(SGT) - timedelta(seconds=40)
+        ).all()
 
+        total_requests = sum(req.request_count for req in recent_reset_requests)
+
+        if total_requests >= 3:
+            error = (
+                "Password reset request limit exceeded.\n" 
+                "Please try again later."
+            )
+            return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
+
+        reset_request = db.session.query(PasswordResetRequest).filter_by(email=email).first()
         if not reset_request:
             reset_request = PasswordResetRequest(email=email)
             db.session.add(reset_request)
-        else:
-            # If reset_request exists, check if the user can request a reset
-            if not reset_request.can_request():
-                error = (
-                    "Password reset request limit exceeded.\n" 
-                    "Please try again later."
-                )
-                return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
+
+        # Record the request
+        if not reset_request.can_request():
+            error = (
+                "Password reset request limit exceeded for this email.\n" 
+                "Please try again later."
+            )
+            return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
 
         reset_request.record_request()
         db.session.commit()
 
+        # Send reset email if user exists
+        user = db.session.query(User).filter_by(email=email).first()
         if user:
-            # Set the user_id after the initial commit to ensure user exists
             reset_request.user_id = user.id
             db.session.commit()
 
@@ -571,9 +583,17 @@ def reset_password(token):
         new_password = reset_password_form.password.data
         confirm_password = reset_password_form.confirm_password.data
 
+        special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
+
         if new_password != confirm_password:
-            error = "Passwords do not match"
-            return redirect(url_for('reset_password', token=token))
+            error = "Passwords do not match."
+        elif not any(char in special_chars for char in new_password):
+            error = "Password must contain at least one special character."
+        elif not any(char.isupper() for char in new_password) or not any(char.islower() for char in new_password):
+            error = "Password must contain at least one uppercase and one lowercase letter."
+        if error:
+            print(f"Error detected: {error}")
+            return render_template('customer/reset_password.html', form=reset_password_form, token=token, error=error)
 
         user = db.session.query(User).filter_by(email=email).first()
         if user:
@@ -581,8 +601,8 @@ def reset_password(token):
             new_password_history = PasswordHistory(user_id=user.id, password_hash=user.password_hash)
             db.session.add(new_password_history)
 
-            all_passwords = (db.session.query(PasswordHistory).filter_by(user_id=user.id).
-                                order_by(PasswordHistory.changed_at.desc()).all())
+            all_passwords = (db.session.query(PasswordHistory).filter_by(user_id=user.id)
+                             .order_by(PasswordHistory.changed_at.desc()).all())
             if len(all_passwords) > 3:
                 for old_password in all_passwords[3:]:
                     db.session.delete(old_password)
@@ -592,9 +612,6 @@ def reset_password(token):
         else:
             error = "An error occurred. Please try again."
             app.logger.error(f"User with email {email} not found.")
-    elif request.method == 'POST':
-        error = "Form validation failed."
-        app.logger.warning(f"Form validation failed for email {email}.")
 
     return render_template('customer/reset_password.html', form=reset_password_form, token=token, error=error)
 
@@ -644,10 +661,8 @@ def edit_profile():
             elif new_password:
                 if not any(char in special_chars for char in new_password):
                     error = "Password must contain at least one special character."
-                elif not any(char.isupper() for char in new_password):
-                    error = "Password must contain at least one uppercase letter."
-                elif not any(char.islower() for char in new_password):
-                    error = "Password must contain at least one lowercase letter."
+                elif not any(char.isupper() for char in new_password) or not any(char.islower() for char in new_password):
+                    error = "Password must contain at least one uppercase and lowercase letter."
 
             # Check last 3 passwords
             if not error:

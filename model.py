@@ -10,6 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 
 from __init__ import db
+SGT = pytz.timezone('Asia/Singapore')
 
 
 class Feedback(db.Model):
@@ -25,7 +26,6 @@ class Feedback(db.Model):
 
     def __repr__(self):
         return f"<Feedback id={self.id} username={self.username} rating={self.rating}>"
-
 
 
 class User(db.Model):
@@ -76,10 +76,6 @@ class PasswordResetRequest(db.Model):
 
     def can_request(self):
         now = datetime.now(SGT)
-        if self.request_count is None:
-            self.request_count = 0
-        if self.last_request_time is None:
-            self.last_request_time = now
         
         if self.last_request_time.tzinfo is None:
             self.last_request_time = SGT.localize(self.last_request_time)
@@ -89,9 +85,7 @@ class PasswordResetRequest(db.Model):
             self.last_request_time = now  
             db.session.commit() 
         
-        if self.request_count < 3:
-            return True
-        return False
+        return self.request_count < 3
     
     def record_request(self):
         self.request_count += 1
@@ -116,7 +110,6 @@ class Admin(db.Model):
         return check_password_hash(self.password_hash, password)
 
 
-
 class Vehicle(db.Model):
     __tablename__ = 'vehicles'
     product_id = db.Column(db.String(50), primary_key=True)
@@ -129,17 +122,9 @@ class Vehicle(db.Model):
     stripe_link = db.Column(db.String(100), nullable=True)
     
 
-
-SGT = pytz.timezone('Asia/Singapore')
 class Log(db.Model):
     __tablename__ = 'logs'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     event_type = db.Column(db.String(50), nullable=False)
     event_time = db.Column(db.DateTime, default=lambda: datetime.now(SGT), nullable=False)
     event_result = db.Column(db.String(255), nullable=False)
-
-
-
-
-
-
