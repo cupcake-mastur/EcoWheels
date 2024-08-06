@@ -103,8 +103,8 @@ for intent in payment_intents.data:
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_email' not in session:
-            return redirect(url_for('login'))  # Redirect to login if user is not authenticated
+        if not session.get('user_logged_in'):
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -353,10 +353,15 @@ def login():
             if user.lockout_until and user.lockout_until.tzinfo is None:
                 user.lockout_until = SGT.localize(user.lockout_until)
 
-            if user.lockout_until and user.lockout_until > current_time:
+            if user.lockout_count >= 4:
+                error = "Account is permanently locked. Please contact us for assistance."
+                app.logger.warning(f"Attempted login for permanently locked account {email}")
+
+            elif user.lockout_until and user.lockout_until > current_time:
                 error = "Account is locked. Please try again later."
                 app.logger.warning(f"Locked account login attempt for {email}")
             else:
+                # If lockout_until has expired, reset failed attempts and lockout_until
                 if user.lockout_until and user.lockout_until <= current_time:
                     user.failed_attempts = 0
                     user.lockout_until = None
@@ -369,7 +374,7 @@ def login():
 
                     otp = generate_otp()
                     session['otp'] = otp
-                    session['user_email'] = email
+                    session['unverified_user_email'] = email
 
                     send_otp_email(user.email, otp)
                     app.logger.info(f"OTP sent to {user.email}")
@@ -379,9 +384,16 @@ def login():
                     user.failed_attempts += 1
 
                     if user.failed_attempts >= 3:
-                        user.lockout_until = current_time + timedelta(minutes=15)
-                        error = "Too many failed attempts. Account is locked for 15 minutes."
-                        app.logger.warning(f"Account locked for {email} after 3 failed attempts.")
+                        user.lockout_count += 1
+                        lockout_duration = get_lockout_duration(user.lockout_count)
+                        if lockout_duration:
+                            user.lockout_until = current_time + lockout_duration
+                            error = f"Too many failed attempts. Account is locked for {lockout_duration}."
+                            app.logger.warning(f"Account locked for {email} after {user.failed_attempts} failed attempts.")
+                        else:
+                            user.lockout_until = None  # Permanent lockout
+                            error = "Account is permanently locked. Please contact us for assistance."
+                            app.logger.warning(f"Account permanently locked for {email} after {user.lockout_count} lockouts.")
                     else:
                         error = "Invalid email or password. Please try again."
                         app.logger.warning(f"Failed login attempt for {email}")
@@ -392,6 +404,17 @@ def login():
             app.logger.warning(f"Failed login attempt for {email}")
 
     return render_template("customer/login.html", form=login_form, error=error)
+
+
+def get_lockout_duration(lockout_count):
+    if lockout_count == 1:
+        return timedelta(seconds=30) # Set to short time's for testing
+    elif lockout_count == 2:
+        return timedelta(seconds=40)
+    elif lockout_count == 3:
+        return timedelta(seconds=50)
+    else:
+        return None  # Permanent lockout
 
 
 def send_otp_email(email, otp):
@@ -420,22 +443,12 @@ def hide_email(email):
 app.jinja_env.filters['hide_email'] = hide_email
 
 
-def hide_credit_card(card_number):
-    # Assuming card_number is a string
-    visible_digits = 4
-    hidden_digits = len(card_number) - visible_digits
-    return '****' * (hidden_digits // 4) + card_number[-visible_digits:]
-
-
-app.jinja_env.filters['hide_credit_card'] = hide_credit_card
-
-
 @app.route('/verify_otp', methods=['GET', 'POST'])
-@login_required
 def verify_otp():
     error = None
-    user_email = session.get('user_email')
     otp_form = OTPForm(request.form)
+
+    user_email = session.get('unverified_user_email')  # Adjust as per your session setup
 
     if not user_email:
         return redirect(url_for('login'))
@@ -461,11 +474,11 @@ def verify_otp():
 
         if otp_generation_time and (current_time - otp_generation_time) <= 60:
             if entered_otp == otp:
-                # Clear OTP from session
                 session.pop('otp', None)
                 session.pop('otp_generation_time', None)
+                session.pop('unverified_user_email', None)
 
-                session['user_email'] = user_email  # Set user in session
+                session['user_email'] = user_email 
                 session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
                 session['user_logged_in'] = True
                 session.permanent = True

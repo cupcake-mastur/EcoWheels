@@ -48,9 +48,7 @@ class CreateUserForm(FlaskForm):
 class LoginForm(FlaskForm):
     email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
     password = PasswordField('Password', [validators.DataRequired(), validators.length(min=8, max=30,
-                                            message="Password must be between 8 and 30 characters long."), 
-                                          validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'), 
-                                                            message= "Password must contain at least one special character.")])
+                                            message="Password must be between 8 and 30 characters long.")])
 
 
 class UpdateProfileForm(FlaskForm):

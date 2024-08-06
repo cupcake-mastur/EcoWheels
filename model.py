@@ -39,8 +39,10 @@ class User(db.Model):
     password_hash = db.Column(db.String(128))
     failed_attempts = db.Column(db.Integer, default=0)
     lockout_until = db.Column(db.DateTime, nullable=True)
+    lockout_count = db.Column(db.Integer, default=0)
     password_history = db.relationship('PasswordHistory', backref='user', lazy=True)
     urls = db.relationship('UserURL', backref='user', lazy=True)
+    password_reset_request = db.relationship('PasswordResetRequest', backref='user', lazy=True)
 
 
 class UserURL(db.Model):
