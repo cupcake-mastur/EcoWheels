@@ -1334,8 +1334,7 @@ def sub_MCustomers():
     customers = query.all()
 
     return render_template('admin/junior_admin/sub_manageCustomers.html', admin_username=admin_username,
-                           customers=customers
-                           , csrf_token=csrf_token, errors=errors)
+                           customers=customers, csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/manageVehicles', methods=['GET', 'POST'])
@@ -1783,6 +1782,38 @@ def backup_logs():
 
     # Send the file to the user
     return send_file(output, download_name='backupLogs.xlsx', as_attachment=True)
+
+
+@app.route('/unlock_customer', methods=['POST'])
+@admin_login_required
+@role_required('system')
+def unlock_customer():
+    current_admin_username = session.get('admin_username')
+    customer_id = request.form.get('customer_id')
+    admin_password = request.form.get('admin_password')
+
+
+    if not admin_password or not is_valid_input(admin_password):
+        log_event('Unlock', f'System admin {current_admin_username} has failed to unsuspend an customer')
+        return redirect(url_for('system_MCustomers'))
+
+
+    current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
+
+    if current_admin and current_admin.check_password(admin_password):
+        customer = db.session.query(User).filter_by(id=customer_id).first()
+        if customer:
+            customer.lockout_count = 0
+            customer.lockout_until = None
+            customer.failed_attempts = 0
+            db.session.commit()
+            log_event('Unlock', f'System admin {current_admin_username} unlocked customer {customer.email}')
+        else:
+            flash('Customer not found', 'error')
+    else:
+        flash('Incorrect password', 'error')
+
+    return redirect(url_for('system_MCustomers'))
 
   
 if __name__ == '__main__':
