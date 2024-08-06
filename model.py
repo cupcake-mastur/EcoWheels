@@ -112,7 +112,7 @@ class Admin(db.Model):
 
 class Vehicle(db.Model):
     __tablename__ = 'vehicles'
-    product_id = db.Column(db.String(50), primary_key=True)
+    product_id = db.Column(db.String(50))
     idvehicles = db.Column(db.Integer, primary_key=True, autoincrement=True)
     brand = db.Column(db.String(50), nullable=False)
     model = db.Column(db.String(50), nullable=False)
