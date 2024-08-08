@@ -103,6 +103,7 @@ class Admin(db.Model):
     login_attempts = db.Column(db.Integer, default=0)
     is_suspended = db.Column(db.Boolean, default=False)
     totp_secret = db.Column(db.String(500), nullable=True)  # Add this field for TOTP secret
+    is_first_login = db.Column(db.Boolean, default=True)  # Add this field to track first login
 
     # def set_password(self, password):
     #     # Update existing passwords using werkzeug.security
