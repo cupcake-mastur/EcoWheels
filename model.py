@@ -11,6 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 
 from __init__ import db
+SGT = pytz.timezone('Asia/Singapore')
 
 
 class Feedback(db.Model):
@@ -28,7 +29,6 @@ class Feedback(db.Model):
         return f"<Feedback id={self.id} username={self.username} rating={self.rating}>"
 
 
-
 class User(db.Model):
     __tablename__ = 'users'
 
@@ -40,8 +40,10 @@ class User(db.Model):
     password_hash = db.Column(db.String(128))
     failed_attempts = db.Column(db.Integer, default=0)
     lockout_until = db.Column(db.DateTime, nullable=True)
+    lockout_count = db.Column(db.Integer, default=0)
     password_history = db.relationship('PasswordHistory', backref='user', lazy=True)
     urls = db.relationship('UserURL', backref='user', lazy=True)
+    password_reset_request = db.relationship('PasswordResetRequest', backref='user', lazy=True)
 
 
 class UserURL(db.Model):
@@ -77,10 +79,6 @@ class PasswordResetRequest(db.Model):
 
     def can_request(self):
         now = datetime.now(SGT)
-        if self.request_count is None:
-            self.request_count = 0
-        if self.last_request_time is None:
-            self.last_request_time = now
         
         if self.last_request_time.tzinfo is None:
             self.last_request_time = SGT.localize(self.last_request_time)
@@ -90,9 +88,7 @@ class PasswordResetRequest(db.Model):
             self.last_request_time = now  
             db.session.commit() 
         
-        if self.request_count < 3:
-            return True
-        return False
+        return self.request_count < 3
     
     def record_request(self):
         self.request_count += 1
@@ -108,6 +104,7 @@ class Admin(db.Model):
     login_attempts = db.Column(db.Integer, default=0)
     is_suspended = db.Column(db.Boolean, default=False)
     totp_secret = db.Column(db.String(500), nullable=True)  # Add this field for TOTP secret
+    is_first_login = db.Column(db.Boolean, default=True)  # Add this field to track first login
 
     # def set_password(self, password):
     #     # Update existing passwords using werkzeug.security
@@ -117,10 +114,9 @@ class Admin(db.Model):
         return check_password_hash(self.password_hash, password)
 
 
-
 class Vehicle(db.Model):
     __tablename__ = 'vehicles'
-    product_id = db.Column(db.String(50), primary_key=True)
+    product_id = db.Column(db.String(50))
     idvehicles = db.Column(db.Integer, primary_key=True, autoincrement=True)
     brand = db.Column(db.String(50), nullable=False)
     model = db.Column(db.String(50), nullable=False)
@@ -143,17 +139,9 @@ class Product(db.Model):
         return f"<Product id={self.id} prod_id={self.prod_id} product_name={self.product_name}>"
     __tablename__ = 'PurchasedItem'
 
-
-SGT = pytz.timezone('Asia/Singapore')
 class Log(db.Model):
     __tablename__ = 'logs'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     event_type = db.Column(db.String(50), nullable=False)
     event_time = db.Column(db.DateTime, default=lambda: datetime.now(SGT), nullable=False)
     event_result = db.Column(db.String(255), nullable=False)
-
-
-
-
-
-

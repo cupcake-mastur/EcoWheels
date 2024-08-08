@@ -103,8 +103,8 @@ for intent in payment_intents.data:
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_email' not in session:
-            return redirect(url_for('login'))  # Redirect to login if user is not authenticated
+        if not session.get('user_logged_in'):
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -382,10 +382,15 @@ def login():
             if user.lockout_until and user.lockout_until.tzinfo is None:
                 user.lockout_until = SGT.localize(user.lockout_until)
 
-            if user.lockout_until and user.lockout_until > current_time:
+            if user.lockout_count >= 4:
+                error = "Account is permanently locked. Please contact us for assistance."
+                app.logger.warning(f"Attempted login for permanently locked account {email}")
+
+            elif user.lockout_until and user.lockout_until > current_time:
                 error = "Account is locked. Please try again later."
                 app.logger.warning(f"Locked account login attempt for {email}")
             else:
+                # If lockout_until has expired, reset failed attempts and lockout_until
                 if user.lockout_until and user.lockout_until <= current_time:
                     user.failed_attempts = 0
                     user.lockout_until = None
@@ -398,7 +403,7 @@ def login():
 
                     otp = generate_otp()
                     session['otp'] = otp
-                    session['user_email'] = email
+                    session['unverified_user_email'] = email
 
                     send_otp_email(user.email, otp)
                     app.logger.info(f"OTP sent to {user.email}")
@@ -408,9 +413,16 @@ def login():
                     user.failed_attempts += 1
 
                     if user.failed_attempts >= 3:
-                        user.lockout_until = current_time + timedelta(minutes=15)
-                        error = "Too many failed attempts. Account is locked for 15 minutes."
-                        app.logger.warning(f"Account locked for {email} after 3 failed attempts.")
+                        user.lockout_count += 1
+                        lockout_duration = get_lockout_duration(user.lockout_count)
+                        if lockout_duration:
+                            user.lockout_until = current_time + lockout_duration
+                            error = f"Too many failed attempts. Account is locked for {lockout_duration}."
+                            app.logger.warning(f"Account locked for {email} after {user.failed_attempts} failed attempts.")
+                        else:
+                            user.lockout_until = None  # Permanent lockout
+                            error = "Account is permanently locked. Please contact us for assistance."
+                            app.logger.warning(f"Account permanently locked for {email} after {user.lockout_count} lockouts.")
                     else:
                         error = "Invalid email or password. Please try again."
                         app.logger.warning(f"Failed login attempt for {email}")
@@ -421,6 +433,17 @@ def login():
             app.logger.warning(f"Failed login attempt for {email}")
 
     return render_template("customer/login.html", form=login_form, error=error)
+
+
+def get_lockout_duration(lockout_count):
+    if lockout_count == 1:
+        return timedelta(seconds=30) # Set to short time's for testing
+    elif lockout_count == 2:
+        return timedelta(seconds=40)
+    elif lockout_count == 3:
+        return timedelta(seconds=50)
+    else:
+        return None  # Permanent lockout
 
 
 def send_otp_email(email, otp):
@@ -449,22 +472,12 @@ def hide_email(email):
 app.jinja_env.filters['hide_email'] = hide_email
 
 
-def hide_credit_card(card_number):
-    # Assuming card_number is a string
-    visible_digits = 4
-    hidden_digits = len(card_number) - visible_digits
-    return '****' * (hidden_digits // 4) + card_number[-visible_digits:]
-
-
-app.jinja_env.filters['hide_credit_card'] = hide_credit_card
-
-
 @app.route('/verify_otp', methods=['GET', 'POST'])
-@login_required
 def verify_otp():
     error = None
-    user_email = session.get('user_email')
     otp_form = OTPForm(request.form)
+
+    user_email = session.get('unverified_user_email')  # Adjust as per your session setup
 
     if not user_email:
         return redirect(url_for('login'))
@@ -490,11 +503,11 @@ def verify_otp():
 
         if otp_generation_time and (current_time - otp_generation_time) <= 60:
             if entered_otp == otp:
-                # Clear OTP from session
                 session.pop('otp', None)
                 session.pop('otp_generation_time', None)
+                session.pop('unverified_user_email', None)
 
-                session['user_email'] = user_email  # Set user in session
+                session['user_email'] = user_email 
                 session['expiry_time'] = (datetime.now(timezone.utc) + app.config['PERMANENT_SESSION_LIFETIME']).timestamp()
                 session['user_logged_in'] = True
                 session.permanent = True
@@ -533,30 +546,42 @@ def request_password_reset():
     error = None
     request_password_reset_form = RequestPasswordResetForm(request.form)
 
-    if request.method == 'POST':
+    if request.method == 'POST' and request_password_reset_form.validate():
         email = request.form.get('email')
         user = db.session.query(User).filter_by(email=email).first()
 
-        # Record the request regardless of the user existence
-        reset_request = db.session.query(PasswordResetRequest).filter_by(email=email).first()
+        recent_reset_requests = db.session.query(PasswordResetRequest).filter(
+            PasswordResetRequest.last_request_time >= datetime.now(SGT) - timedelta(seconds=40)
+        ).all()
 
+        total_requests = sum(req.request_count for req in recent_reset_requests)
+
+        if total_requests >= 3:
+            error = (
+                "Password reset request limit exceeded.\n" 
+                "Please try again later."
+            )
+            return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
+
+        reset_request = db.session.query(PasswordResetRequest).filter_by(email=email).first()
         if not reset_request:
             reset_request = PasswordResetRequest(email=email)
             db.session.add(reset_request)
-        else:
-            # If reset_request exists, check if the user can request a reset
-            if not reset_request.can_request():
-                error = (
-                    "Password reset request limit exceeded.\n" 
-                    "Please try again later."
-                )
-                return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
+
+        # Record the request
+        if not reset_request.can_request():
+            error = (
+                "Password reset request limit exceeded for this email.\n" 
+                "Please try again later."
+            )
+            return render_template('customer/request_password_reset.html', form=request_password_reset_form, error=error)
 
         reset_request.record_request()
         db.session.commit()
 
+        # Send reset email if user exists
+        user = db.session.query(User).filter_by(email=email).first()
         if user:
-            # Set the user_id after the initial commit to ensure user exists
             reset_request.user_id = user.id
             db.session.commit()
 
@@ -600,9 +625,17 @@ def reset_password(token):
         new_password = reset_password_form.password.data
         confirm_password = reset_password_form.confirm_password.data
 
+        special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
+
         if new_password != confirm_password:
-            error = "Passwords do not match"
-            return redirect(url_for('reset_password', token=token))
+            error = "Passwords do not match."
+        elif not any(char in special_chars for char in new_password):
+            error = "Password must contain at least one special character."
+        elif not any(char.isupper() for char in new_password) or not any(char.islower() for char in new_password):
+            error = "Password must contain at least one uppercase and one lowercase letter."
+        if error:
+            print(f"Error detected: {error}")
+            return render_template('customer/reset_password.html', form=reset_password_form, token=token, error=error)
 
         user = db.session.query(User).filter_by(email=email).first()
         if user:
@@ -610,8 +643,8 @@ def reset_password(token):
             new_password_history = PasswordHistory(user_id=user.id, password_hash=user.password_hash)
             db.session.add(new_password_history)
 
-            all_passwords = (db.session.query(PasswordHistory).filter_by(user_id=user.id).
-                                order_by(PasswordHistory.changed_at.desc()).all())
+            all_passwords = (db.session.query(PasswordHistory).filter_by(user_id=user.id)
+                             .order_by(PasswordHistory.changed_at.desc()).all())
             if len(all_passwords) > 3:
                 for old_password in all_passwords[3:]:
                     db.session.delete(old_password)
@@ -621,9 +654,6 @@ def reset_password(token):
         else:
             error = "An error occurred. Please try again."
             app.logger.error(f"User with email {email} not found.")
-    elif request.method == 'POST':
-        error = "Form validation failed."
-        app.logger.warning(f"Form validation failed for email {email}.")
 
     return render_template('customer/reset_password.html', form=reset_password_form, token=token, error=error)
 
@@ -673,10 +703,8 @@ def edit_profile():
             elif new_password:
                 if not any(char in special_chars for char in new_password):
                     error = "Password must contain at least one special character."
-                elif not any(char.isupper() for char in new_password):
-                    error = "Password must contain at least one uppercase letter."
-                elif not any(char.islower() for char in new_password):
-                    error = "Password must contain at least one lowercase letter."
+                elif not any(char.isupper() for char in new_password) or not any(char.islower() for char in new_password):
+                    error = "Password must contain at least one uppercase and lowercase letter."
 
             # Check last 3 passwords
             if not error:
@@ -916,6 +944,26 @@ vehicle_backup_time = []
 customer_backup_time = []
 logs_backup_time = []
 
+# Session time-out
+def admin_session_timeout_check(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        now = datetime.now().timestamp()
+        last_activity = session.get('admin_last_activity', None)
+
+        if last_activity and now - last_activity > 15 * 60:  # 15 minutes timeout
+            admin_username = session.get('admin_username')
+            session.pop('admin_logged_in', None)
+            session.pop('admin_username', None)
+            session.pop('admin_role', None)
+            session.pop('admin_last_activity', None)
+            log_event("Logout", f"Inactivity for 15 minutes led to {admin_username}'s session timeout")
+            return redirect(url_for('admin_log_in'))
+
+        session['admin_last_activity'] = now
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 # Log event function
 def log_event(event_type, event_result):
@@ -979,19 +1027,19 @@ def admin_log_in():
                 admin.login_attempts = 0
                 db.session.commit()
 
+                session.permanent = True  # Make the session permanent to use PERMANENT_SESSION_LIFETIME
                 session['admin_username'] = username
+                session['admin_last_activity'] = datetime.now().timestamp()
 
                 if username in system_admin_list:
-                    # Generate TOTP secret for system admin if not already created
                     if not admin.totp_secret:
                         totp_secret = pyotp.random_base32()
                         admin.totp_secret = totp_secret
                         db.session.commit()
 
-                    # Redirect to 2FA verification
                     session['admin_role'] = 'system'
-                    session['admin_logged_in'] = False  # Not fully logged in yet
-                    return redirect(url_for('verify_2fa'))
+                    session['admin_logged_in'] = False
+                    return redirect(url_for('verify_2fa')) # system admin 2fa
 
                 session['admin_logged_in'] = True
 
@@ -1026,7 +1074,7 @@ def admin_log_in():
 # Route to verify 2FA for system admin
 @app.route('/verify_2fa', methods=['GET', 'POST'])
 def verify_2fa():
-    csrf_token = generate_csrf()  # Generate CSRF token
+    csrf_token = generate_csrf()
     if 'admin_username' not in session:
         return redirect(url_for('admin_log_in'))
 
@@ -1043,6 +1091,7 @@ def verify_2fa():
         if totp.verify(token) and is_valid_input(token):
             session['admin_logged_in'] = True
             admin.login_attempts = 0
+            admin.is_first_login = False  # Set first login to False after successful 2FA
             db.session.commit()
 
             log_event('Login', f'Successful 2FA login for system admin {username}.')
@@ -1051,7 +1100,7 @@ def verify_2fa():
             error_message = "Invalid 2FA code. Please try again."
             log_event('Login', f'Failed 2FA attempt for system admin {username}.')
 
-    return render_template('admin/system_admin/verify_2fa.html', error_message=error_message, csrf_token=csrf_token)
+    return render_template('admin/system_admin/verify_2fa.html', error_message=error_message, csrf_token=csrf_token, is_first_login=admin.is_first_login)
 
 
 # Route to serve the QR code image
@@ -1119,6 +1168,7 @@ def save_image_file(form_file):
 @app.route('/createVehicle', methods=['GET', 'POST'])
 @role_required('general')
 @admin_login_required
+@admin_session_timeout_check
 def createVehicle():
     create_vehicle_form = CreateVehicleForm()
     if request.method == 'POST' and create_vehicle_form.validate_on_submit():
@@ -1150,6 +1200,7 @@ def createVehicle():
 @app.route('/system_createVehicle', methods=['GET', 'POST'])
 @role_required('system')
 @admin_login_required
+@admin_session_timeout_check
 def system_createVehicle():
     create_vehicle_form = CreateVehicleForm()
     if request.method == 'POST' and create_vehicle_form.validate_on_submit():
@@ -1186,6 +1237,7 @@ def ErrorPage():
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('general')
 def dashboard():
     admin_username = session.get('admin_username')
@@ -1197,6 +1249,7 @@ def dashboard():
 
 @app.route('/system_admin_dashboard', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_dashboard():
     admin_username = session.get('admin_username')
@@ -1209,6 +1262,7 @@ def system_dashboard():
 
 @app.route('/sub_dashboard', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('junior')
 def sub_dashboard():
     admin_username = session.get('admin_username')
@@ -1220,6 +1274,7 @@ def sub_dashboard():
 
 @app.route('/manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('general')
 def MCustomers():
     admin_username = session.get('admin_username')
@@ -1261,6 +1316,7 @@ def MCustomers():
 
 @app.route('/system_manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_MCustomers():
     admin_username = session.get('admin_username')
@@ -1302,6 +1358,7 @@ def system_MCustomers():
 
 @app.route('/sub_manageCustomers', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('junior')
 def sub_MCustomers():
     admin_username = session.get('admin_username')
@@ -1338,12 +1395,12 @@ def sub_MCustomers():
     customers = query.all()
 
     return render_template('admin/junior_admin/sub_manageCustomers.html', admin_username=admin_username,
-                           customers=customers
-                           , csrf_token=csrf_token, errors=errors)
+                           customers=customers, csrf_token=csrf_token, errors=errors)
 
 
 @app.route('/manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('general')
 def MVehicles():
     admin_username = session.get('admin_username')
@@ -1386,6 +1443,7 @@ def MVehicles():
 
 @app.route('/system_manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_MVehicles():
     admin_username = session.get('admin_username')
@@ -1429,6 +1487,7 @@ def system_MVehicles():
 
 @app.route('/sub_manageVehicles', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('junior')
 def sub_MVehicles():
     admin_username = session.get('admin_username')
@@ -1488,6 +1547,7 @@ def delete_vehicle(id):
 
 @app.route('/logs', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_logs():
     admin_username = session.get('admin_username')
@@ -1527,6 +1587,7 @@ def system_logs():
 
 @app.route('/system_manageFeedback')
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_manageFeedback():
     admin_username = session.get('admin_username')
@@ -1541,6 +1602,7 @@ def system_manageFeedback():
 
 @app.route('/sub_manageFeedback')
 @admin_login_required
+@admin_session_timeout_check
 @role_required('junior')
 def sub_manageFeedback():
     admin_username = session.get('admin_username')
@@ -1556,6 +1618,7 @@ def sub_manageFeedback():
 
 @app.route('/system_manageAdmin', methods=['GET', 'POST'])
 @admin_login_required
+@admin_session_timeout_check
 @role_required('system')
 def system_manageAdmin():
     admin_username = session.get('admin_username')
@@ -1616,7 +1679,10 @@ def admin_logout():
             log_event('Logout', f'Successfully logged out junior admin {admin_username}')
         else:
             log_event('Logout', f'Successfully logged out admin {admin_username}')
-        session.clear()  # Clear all session data
+        session.pop('admin_logged_in', None)
+        session.pop('admin_username', None)
+        session.pop('admin_role', None)
+        session.pop('admin_last_activity', None)
         return redirect(url_for('admin_log_in'))
     else:
         return "Admin is not logged in."
@@ -1777,6 +1843,39 @@ def backup_logs():
 
     # Send the file to the user
     return send_file(output, download_name='backupLogs.xlsx', as_attachment=True)
-  
+
+
+@app.route('/unlock_customer', methods=['POST'])
+@admin_login_required
+@role_required('system')
+def unlock_customer():
+    current_admin_username = session.get('admin_username')
+    customer_id = request.form.get('customer_id')
+    admin_password = request.form.get('admin_password')
+
+
+    if not admin_password or not is_valid_input(admin_password):
+        log_event('Unlock', f'System admin {current_admin_username} has failed to unsuspend an customer')
+        return redirect(url_for('system_MCustomers'))
+
+
+    current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
+
+    if current_admin and current_admin.check_password(admin_password):
+        customer = db.session.query(User).filter_by(id=customer_id).first()
+        if customer:
+            customer.lockout_count = 0
+            customer.lockout_until = None
+            customer.failed_attempts = 0
+            db.session.commit()
+            log_event('Unlock', f'System admin {current_admin_username} unlocked customer {customer.email}')
+        else:
+            flash('Customer not found', 'error')
+    else:
+        flash('Incorrect password', 'error')
+
+    return redirect(url_for('system_MCustomers'))
+
+
 if __name__ == '__main__':
     app.run(debug=True, port = 5000)
