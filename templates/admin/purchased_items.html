@@ -3,32 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Purchased Items</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <title>Products</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-    <h1>Purchased Items</h1>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Model</th>
-                <th>Amount</th>
-                <th>Currency</th>
-                <th>Purchase Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in purchased_items %}
-            <tr>
-                <td>{{ item.model }}</td>
-                <td>{{ item.amount }}</td>
-                <td>{{ item.currency }}</td>
-                <td>{{ item.purchase_date }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
+    <h1>Products</h1>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Product ID</th>
+            <th>Product Name</th>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Price</th>
+        </tr>
+        {% for product in products %}
+        <tr>
+            <td>{{ product.id }}</td>
+            <td>{{ product.prod_id }}</td>
+            <td>{{ product.product_name }}</td>
+            <td>{{ product.full_name }}</td>
+            <td>{{ product.email }}</td>
+            <td>{{ product.price }}</td>
+        </tr>
+        {% endfor %}
     </table>
-</div>
 </body>
 </html>

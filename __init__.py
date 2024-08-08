@@ -90,8 +90,8 @@ with app.app_context():
 
 SGT = pytz.timezone('Asia/Singapore')
 
-#the stripe key for payment (SORRY ILL HIDE DIS LTR ON)
-stripe.api_key = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51Pe8BfFIE5otqt7EOKvQqa9Q21pxw6sOSStBTVsAqYPW89hggCJQjVoQd71erh65UnljQgmMPJDs0MnkkqsZ3E8C00WpoPI9Xz')
+#the stripe key for payment
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 # Retrieve the latest 10 payment intents
 payment_intents = stripe.PaymentIntent.list(limit=10)
@@ -134,20 +134,49 @@ def handle_csrf_error(e):
 def home():
     return render_template("homepage/homepage.html")
 
+@app.route('/chatbot')
+def chatbot_page():
+    return render_template("customer/chatbot.html")
 
-@app.route('/product_page')
-def product_page():
-    all_result = [
-        # Example product data (seller, product)
-        ('Seller1', {'get_product_id': lambda: 'prod_1', 'get_product_name': lambda: 'Product 1', 'get_product_price': lambda: 15.00, 'get_image': lambda: 'product1.jpg'}),
-        ('Seller2', {'get_product_id': lambda: 'prod_2', 'get_product_name': lambda: 'Product 2', 'get_product_price': lambda: 5.00, 'get_image': lambda: 'product2.jpg'}),
-        ('Seller3', {'get_product_id': lambda: 'prod_3', 'get_product_name': lambda: 'Product 3', 'get_product_price': lambda: 8.00, 'get_image': lambda: 'product3.jpg'}),
-        ('Seller4', {'get_product_id': lambda: 'prod_4', 'get_product_name': lambda: 'Product 4', 'get_product_price': lambda: 2.00, 'get_image': lambda: 'product4.jpg'}),
-    ]
-    return render_template('customer/test_product_page(exists till terron creates one hehe).html', all_result=all_result)
+class SimpleChatBot:
+    def __init__(self):
+        self.responses = {
+            "hello": "Hello! How can I help you today?",
+            "help": "You can ask me about our services, or say 'bye' to end the chat.",
+            "bye": "Goodbye! Have a great day!"
+        }
+
+    def get_response(self, message):
+        # Normalize the message to lowercase to simplify matching
+        message = message.lower().strip()
+        return self.responses.get(message, "Sorry, I didn't understand that.")
+    
+chatbot = SimpleChatBot()
+@app.route('/chat', methods=['POST'])
+def chat():
+    user_message = request.json.get('message')
+    if not user_message:
+        return jsonify({"error": "No message provided"}), 400
+
+    bot_response = chatbot.get_response(user_message)
+    return jsonify({"response": bot_response})
+
+
+# @app.route('/product_page')
+# @login_required
+# def product_page():
+#     all_result = [
+#         # Example product data (seller, product)
+#         ('Seller1', {'get_product_id': lambda: 'prod_1', 'get_product_name': lambda: 'Product 1', 'get_product_price': lambda: 15.00, 'get_image': lambda: 'product1.jpg'}),
+#         ('Seller2', {'get_product_id': lambda: 'prod_2', 'get_product_name': lambda: 'Product 2', 'get_product_price': lambda: 5.00, 'get_image': lambda: 'product2.jpg'}),
+#         ('Seller3', {'get_product_id': lambda: 'prod_3', 'get_product_name': lambda: 'Product 3', 'get_product_price': lambda: 8.00, 'get_image': lambda: 'product3.jpg'}),
+#         ('Seller4', {'get_product_id': lambda: 'prod_4', 'get_product_name': lambda: 'Product 4', 'get_product_price': lambda: 2.00, 'get_image': lambda: 'product4.jpg'}),
+#     ]
+#     return render_template('customer/test_product_page(exists till terron creates one hehe).html', all_result=all_result)
 
 
 @app.route('/models')
+# @login_required
 def models():
     vehicles = db.session.query(Vehicle).all()
 
@@ -737,97 +766,128 @@ def before_request():
 # def cart_page():
 #     return render_template('customer/shopping_cart.html')
 
+def get_latest_payment_intents(limit=10):
+    payment_intents = stripe.PaymentIntent.list(limit=limit)
+    return payment_intents['data']
+
+@app.route('/stripe_dashboard')
+def stripe_dashboard():
+    payment_intents = get_latest_payment_intents()
+    return render_template('admin/stripe_dashboard.html', payment_intents=payment_intents)
+
 
 @app.route('/create-checkout-session', methods=['POST'])
+@login_required
 def create_checkout_session():
     try:
         data = request.get_json()
+        product_id = data['product_id']
         model = data['model']
         amount = data['amount']
-        
-        session = stripe.checkout.Session.create(
+
+        email = session['user_email']
+        user = db.session.query(User).filter_by(email=email).first()
+
+        if not user:
+            return jsonify(error='User not found'), 404
+
+        customer_name = user.full_name
+        customer_email = user.email
+
+        # Create a customer in Stripe if necessary
+        stripe_customer = stripe.Customer.create(
+            name=customer_name,
+            email=customer_email
+        )
+
+        checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
+            customer=stripe_customer.id,
             line_items=[{
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
                         'name': model,
-                        'metadata': {'model': model}  # Include metadata
+                        'metadata': {
+                            'product_id': product_id,
+                            'model': model,
+                        }
                     },
                     'unit_amount': int(amount * 100),
                 },
                 'quantity': 1,
             }],
             mode='payment',
-            success_url='http://127.0.0.1:5000/success',
+            success_url='http://127.0.0.1:5000/payment_success',
             cancel_url='http://127.0.0.1:5000/cancel',
         )
-        return jsonify({'url': session.url})
+        return jsonify({'id': checkout_session.id})
     except Exception as e:
         return jsonify(error=str(e)), 400
-def success_page():
-    return render_template('customer/payment_success.html')
+
+
 
 @app.route('/purchased-items')
 def purchased_items():
+    products =  db.session.query(Product).all()
+    return render_template('admin/purchased_items.html', products=products)
+# def purchased_items():
     payment_intents = stripe.PaymentIntent.list(limit=10)
     purchased_items = []
     for intent in payment_intents.data:
         if intent.status == 'succeeded':
+            customer_name = 'N/A'
+            customer_email = 'N/A'
+            product_id = intent.metadata.get('product_id', 'N/A')
+            
+            if intent.customer:
+                customer = stripe.Customer.retrieve(intent.customer)
+                customer_name = customer.name
+                customer_email = customer.email
+            
             item = {
-                'model': intent.metadata.get('model'),
+                'customer_name': customer_name,
+                'customer_email': customer_email,
+                'product_id': product_id,
                 'amount': intent.amount / 100,
                 'currency': intent.currency.upper(),
                 'purchase_date': datetime.fromtimestamp(intent.created)
             }
             purchased_items.append(item)
-    return render_template('admin/purchased_items.html', purchased_items=purchased_items)   
+    return render_template('admin/purchased_items.html', purchased_items=purchased_items)
 
-@app.route('/fetch-payments', methods=['GET'])
-def fetch_payments():
-    # Fetch the latest 10 payment intents
-    payment_intents = stripe.PaymentIntent.list(limit=10)
-
-    for payment_intent in payment_intents['data']:
-        customer_email = payment_intent['receipt_email']
-        amount_total = payment_intent['amount_received'] / 100.0  # Stripe amounts are in cents
-        currency = payment_intent['currency']
-        payment_intent_id = payment_intent['id']
-        purchase_date = datetime.fromtimestamp(payment_intent['created'])
-
-        # Check if the payment intent already exists in the database
-        existing_purchase = Purchase.query.filter_by(payment_intent_id=payment_intent_id).first()
-        if not existing_purchase:
-            purchase = Purchase(
-                customer_email=customer_email,
-                amount_total=amount_total,
-                currency=currency,
-                payment_intent_id=payment_intent_id,
-                purchase_date=purchase_date
-            )
-            db.session.add(purchase)
-
-    db.session.commit()
-    return jsonify({'status': 'success'}), 200
-    
-def handle_checkout_session(session):
-    customer_email = session.get('customer_details', {}).get('email')
-    amount_total = session.get('amount_total')
-    currency = session.get('currency')
-    payment_intent_id = session.get('payment_intent')
-    purchase_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-    # Assuming you have a SQLAlchemy model `Purchase`
-    new_purchase = Purchase(
-        customer_email=customer_email,
-        amount_total=amount_total / 100,  # Convert from cents to dollars
-        currency=currency.upper(),
-        payment_intent_id=payment_intent_id,
-        purchase_date=purchase_date
-    )
-
-    db.session.add(new_purchase)
-    db.session.commit() 
+# @app.route('/fetch-purchases', methods=['GET'])
+# def fetch_purchases():
+#     try:
+#         payment_intents = stripe.PaymentIntent.list(limit=10)
+#         for intent in payment_intents.data:
+#             if intent.status == 'succeeded':
+#                 customer_name = intent.charges.data[0].billing_details.name
+#                 customer_email = intent.charges.data[0].billing_details.email
+#                 product_id = intent.metadata.get('product_id')
+#                 model = intent.metadata.get('model')
+#                 amount = intent.amount_received / 100.0  # Stripe amounts are in cents
+#                 currency = intent.currency.upper()
+#                 purchase_date = datetime.fromtimestamp(intent.created, tz=SGT)
+                
+#                 # Check if the purchase already exists
+#                 existing_purchase = db.session.query(Purchase).filter_by(payment_intent_id=intent.id).first()
+#                 if not existing_purchase:
+#                     new_purchase = Purchase(
+#                         customer_name=customer_name,
+#                         customer_email=customer_email,
+#                         product_id=product_id,
+#                         model=model,
+#                         amount=amount,
+#                         currency=currency,
+#                         purchase_date=purchase_date
+#                     )
+#                     db.session.add(new_purchase)
+#                     db.session.commit()
+                    
+#         return jsonify({'status': 'success'}), 200
+#     except Exception as e:
+#         return jsonify(error=str(e)), 400
 
 
 @app.route('/payment_success')

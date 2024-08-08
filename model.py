@@ -1,9 +1,10 @@
+from decimal import Decimal
 import pyotp
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Float, LargeBinary, Text
+from sqlalchemy import Column, Integer, String, Numeric, Float, LargeBinary, Text
 from datetime import datetime, timedelta
 import pytz
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -128,6 +129,19 @@ class Vehicle(db.Model):
     description = db.Column(db.Text, nullable=True)
     stripe_link = db.Column(db.String(100), nullable=True)
     
+class Product(db.Model):
+    __tablename__ = 'PurchasedItem'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    prod_id = db.Column(db.String(255), unique=True, nullable=False)
+    product_name = db.Column(db.String(255), nullable=True)
+    full_name = db.Column(db.String(255), nullable=True)
+    email = db.Column(db.String(255), nullable=True)
+    price = db.Column(db.Numeric(10, 2), nullable=True)
+
+    def __repr__(self):
+        return f"<Product id={self.id} prod_id={self.prod_id} product_name={self.product_name}>"
+    __tablename__ = 'PurchasedItem'
 
 
 SGT = pytz.timezone('Asia/Singapore')
