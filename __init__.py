@@ -1014,7 +1014,7 @@ def admin_log_in():
 # Route to verify 2FA for system admin
 @app.route('/verify_2fa', methods=['GET', 'POST'])
 def verify_2fa():
-    csrf_token = generate_csrf()  # Generate CSRF token
+    csrf_token = generate_csrf()
     if 'admin_username' not in session:
         return redirect(url_for('admin_log_in'))
 
@@ -1031,6 +1031,7 @@ def verify_2fa():
         if totp.verify(token) and is_valid_input(token):
             session['admin_logged_in'] = True
             admin.login_attempts = 0
+            admin.is_first_login = False  # Set first login to False after successful 2FA
             db.session.commit()
 
             log_event('Login', f'Successful 2FA login for system admin {username}.')
@@ -1039,7 +1040,7 @@ def verify_2fa():
             error_message = "Invalid 2FA code. Please try again."
             log_event('Login', f'Failed 2FA attempt for system admin {username}.')
 
-    return render_template('admin/system_admin/verify_2fa.html', error_message=error_message, csrf_token=csrf_token)
+    return render_template('admin/system_admin/verify_2fa.html', error_message=error_message, csrf_token=csrf_token, is_first_login=admin.is_first_login)
 
 
 # Route to serve the QR code image
