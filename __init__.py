@@ -1904,6 +1904,42 @@ def unlock_customer():
 
     return redirect(url_for('system_MCustomers'))
 
+def is_valid_email(email):
+    regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    return re.match(regex, email) is not None
+
+@app.route('/purchaseHistory', methods=['POST'])
+@admin_login_required
+@admin_session_timeout_check
+def purchase_history():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+
+        # Validate email format
+        if not is_valid_email(email):
+            return jsonify({'error': 'Invalid email format'}), 400
+
+        # Query the PurchasedItem table for the given customer email
+        purchases = db.session.query(Product).filter_by(email=email).all()
+
+        # Prepare the data to be sent as JSON
+        purchase_data = [
+            {
+                'product_name': purchase.product_name,
+                'price': float(purchase.price)
+            }
+            for purchase in purchases
+        ]
+
+        # Get the total count of purchased items
+        purchase_count = len(purchases)
+
+        return jsonify({'purchases': purchase_data, 'count': purchase_count})
+    except Exception as e:
+        app.logger.error(f"Error fetching purchase history: {e}")
+        return jsonify({'error': 'An error occurred while fetching purchase history'}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port = 5000)
