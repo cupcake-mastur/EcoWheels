@@ -1883,7 +1883,7 @@ def unlock_customer():
 
 
     if not admin_password or not is_valid_input(admin_password):
-        log_event('Unlock', f'System admin {current_admin_username} has failed to unsuspend an customer')
+        log_event('Unlock', f'System admin {current_admin_username} has failed to unlock a customer')
         return redirect(url_for('system_MCustomers'))
 
 
