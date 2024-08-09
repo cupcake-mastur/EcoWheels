@@ -23,7 +23,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from itsdangerous import URLSafeTimedSerializer
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import exists, func
+from sqlalchemy import exists, func, text
 from werkzeug.utils import secure_filename
 from PIL import Image
 from model import *
@@ -853,36 +853,64 @@ def create_checkout_session():
     except Exception as e:
         return jsonify(error=str(e)), 400
 
+# @app.route('/customer/history')
+# def customer_purchase_history():
+#     # Execute the query to fetch all purchases
+#     purchases = db.session.execute(text("""
+#         SELECT full_name, email, product_name, price 
+#         FROM PurchasedItem
+#         ORDER BY email;
+#     """)).fetchall()
+
+#     # Dictionary to group products by customer email
+#     customer_purchases = {}
+
+#     for purchase in purchases:
+#         email = purchase.email
+#         if email not in customer_purchases:
+#             customer_purchases[email] = {
+#                 'full_name': purchase.full_name,
+#                 'email': email,
+#                 'products': []
+#             }
+#         customer_purchases[email]['products'].append({
+#             'prod_name': purchase.product_name,
+#             'price': purchase.price
+#         })
+
+#     # Render the template with grouped customer purchases
+#     return render_template('admin/customer_purchase_history.html', customers=customer_purchases)
 
 
-@app.route('/purchased-items')
-def purchased_items():
-    products =  db.session.query(Product).all()
-    return render_template('admin/purchased_items.html', products=products)
+
+# @app.route('/purchased-items')
 # def purchased_items():
-    payment_intents = stripe.PaymentIntent.list(limit=10)
-    purchased_items = []
-    for intent in payment_intents.data:
-        if intent.status == 'succeeded':
-            customer_name = 'N/A'
-            customer_email = 'N/A'
-            product_id = intent.metadata.get('product_id', 'N/A')
+#     products =  db.session.query(Product).all()
+#     return render_template('admin/purchased_items.html', products=products)
+# # def purchased_items():
+#     payment_intents = stripe.PaymentIntent.list(limit=10)
+#     purchased_items = []
+#     for intent in payment_intents.data:
+#         if intent.status == 'succeeded':
+#             customer_name = 'N/A'
+#             customer_email = 'N/A'
+#             product_id = intent.metadata.get('product_id', 'N/A')
             
-            if intent.customer:
-                customer = stripe.Customer.retrieve(intent.customer)
-                customer_name = customer.name
-                customer_email = customer.email
+#             if intent.customer:
+#                 customer = stripe.Customer.retrieve(intent.customer)
+#                 customer_name = customer.name
+#                 customer_email = customer.email
             
-            item = {
-                'customer_name': customer_name,
-                'customer_email': customer_email,
-                'product_id': product_id,
-                'amount': intent.amount / 100,
-                'currency': intent.currency.upper(),
-                'purchase_date': datetime.fromtimestamp(intent.created)
-            }
-            purchased_items.append(item)
-    return render_template('admin/purchased_items.html', purchased_items=purchased_items)
+#             item = {
+#                 'customer_name': customer_name,
+#                 'customer_email': customer_email,
+#                 'product_id': product_id,
+#                 'amount': intent.amount / 100,
+#                 'currency': intent.currency.upper(),
+#                 'purchase_date': datetime.fromtimestamp(intent.created)
+#             }
+#             purchased_items.append(item)
+#     return render_template('admin/purchased_items.html', purchased_items=purchased_items)
 
 # @app.route('/fetch-purchases', methods=['GET'])
 # def fetch_purchases():
