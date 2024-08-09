@@ -1654,6 +1654,9 @@ def system_manageAdmin():
     errors = {}
     if 'admin_logged_in' in session and session['admin_role'] == 'system':
         admins = db.session.query(Admin).all()
+        admin_list = json.loads(os.environ.get("ADMIN_LIST", "[]"))
+        system_admin_list = json.loads(os.environ.get("SYSTEM_ADMIN_LIST", "[]"))
+
         if request.method == 'POST':
             admin_id = request.form.get('admin_id')
             admin_to_unsuspend = Admin.query.filter_by(id=admin_id).first()
@@ -1661,8 +1664,14 @@ def system_manageAdmin():
                 admin_to_unsuspend.is_suspended = False
                 db.session.commit()
                 return redirect(url_for('system_manageAdmin'))
-        return render_template('admin/system_admin/system_manageAdmins.html', admins=admins,
-                               admin_username=admin_username, errors=errors, csrf_token=csrf_token)
+
+        return render_template('admin/system_admin/system_manageAdmins.html',
+                               admins=admins,
+                               admin_username=admin_username,
+                               admin_list=admin_list,
+                               system_admin_list=system_admin_list,
+                               errors=errors,
+                               csrf_token=csrf_token)
     else:
         return redirect(url_for('admin_log_in'))
 
@@ -1675,12 +1684,12 @@ def unsuspend_admin():
     admin_id = request.form.get('admin_id')
     admin_password = request.form.get('admin_password')
 
-    if not admin_password or not is_valid_input(admin_password):
+    current_admin_username = session.get('admin_username')
+    current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
+    if not admin_password or not is_valid_input(admin_password) or not current_admin.check_password(admin_password):
         log_event('Unsuspended', f'System admin {admin_username} has failed to unsuspend an admin')
         return redirect(url_for('system_manageAdmin'))
 
-    current_admin_username = session.get('admin_username')
-    current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
     if current_admin and current_admin.check_password(admin_password):
         admin = db.session.query(Admin).filter_by(id=admin_id).first()
         if admin:
@@ -1881,13 +1890,11 @@ def unlock_customer():
     customer_id = request.form.get('customer_id')
     admin_password = request.form.get('admin_password')
 
+    current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
 
-    if not admin_password or not is_valid_input(admin_password):
+    if not admin_password or not is_valid_input(admin_password) or not current_admin.check_password(admin_password):
         log_event('Unlock', f'System admin {current_admin_username} has failed to unlock a customer')
         return redirect(url_for('system_MCustomers'))
-
-
-    current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
 
     if current_admin and current_admin.check_password(admin_password):
         customer = db.session.query(User).filter_by(id=customer_id).first()
