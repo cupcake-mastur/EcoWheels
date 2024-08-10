@@ -313,6 +313,30 @@ def check_session():
     return jsonify(expired=False), 200
 
 
+def hash_password_sha1(password):
+    """Hashes the password using SHA-1."""
+    sha1 = hashlib.sha1()
+    sha1.update(password.encode('utf-8'))
+    return sha1.hexdigest().upper()
+
+def check_pwned_password(hashed_password):
+    """Checks the hashed password against the HIBP API."""
+    prefix = hashed_password[:5]  # First 5 characters of the hashed password
+    suffix = hashed_password[5:]  # Remaining characters
+    url = f"https://api.pwnedpasswords.com/range/{prefix}"
+    response = requests.get(url)
+    return suffix, response.text
+
+def is_password_pwned(suffix, response_text):
+    """Compares the password suffix with the API response to check if it has been pwned."""
+    lines = response_text.splitlines()
+    for line in lines:
+        hash_suffix, count = line.split(":")
+        if suffix == hash_suffix:
+            return True, count
+    return False, 0
+
+
 @app.route('/sign_up', methods=['GET', 'POST'])
 def sign_up():
     error = None
@@ -353,16 +377,34 @@ def sign_up():
                 error = "Password must contain at least one uppercase and lowercase letter."
 
         if error is None:
-            hashed_password = generate_password_hash(password)
-            new_user = User(full_name=full_name, username=username, email=email, phone_number=phone_number,
-                            password_hash=hashed_password)
-            db.session.add(new_user)
-            db.session.commit()
-            password_history = PasswordHistory(user_id=new_user.id, password_hash=hashed_password, changed_at=datetime.now(timezone.utc))
-            db.session.add(password_history)
-            db.session.commit()
-            app.logger.info(f"User {email} added to database.")
-            return redirect(url_for('login'))
+            # Generate the SHA-1 hash of the password for HIBP check
+            hashed_password_sha1 = hash_password_sha1(password)
+            
+            try:
+                # Check if the password is compromised
+                suffix, response_text = check_pwned_password(hashed_password_sha1)
+                is_pwned, count = is_password_pwned(suffix, response_text)
+                
+                if is_pwned:
+                    error = f"Password found {count} times in data breaches.\n Please choose a different password to enhance your security."
+
+                else:
+                    hashed_password = generate_password_hash(password)
+
+                    new_user = User(full_name=full_name, username=username, email=email, phone_number=phone_number,
+                                    password_hash=hashed_password)
+                    db.session.add(new_user)
+                    db.session.commit()
+
+                    password_history = PasswordHistory(user_id=new_user.id, password_hash=hashed_password, changed_at=datetime.now(timezone.utc))
+                    db.session.add(password_history)
+                    db.session.commit()
+
+                    app.logger.info(f"User {email} added to database.")
+                    return redirect(url_for('login'))
+            except requests.RequestException as e:
+                app.logger.error(f"Error checking password with HIBP: {e}")
+                error = "There was an error checking your password. Please try again later."
     return render_template("customer/sign_up.html", form=create_user_form, error=error)
 
 

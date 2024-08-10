@@ -36,11 +36,11 @@ class CreateUserForm(FlaskForm):
     username = StringField('Username', validators=[validators.DataRequired()])
     phone_number = IntegerField('Phone Number', [validators.DataRequired(), validators.NumberRange(min=00000000, max=99999999)])
     password = PasswordField('Password', [validators.DataRequired(), validators.length(min=8, max=30,
-                                            message="New password must be between 8 and 30 characters long."), 
+                                            message="New password must be between 8 and 30 characters long."),
                                           validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'), 
                                                             message= "Password must contain at least one special character.")])
     confirm_password = PasswordField('Confirm Password', [validators.DataRequired(), validators.length(min=8, max=30,
-                                            message="New password must be between 8 and 30 characters long."), 
+                                            message="New password must be between 8 and 30 characters long."),
                                           validators.Regexp(regex=re.compile(r'^(?=.*[!@#$%^&*(),.?":{}|<>])'), 
                                                             message= "Password must contain at least one special character.")])
 

@@ -14,9 +14,9 @@
             <p>Sign Up</p>
         </div>
 
-      {% if error %}
-        <p style="color: red; text-align: center;">{{ error }}</p>
-      {% endif %}
+        {% if error and not error_in_modal %}
+        <div style="color: red; white-space: pre-line; text-align: center;">{{ error }}</div>
+        {% endif %}
 
         <form method="POST" action="{{ url_for('sign_up') }}" autocomplete="off">
             {{ form.hidden_tag() }}
