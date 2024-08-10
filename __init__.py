@@ -1096,7 +1096,7 @@ def admin_log_in():
         password = html.escape(form.password.data)
 
         # Validate email suffix
-        if not (username.endswith('@ecowheels.com') or username.endswith('@mymail.nyp.edu.sg')):
+        if not (username.endswith('@ecowheels.com')):
             error_message = "Incorrect Username or Password"
             log_event('Login', f'Failed login attempt for non-existent admin {username}.')
             return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
@@ -1330,8 +1330,17 @@ def dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
+
+    # Set security_modal_shown flag if not set
+    if 'security_modal_shown' not in session:
+        session['security_modal_shown'] = True
+        show_security_modal = True
+    else:
+        show_security_modal = False
+
     return render_template('admin/dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles)
+                           num_customers=num_customers, num_vehicles=num_vehicles,
+                           show_security_modal=show_security_modal)
 
 
 @app.route('/system_admin_dashboard', methods=['GET', 'POST'])
@@ -1343,8 +1352,17 @@ def system_dashboard():
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
     num_admins = db.session.query(Admin).count()
+
+    # Set security_modal_shown flag if not set
+    if 'security_modal_shown' not in session:
+        session['security_modal_shown'] = True
+        show_security_modal = True
+    else:
+        show_security_modal = False
+
     return render_template('admin/system_admin/system_dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
+                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins,
+                           show_security_modal=show_security_modal)
 
 
 @app.route('/sub_dashboard', methods=['GET', 'POST'])
@@ -1355,8 +1373,17 @@ def sub_dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
+
+    # Set security_modal_shown flag if not set
+    if 'security_modal_shown' not in session:
+        session['security_modal_shown'] = True
+        show_security_modal = True
+    else:
+        show_security_modal = False
+
     return render_template('admin/junior_admin/sub_dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles)
+                           num_customers=num_customers, num_vehicles=num_vehicles,
+                           show_security_modal=show_security_modal)
 
 
 @app.route('/manageCustomers', methods=['GET', 'POST'])
@@ -1779,6 +1806,7 @@ def admin_logout():
         session.pop('admin_username', None)
         session.pop('admin_role', None)
         session.pop('admin_last_activity', None)
+        session.pop('security_modal_shown', None)
         return redirect(url_for('admin_log_in'))
     else:
         return "Admin is not logged in."
@@ -1908,13 +1936,17 @@ def backup_logs():
     ws = wb.active
     ws.title = "Logs"
 
-    # Define color fills for different event types
+    # Define color fills based on logs.html CSS
     colors = {
-        'Login': '7dde8b',  # Light green
-        'Logout': '7dde8b',  # Light green
-        'Create Vehicle': 'f5c842',  # Light orange
-        'Delete Vehicle': 'faa441',  # Light orange
-        'Backup': 'c2c2c2'  # Light gray
+        'Success': '73de8c',       # Light green (log-success)
+        'Failed': 'f77674',        # Red (log-failure)
+        'created': 'f5c842',       # Orange-yellow (log-creation)
+        'deleted': 'faa441',       # Bright orange (log-deletion)
+        'suspension': 'fa7364',    # Dark red (log-suspend)
+        'Attempted': 'e65545',     # Darker red (log-attempt)
+        'unsuspend': '5dc44d',     # Dark green (log-unsuspend)
+        'customer': '7ddce8',      # Light blue (log-unlock)
+        'Backup': 'c2c2c2'         # Light gray (Backup)
     }
 
     # Apply header styles
@@ -1927,11 +1959,17 @@ def backup_logs():
         for c_idx, value in enumerate(row, start=1):
             cell = ws.cell(row=r_idx, column=c_idx, value=value)
 
-            # Apply color based on event type
+            # Apply color based on event result
             if r_idx > 1:  # Skip header row
-                event_type = df.iloc[r_idx - 2]['Event Type']
-                color = colors.get(event_type, 'ffffff')  # Default to white if no color found
-                cell.fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
+                event_result = df.iloc[r_idx - 2]['Event Result']
+                for key in colors:
+                    if key.lower() in event_result.lower():
+                        color = colors[key]
+                        cell.fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
+                        break
+                else:
+                    # Default to white if no matching color found
+                    cell.fill = PatternFill(start_color='ffffff', end_color='ffffff', fill_type='solid')
 
     output = BytesIO()
     wb.save(output)

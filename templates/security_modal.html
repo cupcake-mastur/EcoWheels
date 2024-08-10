@@ -1,0 +1,37 @@
+<!-- security_modal.html -->
+<div class="popup" id="security-popup">
+    <div class="overlay"></div>
+    <div class="popup-content">
+        <h2>Security Awareness</h2>
+        <p>As an admin, please stay vigilant. <br>
+            Always use strong, unique passwords <br>
+            Avoid exposing sensitive information <br>
+            Handle customer data responsibly. <br>
+            Ensure all actions to maintain the integrity of customer data and the platform.</p>
+        <div class="controls">
+            <button class="close-btn securityclose-btn" type="button">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+   function openSecurityPopup() {
+        const popupNode = document.getElementById('security-popup');
+        const overlay = popupNode.querySelector('.overlay');
+        const closeBtn = popupNode.querySelector('.close-btn');
+
+        function closePopup() {
+            popupNode.classList.remove('active');
+        }
+
+        popupNode.classList.add('active');
+        overlay.addEventListener('click', closePopup);
+        closeBtn.addEventListener('click', closePopup);
+    }
+
+    // Ensure the modal only shows once per session
+    if (!sessionStorage.getItem('securityModalShown')) {
+        openSecurityPopup();
+        sessionStorage.setItem('securityModalShown', 'true');
+    }
+</script>
