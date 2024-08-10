@@ -10,6 +10,7 @@ import random
 import string
 import secrets
 import time
+import requests
 
 from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify, make_response, request, g
 from flask_wtf import CSRFProtect
@@ -56,6 +57,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
 
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 s = URLSafeTimedSerializer(os.environ.get("SECRET_KEY"))
+app.config['RECAPTCHA_PRIVATE_KEY'] = os.environ.get("RECAPTCHA_PRIVATE_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URI")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session timeout after 30 minutes
@@ -98,6 +100,14 @@ payment_intents = stripe.PaymentIntent.list(limit=10)
 
 for intent in payment_intents.data:
     print(f"Payment Intent ID: {intent.id}, Amount: {intent.amount}, Status: {intent.status}")
+
+
+def verify_recaptcha(response):
+    # It expires in one minute**
+    secret_key = app.config['RECAPTCHA_PRIVATE_KEY']
+    payload = {'secret': secret_key, 'response': response}
+    r = requests.post('https://www.google.com/recaptcha/api/siteverify', data=payload)
+    return r.json().get('success', False)
 
 
 def login_required(f):
@@ -375,6 +385,13 @@ def login():
         email = login_form.email.data
         password = login_form.password.data
         user = db.session.query(User).filter_by(email=email).first()
+        recaptcha_response = request.form.get('g-recaptcha-response')
+        
+        # Verify the reCAPTCHA response
+        if not verify_recaptcha(recaptcha_response):
+            error = "reCAPTCHA verification failed. Please try again."
+            app.logger.warning(f"Failed reCAPTCHA verification for {email}")
+            return render_template("customer/login.html", form=login_form, error=error)
 
         if user:
             current_time = datetime.now(SGT)
