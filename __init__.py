@@ -1271,8 +1271,17 @@ def dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
+
+    # Set security_modal_shown flag if not set
+    if 'security_modal_shown' not in session:
+        session['security_modal_shown'] = True
+        show_security_modal = True
+    else:
+        show_security_modal = False
+
     return render_template('admin/dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles)
+                           num_customers=num_customers, num_vehicles=num_vehicles,
+                           show_security_modal=show_security_modal)
 
 
 @app.route('/system_admin_dashboard', methods=['GET', 'POST'])
@@ -1284,8 +1293,17 @@ def system_dashboard():
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
     num_admins = db.session.query(Admin).count()
+
+    # Set security_modal_shown flag if not set
+    if 'security_modal_shown' not in session:
+        session['security_modal_shown'] = True
+        show_security_modal = True
+    else:
+        show_security_modal = False
+
     return render_template('admin/system_admin/system_dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins)
+                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins,
+                           show_security_modal=show_security_modal)
 
 
 @app.route('/sub_dashboard', methods=['GET', 'POST'])
@@ -1296,8 +1314,17 @@ def sub_dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
+
+    # Set security_modal_shown flag if not set
+    if 'security_modal_shown' not in session:
+        session['security_modal_shown'] = True
+        show_security_modal = True
+    else:
+        show_security_modal = False
+
     return render_template('admin/junior_admin/sub_dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles)
+                           num_customers=num_customers, num_vehicles=num_vehicles,
+                           show_security_modal=show_security_modal)
 
 
 @app.route('/manageCustomers', methods=['GET', 'POST'])
@@ -1720,6 +1747,7 @@ def admin_logout():
         session.pop('admin_username', None)
         session.pop('admin_role', None)
         session.pop('admin_last_activity', None)
+        session.pop('security_modal_shown', None)
         return redirect(url_for('admin_log_in'))
     else:
         return "Admin is not logged in."

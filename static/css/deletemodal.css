@@ -186,3 +186,21 @@
     text-decoration: none;
 
 }
+
+.securityclose-btn {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    border-radius: 20px;
+    background: rgb(32, 150, 99);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.securityclose-btn:hover {
+    background: rgb(24, 105, 70);
+}
