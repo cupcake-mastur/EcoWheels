@@ -13,7 +13,7 @@ import time
 import requests
 
 
-from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify, make_response, request, g
+from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify, make_response, g, abort
 from flask_wtf import CSRFProtect
 from wtforms import StringField, TextAreaField, SelectField
 from wtforms.validators import DataRequired, Email, AnyOf
@@ -2141,6 +2141,80 @@ def purchase_history():
     except Exception as e:
         app.logger.error(f"Error fetching purchase history: {e}")
         return jsonify({'error': 'An error occurred while fetching purchase history'}), 500
+
+
+SUSPICIOUS_PATTERNS = [
+    # Injection
+    r"union\s+select",
+    r"select\s+\*+\s+from",
+    r"drop\s+table",
+    r"insert\s+into",
+    r"update\s+set",
+    r"select\s+from\s+information_schema.tables",
+    r"union\s+all\s+select",
+    r"cmd\s*=",
+    r"wget",
+    r"curl",
+    r"nc\s+-e",
+    r"powershell\s+",
+    r"eval\(",
+
+    # Broken Access Control
+    r"admin\s+access",
+    r"unauthorized\s+access",
+    r"access\s+denied",
+
+    # Cryptographic Failures
+    r"api\s+key",
+    r"password\s*=",
+    r"secret\s*=",
+    r"token\s*=",
+    r"ssn\s*=",
+
+    # Security Misconfiguration
+    r"server\s+status",
+    r"debug\s+mode",
+    r"config\s+file",
+
+    # Vulnerable and Outdated Components
+    r"vulnerable\s+component",
+    r"known\s+vulnerability",
+    r"component\s+version",
+
+    # Identification and Authentication Failures
+    r"login\s*failed",
+    r"invalid\s+username",
+    r"invalid\s+password",
+    r"forgot\s+password",
+
+    # Security Logging and Monitoring Failures
+    r"error\s+log",
+    r"monitoring\s+failed",
+    r"access\s+log",
+
+    # Server-Side Request Forgery (SSRF)
+    r"localhost",
+    r"127\.0\.0\.1",
+
+    # XSS Patterns
+    r"script\s+src=",
+    r"<img\s+src=",
+    r"data:text/html",
+]
+
+
+@app.before_request
+def log_and_check_request():
+    ip_src = request.remote_addr
+    query_params = request.args.to_dict()
+    form_data = request.form.to_dict()
+
+    request_data = f"Query Params: {query_params}, Form Data: {form_data}"
+
+    for pattern in SUSPICIOUS_PATTERNS:
+        if re.search(pattern, request_data, re.IGNORECASE):
+            app.logger.warning(f"Suspicious activity detected from {ip_src}: {request_data}")
+            abort(403) 
 
 
 if __name__ == '__main__':
