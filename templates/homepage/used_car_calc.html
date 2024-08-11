@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Used Car Instalment Calculator</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .calculator-container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .result {
+            font-size: 1.5em;
+            margin-top: 20px;
+        }
+        .btn-back {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#">Car Calculators</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('afford_calc') }}">Affordability Calculator</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('used_car_calc') }}">Used Car Installment Calculator</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  
+
+<div class="calculator-container">
+    <h2>Used Car Instalment Calculator</h2>
+    <p>Calculate the monthly instalment on your used car, based on the loan amount and loan interest rates from major lenders in Singapore.</p>
+
+    <form id="carLoanForm">
+        <div class="form-group">
+            <label for="carPrice">Car Price (S$):</label>
+            <input type="number" class="form-control" id="carPrice" placeholder="Enter car price" required>
+        </div>
+        <div class="form-group">
+            <label for="downPayment">Down Payment (S$):</label>
+            <input type="number" class="form-control" id="downPayment" placeholder="Enter down payment" required>
+        </div>
+        <div class="form-group">
+            <label for="interestRate">Interest Rate (%):</label>
+            <input type="number" class="form-control" id="interestRate" value="2.48" step="0.01" required>
+        </div>
+        <div class="form-group">
+            <label for="loanTerm">Loan Term (Months):</label>
+            <input type="number" class="form-control" id="loanTerm" value="84" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Calculate</button>
+    </form>
+
+    <div id="result" class="result"></div>
+
+    <a href="{{ url_for('models') }}" class="btn btn-secondary btn-back">Back to Product Page</a>
+</div>
+
+<!-- Include jQuery and Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+<!-- Custom JavaScript -->
+<script>
+    document.getElementById('carLoanForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        
+        var carPrice = parseFloat(document.getElementById('carPrice').value);
+        var downPayment = parseFloat(document.getElementById('downPayment').value);
+        var interestRate = parseFloat(document.getElementById('interestRate').value) / 100;
+        var loanTerm = parseFloat(document.getElementById('loanTerm').value);
+        
+        var loanAmount = carPrice - downPayment;
+        var monthlyInterestRate = interestRate / 12;
+        var monthlyInstalment = (loanAmount * monthlyInterestRate) / (1 - Math.pow(1 + monthlyInterestRate, -loanTerm));
+
+        document.getElementById('result').innerHTML = "Your estimated monthly instalment is: S$" + monthlyInstalment.toFixed(2);
+    });
+</script>
+
+</body>
+</html>

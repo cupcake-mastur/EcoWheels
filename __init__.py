@@ -165,16 +165,6 @@ class SimpleChatBot:
         message = message.lower().strip()
         return self.responses.get(message, "Sorry, I didn't understand that.")
     
-chatbot = SimpleChatBot()
-@app.route('/chat', methods=['POST'])
-def chat():
-    user_message = request.json.get('message')
-    if not user_message:
-        return jsonify({"error": "No message provided"}), 400
-
-    bot_response = chatbot.get_response(user_message)
-    return jsonify({"response": bot_response})
-
 
 # @app.route('/product_page')
 # @login_required
@@ -195,6 +185,16 @@ def models():
     vehicles = db.session.query(Vehicle).all()
 
     return render_template("homepage/models.html" , vehicles=vehicles)
+
+@app.route('/afford_calc.html')
+def afford_calc():
+    return render_template('homepage/afford_calc.html')
+
+@app.route('/used_car_calc.html')
+def used_car_calc():
+    return render_template('homepage/used_car_calc.html')
+
+
 
 class FeedbackForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -1001,6 +1001,7 @@ def create_checkout_session():
         return jsonify({'id': checkout_session.id})
     except Exception as e:
         return jsonify(error=str(e)), 400
+        
 
 # @app.route('/customer/history')
 # def customer_purchase_history():
