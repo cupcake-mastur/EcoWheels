@@ -263,11 +263,47 @@ def admin_login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# Admin Session time-out
+def admin_session_timeout_check(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        now = datetime.now().timestamp()
+        last_activity = session.get('admin_last_activity', None)
+
+        if last_activity and now - last_activity > 15 * 60:  # 15 minutes timeout
+            admin_username = session.get('admin_username')
+            session.pop('admin_logged_in', None)
+            session.pop('admin_username', None)
+            session.pop('admin_role', None)
+            session.pop('admin_last_activity', None)
+            log_event("Logout", f"Inactivity for 15 minutes led to {admin_username}'s session timeout")
+            return redirect(url_for('admin_log_in'))
+
+        session['admin_last_activity'] = now
+        return f(*args, **kwargs)
+    return decorated_function
+
+def role_required(*roles):
+    def wrapper(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'admin_logged_in' not in session:
+                return redirect(url_for('admin_log_in'))
+            if session.get('admin_role') not in roles:
+                return redirect(url_for('ErrorPage'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return wrapper
 
 @app.route('/manageFeedback')
 @admin_login_required
+@admin_session_timeout_check
+@role_required('general')
 def manageFeedback():
     admin_username = session.get('admin_username')
+    user_email = session.get('user_email')
+    csrf_token = generate_csrf()  # Generate CSRF token
+    # Query the Feedback table to get all feedback entries
 
     # Query the Feedback table to get all feedback entries
 
@@ -275,29 +311,33 @@ def manageFeedback():
 
     # Render the template with the feedback entries
     return render_template('admin/manageFeedback.html', admin_username=admin_username,
-                           feedback_entries=feedback_entries)
+                           feedback_entries=feedback_entries, csrf_token=csrf_token)
 @app.route('/sub_manageFeedback')
 @admin_login_required
-#@role_required('junior')
+@admin_session_timeout_check
+@role_required('junior')
 def sub_manageFeedback():
     admin_username = session.get('admin_username')
-    user_email = session.get('user_email')
-    csrf_token = generate_csrf()  # Generate CSRF token
-    # Query the Feedback table to get all feedback entries
-
     feedback_entries = db.session.query(Feedback).all()
 
     # Render the template with the feedback entries
     return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username,
-                           feedback_entries=feedback_entries, csrf_token=csrf_token)
+                           feedback_entries=feedback_entries)
+
 
 @app.route('/delete_feedback/<int:feedback_id>', methods=['POST'])
+@admin_login_required
 def delete_feedback(feedback_id):  # Include feedback_id in the function signature
     feedback = db.session.query(Feedback).get(feedback_id)  # Query the specific feedback entry by ID
     if feedback:
         db.session.delete(feedback)  # Delete the specific feedback entry
         db.session.commit()
-    return redirect(url_for('sub_manageFeedback'))  # Redirect to the feedback management page
+    if session['admin_role'] == 'system':
+        return redirect(url_for('system_MVehicles'))
+    elif session['admin_role'] == 'general':
+        return redirect(url_for('MVehicles'))
+    else:
+        return redirect(url_for('ErrorPage'))
 
 
 @app.route('/thankyou')
@@ -1754,30 +1794,16 @@ def system_logs():
 @role_required('system')
 def system_manageFeedback():
     admin_username = session.get('admin_username')
+    user_email = session.get('user_email')
+    csrf_token = generate_csrf()  # Generate CSRF token
     # Query the Feedback table to get all feedback entries
 
     feedback_entries = db.session.query(Feedback).all()
 
     # Render the template with the feedback entries
     return render_template('admin/system_admin/system_manageFeedback.html', admin_username=admin_username,
-                           feedback_entries=feedback_entries)
+                           feedback_entries=feedback_entries, csrf_token=csrf_token)
 
-
-
-@app.route('/sub_manageFeedback')
-@admin_login_required
-@admin_session_timeout_check
-@role_required('junior')
-def sub_manageFeedback():
-    admin_username = session.get('admin_username')
-
-    # Query the Feedback table to get all feedback entries
-
-    feedback_entries = db.session.query(Feedback).all()
-
-    # Render the template with the feedback entries
-    return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username,
-                           feedback_entries=feedback_entries)
 
 
 @app.route('/system_manageAdmin', methods=['GET', 'POST'])

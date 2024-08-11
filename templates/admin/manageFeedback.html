@@ -271,6 +271,12 @@
             <td>{{ feedback.rating }}</td>
             <td>{{ feedback.feedback }}</td>
             <td>{{ feedback.timestamp }}</td>
+            <td>
+                <form method="POST" action="{{ url_for('delete_feedback', feedback_id=feedback.id) }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" style="color: red; border: none; background: none; cursor: pointer;">Delete</button>
+                </form>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
