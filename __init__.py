@@ -1222,7 +1222,7 @@ def admin_log_in():
                     log_event('Login', f'Successful login for junior admin {username}.')
                     return redirect(url_for('sub_dashboard'))
                 else:
-                    log_event('Login', f'Successful login for {admin.role} {username}.')
+                    log_event('Login', f'Successful login for {admin.role} admin {username}.')
                     return redirect(url_for('dashboard'))
             else:
                 admin.login_attempts += 1
@@ -1362,7 +1362,7 @@ def createVehicle():
             new_vehicle = Vehicle(brand=brand, model=model, selling_price=price, image=file, description=description)
             db.session.add(new_vehicle)
             db.session.commit()
-            log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_username"]}.')
+            log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_role"]} admin {session["admin_username"]}.')
             return redirect(url_for('MVehicles'))
         except Exception:
             db.session.rollback()
@@ -1394,7 +1394,7 @@ def system_createVehicle():
             new_vehicle = Vehicle(brand=brand, model=model, selling_price=price, image=file, description=description)
             db.session.add(new_vehicle)
             db.session.commit()
-            log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_username"]}.')
+            log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_role"]} admin {session["admin_username"]}.')
             return redirect(url_for('system_MVehicles'))
         except Exception:
             db.session.rollback()
@@ -1757,7 +1757,7 @@ def delete_vehicle(id):
     if vehicle:
         db.session.delete(vehicle)
         db.session.commit()
-        log_event('Delete Vehicle', f'Vehicle deleted: {vehicle.brand} {vehicle.model} by {session["admin_username"]}.')
+        log_event('Delete Vehicle', f'Vehicle deleted: {vehicle.brand} {vehicle.model} by {session["admin_role"]} admin {session["admin_username"]}.')
     if session['admin_role'] == 'system':
         return redirect(url_for('system_MVehicles'))
     elif session['admin_role'] == 'general':
@@ -1834,8 +1834,6 @@ def system_manageAdmin():
     errors = {}
     if 'admin_logged_in' in session and session['admin_role'] == 'system':
         admins = db.session.query(Admin).all()
-        admin_list = json.loads(os.environ.get("ADMIN_LIST", "[]"))
-        system_admin_list = json.loads(os.environ.get("SYSTEM_ADMIN_LIST", "[]"))
 
         if request.method == 'POST':
             admin_id = request.form.get('admin_id')
@@ -1848,8 +1846,6 @@ def system_manageAdmin():
         return render_template('admin/system_admin/system_manageAdmins.html',
                                admins=admins,
                                admin_username=admin_username,
-                               admin_list=admin_list,
-                               system_admin_list=system_admin_list,
                                errors=errors,
                                csrf_token=csrf_token)
     else:
@@ -1877,7 +1873,7 @@ def unsuspend_admin():
             admin.login_attempts = 0  # Reset login attempts
             db.session.commit()
             log_event('Unsuspended',
-                      f'System admin {current_admin_username} has successfully unsuspended admin {admin.username}')
+                      f'System admin {current_admin_username} has successfully unsuspended {admin.role} admin {admin.username}')
         else:
             flash('Admin not found', 'error')
     else:
@@ -1914,7 +1910,7 @@ def backup_vehicles():
     backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
     vehicle_backup_time.append(backup_time)
     admin_username = session.get('admin_username')
-    log_event('Backup', f'Backed up Vehicles database by {admin_username}')
+    log_event('Backup', f'Backed up Vehicles database by {session["admin_role"]} admin {admin_username}')
 
     # Create a DataFrame
     vehicle_data = []
@@ -1969,7 +1965,7 @@ def backup_customers():
     backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
     customer_backup_time.append(backup_time)
     admin_username = session.get('admin_username')
-    log_event('Backup', f'Backed up Customers database by {admin_username}')
+    log_event('Backup', f'Backed up Customers database by {session["admin_role"]} admin {admin_username}')
 
     # Create a DataFrame with relevant customer data
     customer_data = []
@@ -2011,7 +2007,7 @@ def backup_logs():
     backup_time = datetime.now(SGT).strftime('%d-%m-%Y, %I:%M:%S %p')  # Use the new format
     logs_backup_time.append(backup_time)
     admin_username = session.get('admin_username')
-    log_event('Backup', f'Backed up Logs database by {admin_username}')
+    log_event('Backup', f'Backed up Logs database by {session["admin_role"]} admin {admin_username}')
 
     # Create a DataFrame
     log_data = []
