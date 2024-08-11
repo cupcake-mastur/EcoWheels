@@ -109,6 +109,125 @@
             margin-top: -1rem;
             margin-bottom: 1rem;
         }
+
+
+        /* CSS for modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 20px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .unsuspend-button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: rgb(32, 150, 99);
+            color: white;
+        }
+
+        #admin_password {
+            height: 2rem;
+        }
+
+        .unlock-button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+        .unlock-button:hover {
+            background-color: #c82333;
+        }
+
+        .unlock-btn {
+            background-color: rgb(32, 150, 99);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+
+        /* Purchase History Modal styling */
+        .ph-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .ph-modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-height: 70vh;
+            border-radius: 10px;
+            overflow-y: auto;
+        }
+
+        .PurchaseHistory-btn {
+            background-color: #3eb489;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .PurchaseHistory-btn:hover {
+            background-color: #20c073;
+        }
+
+
     </style>
 
 </head>
@@ -248,10 +367,12 @@
                     <th class="u-tablehead">Username</th>
                     <th class="u-tablehead">Email</th>
                     <th class="u-tablehead">Phone Number</th>
+                    <th class="u-tablehead">Purchase History</th>
+                    <th class="u-tablehead">Action</th>
 
                 </tr>
                 <tr>
-                    <th colspan="6" style="border-bottom: 2px solid #000000;"></th>
+                    <th colspan="7" style="border-bottom: 2px solid #000000;"></th>
                 </tr>
             </thead>
             <tbody>
@@ -262,11 +383,48 @@
                     <td>{{ customer.username }}</td>
                     <td>{{ customer.email }}</td>
                     <td>{{ customer.phone_number }}</td>
+                    <td>
+                        <button type="button" class="PurchaseHistory-btn" onclick="openModal('{{ customer.email }}')">View</button>
+                    </td>
+                    <td>
+                        {% if customer.lockout_count >= 4 %}
+                        <button class="unlock-button" data-customer-id="{{ customer.id }}">Unlock</button>
+                        {% else %}
+                        Active
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+
+     <div id="unlockModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Unlock Customer Account</h2>
+            <br>
+            <form method="POST" action="{{ url_for('unlock_customer') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="customer_id" id="customer_id" value="">
+                <label for="admin_password">Enter Admin Password:</label>
+                <input type="password" name="admin_password" id="admin_password" required>
+                <button class="unlock-btn" type="submit">Unlock</button>
+            </form>
+        </div>
+    </div>
+
+        <!-- Modal Structure -->
+<div id="purchaseHistoryModal" class="ph-modal">
+    <div class="ph-modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2>Purchase History</h2>
+        <br>
+        <div id="purchaseHistoryContent" class="modal-body">
+            <!-- Purchase history will be loaded here -->
+        </div>
+    </div>
+</div>
 
     <script>
         let btn = document.querySelector("#btn");
@@ -304,6 +462,74 @@
                 })
                 .catch(error => console.log('Error downloading the backup:', error));
         });
+
+        document.querySelectorAll('.unlock-button').forEach(button => {
+            button.addEventListener('click', function () {
+                const customerId = this.getAttribute('data-customer-id');
+                document.getElementById('customer_id').value = customerId;
+                document.getElementById('unlockModal').style.display = 'block';
+            });
+        });
+
+        document.querySelector('.modal .close').addEventListener('click', function () {
+            document.getElementById('unlockModal').style.display = 'none';
+        });
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('unlockModal')) {
+                document.getElementById('unlockModal').style.display = 'none';
+            }
+        }
+
+        function openModal(email) {
+        fetchPurchaseHistory(email);
+        document.getElementById('purchaseHistoryModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('purchaseHistoryModal').style.display = 'none';
+    }
+
+        function fetchPurchaseHistory(email) {
+            fetch(`/purchaseHistory`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const modalContent = document.getElementById('purchaseHistoryContent');
+                modalContent.innerHTML = '';
+
+                if (data.purchases && data.purchases.length > 0) {
+                    // Display the count of products bought
+                    const countElement = document.createElement('p');
+                    countElement.textContent = `Total Products Purchased: ${data.count}`;
+                    modalContent.appendChild(countElement);
+
+                    // Display each purchased product
+                    data.purchases.forEach(purchase => {
+                        const item = document.createElement('p');
+                        item.textContent = `Product: ${purchase.product_name}, Price: $${purchase.price}`;
+                        modalContent.appendChild(item);
+                    });
+                } else {
+                    modalContent.innerHTML = '<p>No purchases found.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching purchase history:', error);
+                document.getElementById('purchaseHistoryContent').innerHTML = '<p>Error loading data.</p>';
+            });
+        }
     </script>
 {% include 'logout_modal.html' %}
 </body>

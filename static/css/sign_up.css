@@ -34,6 +34,7 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
 .container .title{
     padding-top: 15px;
     padding-left: 15px;
+    margin-bottom: -11px;
 }
 
 .container .title p{
@@ -90,21 +91,8 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
     transition: all 120ms ease-out 0s;
 }
 
-
 .input_box input:focus{
     box-shadow: 1px solid #ccc;
-}
-
-.checkbox {
-  display: inline-block;
-  margin: 0 5px;
-  margin-left: 165px;
-  margin-top: 3px;
-}
-
-div span {
-    font-size: 16px;
-      display: inline-block;
 }
 
 .reg_btn{
@@ -127,6 +115,10 @@ div span {
 
 .reg_btn input:hover{
     background-color: green;
+}
+
+.g-recaptcha {
+    margin-left: 25px;
 }
 
 @media screen and (max-width: 584px){

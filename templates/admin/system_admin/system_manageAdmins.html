@@ -207,7 +207,15 @@
                 <tr>
                     <td>{{ admin.id }}</td>
                     <td>{{ admin.username }}</td>
-                    <td>{{ admin.role }}</td>
+                    <td>
+                        {% if admin.username in admin_list %}
+                            General Admin
+                        {% elif admin.username in system_admin_list %}
+                            System Admin
+                        {% else %}
+                            Junior Admin
+                        {% endif %}
+                    </td>
                     <td>{{ 'Suspended' if admin.is_suspended else 'Active' }}</td>
                     <td>
                         {% if admin.is_suspended %}

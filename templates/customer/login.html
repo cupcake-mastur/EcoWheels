@@ -5,6 +5,7 @@
 {% from "_formHelper.html" import render_field %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+<script async src="https://www.google.com/recaptcha/api.js"></script>
 <a href="/">
     <img src="{{ url_for('static', filename='images/EcoWheels Logo.jpeg') }}" alt="EcoWheels Logo" style="width: 500px;">
 </a>
@@ -27,6 +28,7 @@
                     {{ render_field(form.password, class="form-control", id="pass", placeholder="Enter your password") }}
                 </div>
             </div>
+            <div class="g-recaptcha" data-sitekey="6Lc70SIqAAAAABfNCeq66_HiRQvPf0srzL9q8FSA"></div>
             <div class="reg_btn">
                 <input type="submit" value="Login">
             </div>

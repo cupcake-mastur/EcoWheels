@@ -152,6 +152,9 @@
 
     </div>
 
+   {% if show_security_modal %}
+        {% include 'security_modal.html' %}
+    {% endif %}
 
 <script>
     let btn = document.querySelector("#btn");
@@ -174,7 +177,13 @@
             link.classList.add("active");
         });
     });
+
+    // Open the security popup on page load if the flag is set
+        if ({{ show_security_modal|tojson }}) {
+            window.onload = openSecurityPopup;
+        }
 </script>
 {% include 'logout_modal.html' %}
+
 </body>
 </html>

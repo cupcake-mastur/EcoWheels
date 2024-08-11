@@ -11,7 +11,7 @@
             <p class="info">An OTP has been sent to {{ user_email|hide_email }}</p>
             <p class="msg" style="margin-top: 45px; text-align: center;">Please enter OTP to verify</p>
         </div>
-        
+
         {% if error %}
         <p style="color: red; text-align: center;">{{ error }}</p>
         {% endif %}
@@ -25,6 +25,8 @@
             {{ form.otp6(class="otp__digit otp__field__6", onpaste="return false;", required=True) }}
           </div>
 
+        <button type="button" id="clear-otp">Clear OTP</button>
+
         <button type="submit" id="verify">Verify OTP</button>
     </form>
     <form action="{{ url_for('request_new_otp') }}" method="post">
@@ -35,6 +37,15 @@
 <script>
     // Get all input fields
     var otpFields = document.querySelectorAll('#otp input');
+    
+    // Function to clear all OTP input fields
+    function clearOtpFields() {
+        otpFields.forEach(function(field) {
+            field.value = '';
+        });
+        // Focus on the first field
+        otpFields[0].focus();
+    }
 
     // Add event listeners to each input field
     otpFields.forEach(function(field, index) {
@@ -51,6 +62,11 @@
                 }
             }
         });
+    });
+
+    // Add event listener to the clear button
+    document.getElementById('clear-otp').addEventListener('click', function() {
+        clearOtpFields();
     });
 </script>
 

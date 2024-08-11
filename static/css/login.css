@@ -125,6 +125,10 @@ div span {
     background-color: green;
 }
 
+.g-recaptcha {
+    margin-left: 25px;
+}
+
 @media screen and (max-width: 584px){
 
     .user_details{

@@ -66,6 +66,10 @@
             border: solid 3px rgb(53, 212, 111);
         }
 
+        tr.log-unlock {
+            background-color: rgb(125, 220, 232) /* light blue */
+        }
+
         .container {
             padding-bottom: 3rem;
         }
@@ -301,6 +305,10 @@
                         <div class="legend-color" style="background-color: rgb(93, 196, 77); border: solid 3px rgb(53, 212, 111);"></div>
                         <span>Unsuspend</span>
                     </div>
+                     <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgb(125, 220, 232); border: solid 3px rgb(125, 220, 232);"></div>
+                        <span>Unlock</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -319,6 +327,7 @@
             <option value="Backup">Backup</option>
             <option value="Suspension">Suspension</option>
             <option value="Unsuspended">UnSuspension</option>
+            <option value="Unlock">Unlock</option>
         </select>
     </div>
         <div class="filter-item">
@@ -382,6 +391,8 @@
                             log-attempt
                         {% elif 'unsuspend' in log.event_result %}
                             log-unsuspend
+                        {% elif 'customer' in log.event_result %}
+                            log-unlock
                         {% endif %}
                     ">
                         <td>{{ log.id }}</td>

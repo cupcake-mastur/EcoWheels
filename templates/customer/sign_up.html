@@ -5,6 +5,7 @@
 {% from "_formHelper.html" import render_field %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sign_up.css') }}">
+<script async src="https://www.google.com/recaptcha/api.js"></script>
 <a href="/">
     <img src="{{ url_for('static', filename='images/EcoWheels Logo.jpeg') }}" alt="EcoWheels Logo" style="width: 500px;">
 </a>
@@ -13,9 +14,9 @@
             <p>Sign Up</p>
         </div>
 
-      {% if error %}
-        <p style="color: red; text-align: center;">{{ error }}</p>
-      {% endif %}
+        {% if error and not error_in_modal %}
+        <div style="color: red; white-space: pre-line; text-align: center;">{{ error }}</div>
+        {% endif %}
 
         <form method="POST" action="{{ url_for('sign_up') }}" autocomplete="off">
             {{ form.hidden_tag() }}
@@ -39,14 +40,11 @@
                     {{ render_field(form.confirm_password, class="form-control", id="confirmPass", placeholder="Confirm your password") }}
                 </div>
             </div>
-            <div style="margin-left: -139px;">
-                <input type="checkbox" class="checkbox" style="width: 19px; height: 19px; float: left;" required>
-                <span style="margin-top: -3px;">I agree to the Terms and Privacy Policy</span>
-            </div>
+            <div class="g-recaptcha" data-sitekey="6Lc70SIqAAAAABfNCeq66_HiRQvPf0srzL9q8FSA"></div>
             <div class="reg_btn">
                 <input type="submit" value="Register">
             </div>
-            <p class="info" style="margin-left: 28px; margin-bottom: 20px;">Already have an account? Login <a href="/login" class="login-link">here</a></p>
+            <p class="info" style="margin-left: 28px; margin-bottom: 20px; margin-top: -10px;">Already have an account? Login <a href="/login" class="login-link">here</a></p>
         </form>
     </div>
 

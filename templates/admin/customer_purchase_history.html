@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Purchase History</title>
+</head>
+<body>
+    <h1>Purchase History for {{ email }}</h1>
+    {% for email, customer in customers.items() %}
+        <h2>{{ customer.full_name }} ({{ customer.email }})</h2>
+        <ul>
+            {% for product in customer.products %}
+                <li>{{ product.prod_name }} - ${{ product.price }}</li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+    <a href="/">Back to Customer List</a>
+</body>
+</html>

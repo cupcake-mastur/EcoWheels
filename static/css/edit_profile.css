@@ -55,10 +55,10 @@
     border-color: #ddd #ddd #fff;
 }
 
-#saveChanges_p,
 #saveChanges_g {
     margin-top: 20px;
     margin-left: 159px;
+    padding: 6px 103px;
     background-color: black;
     border-color: black;
 }
@@ -113,7 +113,7 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
 
 #modal_confirm {
     margin-top: 30px;
-    margin-left: -15.5px; 
+    padding: 5px 105px; 
     background-color: #000000;
     border-color: #000000;
 }
