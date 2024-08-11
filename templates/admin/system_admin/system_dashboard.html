@@ -9,63 +9,72 @@
     <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
 
     <style>
-        .container {
-            padding-bottom: 3rem;
-        }
+    .container {
+        padding-bottom: 3rem;
+    }
 
-        .tables-container {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px; /* Adjust the gap as needed */
-            margin: 0 auto;
-            width: 100%;
-        }
+    .tables-container {
+        display: flex;
+        flex-wrap: wrap; /* Allow divs to wrap to the next row */
+        gap: 30px; /* Adjust the gap as needed */
+        margin: 0 auto;
+        width: 100%;
+        justify-content: flex-start; /* Align boxes to the left */
+    }
 
-        .d-table {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border: none;
-            font-size: 1.5rem; /* Adjust the font size for numbers and words */
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 20px;
-        }
+    .d-table {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        border: none;
+        font-size: 1.5rem; /* Adjust the font size for numbers and words */
+        background-color: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        padding: 20px;
+        flex-grow: 1;
+        min-width: 250px; /* Minimum width to maintain structure */
+        max-width: calc(50% - 200px); /* Max width to prevent overflowing screen */
+        box-sizing: border-box; /* Ensure padding is included in the element's width/height */
+    }
 
-        .d-icon {
-            font-size: 5rem; /* Adjust the icon size as needed */
-            padding: 20px;
-            border-radius: 8px;
-            color: white;
-        }
+    .d-icon {
+        font-size: 5rem; /* Adjust the icon size as needed */
+        padding: 20px;
+        border-radius: 8px;
+        color: white;
+    }
 
-        .d-info {
-            text-align: center;
-            flex-grow: 1;
-        }
+    .d-info {
+        text-align: center;
+        flex-grow: 1;
+    }
 
-        .d-numbers {
-            font-size: 3rem; /* Adjust the font size for the big numbers */
-            font-weight: 500;
-        }
+    .d-numbers {
+        font-size: 3rem; /* Adjust the font size for the big numbers */
+        font-weight: 500;
+    }
 
-        .d-label {
-            font-size: 2rem; /* Adjust the font size for the words */
-            padding: 10px;
-        }
+    .d-label {
+        font-size: 2rem; /* Adjust the font size for the words */
+        padding: 10px;
+    }
 
-        #cog-i {
-            background-color: rgb(49, 204, 188);
-        }
+    #cog-i {
+        background-color: rgb(49, 204, 188);
+    }
 
-        #customer-i {
-            background-color: rgb(250, 206, 72);
-        }
+    #customer-i {
+        background-color: rgb(250, 206, 72);
+    }
 
-        #car-i {
-            background-color: rgb(232, 102, 51);
-        }
+    #car-i {
+        background-color: rgb(232, 102, 51);
+    }
+
+    #feedback-i {
+        background-color: rgb(70, 130, 180); /* Set a color for the feedback icon */
+    }
     </style>
 </head>
 <body>
@@ -166,6 +175,14 @@
                 <div class="d-info">
                     <div class="d-numbers">{{ num_admins }}</div>
                     <div class="d-label">admins</div>
+                </div>
+            </div>
+
+            <div class="d-table">
+                <i class='bx bxs-message-square-dots d-icon' id="feedback-i"></i>
+                <div class="d-info">
+                    <div class="d-numbers">{{ num_feedbacks }}</div>
+                    <div class="d-label">feedbacks</div>
                 </div>
             </div>
         </div>

@@ -125,6 +125,7 @@ def login_required(f):
 @limiter.request_filter
 def exempt_routes():
     exempt_endpoints = [
+        'dashboard', 'system_dashboard',
         'createVehicle', 'system_createVehicle', 'MCustomers', 'system_MCustomers', 'MVehicles',
         'system_MVehicles', 'system_logs', 'manageFeedback', 'system_manageFeedback',
         'sub_dashboard', 'sub_MCustomers', 'sub_MVehicles', 'sub_manageFeedback'
@@ -1419,6 +1420,7 @@ def dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
+    num_feedbacks = db.session.query(Feedback).count()
 
     # Set security_modal_shown flag if not set
     if 'security_modal_shown' not in session:
@@ -1428,7 +1430,7 @@ def dashboard():
         show_security_modal = False
 
     return render_template('admin/dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles,
+                           num_customers=num_customers, num_vehicles=num_vehicles, num_feedbacks=num_feedbacks,
                            show_security_modal=show_security_modal)
 
 
@@ -1441,6 +1443,7 @@ def system_dashboard():
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
     num_admins = db.session.query(Admin).count()
+    num_feedbacks = db.session.query(Feedback).count()
 
     # Set security_modal_shown flag if not set
     if 'security_modal_shown' not in session:
@@ -1450,7 +1453,7 @@ def system_dashboard():
         show_security_modal = False
 
     return render_template('admin/system_admin/system_dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins,
+                           num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins, num_feedbacks=num_feedbacks,
                            show_security_modal=show_security_modal)
 
 
@@ -1462,6 +1465,7 @@ def sub_dashboard():
     admin_username = session.get('admin_username')
     num_customers = db.session.query(User).count()
     num_vehicles = db.session.query(Vehicle).count()
+    num_feedbacks = db.session.query(Feedback).count()
 
     # Set security_modal_shown flag if not set
     if 'security_modal_shown' not in session:
@@ -1471,7 +1475,7 @@ def sub_dashboard():
         show_security_modal = False
 
     return render_template('admin/junior_admin/sub_dashboard.html', admin_username=admin_username,
-                           num_customers=num_customers, num_vehicles=num_vehicles,
+                           num_customers=num_customers, num_vehicles=num_vehicles, num_feedbacks=num_feedbacks,
                            show_security_modal=show_security_modal)
 
 
