@@ -1114,8 +1114,6 @@ def cancel_page():
 
 
 # NEED TO METHOD = 'POST' THESE ADMIN PAGES
-admin_list = json.loads(os.environ.get("ADMIN_LIST", "[]"))
-system_admin_list = json.loads(os.environ.get("SYSTEM_ADMIN_LIST", "[]"))
 SGT = pytz.timezone('Asia/Singapore')
 vehicle_backup_time = []
 customer_backup_time = []
@@ -1185,13 +1183,11 @@ def admin_log_in():
         username = html.escape(form.username.data)
         password = html.escape(form.password.data)
 
-        # Validate email suffix
-        if not (username.endswith('@ecowheels.com')):
+        if not username.endswith('@ecowheels.com'):
             error_message = "Incorrect Username or Password"
             log_event('Login', f'Failed login attempt for non-existent admin {username}.')
             return render_template('admin/admin_log_in.html', form=form, error_message=error_message)
 
-        # Query the admin user from the database
         admin = db.session.query(Admin).filter(func.binary(Admin.username) == username).first()
 
         if admin:
@@ -1207,26 +1203,25 @@ def admin_log_in():
                 session.permanent = True  # Make the session permanent to use PERMANENT_SESSION_LIFETIME
                 session['admin_username'] = username
                 session['admin_last_activity'] = datetime.now().timestamp()
+                session['admin_role'] = admin.role
 
-                if username in system_admin_list:
+                if admin.role == 'system':
+                    log_event('Login', f'Successful first login for system admin {username}.')
                     if not admin.totp_secret:
                         totp_secret = pyotp.random_base32()
                         admin.totp_secret = totp_secret
                         db.session.commit()
 
-                    session['admin_role'] = 'system'
                     session['admin_logged_in'] = False
-                    return redirect(url_for('verify_2fa')) # system admin 2fa
+                    return redirect(url_for('verify_2fa'))
 
                 session['admin_logged_in'] = True
 
-                if username not in admin_list:
-                    session['admin_role'] = 'junior'
+                if admin.role == 'junior':
                     log_event('Login', f'Successful login for junior admin {username}.')
                     return redirect(url_for('sub_dashboard'))
                 else:
-                    session['admin_role'] = 'general'
-                    log_event('Login', f'Successful login for admin {username}.')
+                    log_event('Login', f'Successful login for {admin.role} {username}.')
                     return redirect(url_for('dashboard'))
             else:
                 admin.login_attempts += 1
