@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="../static/css/style.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" type="text/css" href="../static/css/deletemodal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js">
 
     <style>
     .container {
@@ -74,6 +75,35 @@
 
     #feedback-i {
         background-color: rgb(70, 130, 180); /* Set a color for the feedback icon */
+    }
+
+    .chart-container {
+        width: 60%;
+        margin: 0 auto;
+    }
+
+    /* toggle button css */
+    .toggle-btn {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        margin: 5px;
+        cursor: pointer;
+        border-radius: 5px;
+        outline: none;
+    }
+
+    .toggle-btn.active {
+        background-color: #28a745; /* Green when active */
+    }
+
+    .toggle-btn.inactive {
+        background-color: #dc3545; /* Red when inactive */
+    }
+
+    .toggle-btn:hover {
+        opacity: 0.9;
     }
     </style>
 </head>
@@ -186,13 +216,22 @@
                 </div>
             </div>
         </div>
+        <br><br>
+        <div class="chart-container">
+            <div style="text-align: center; margin-bottom: 10px;">
+                <button id="toggleGood" class="toggle-btn active">Show Good</button>
+                <button id="toggleModerate" class="toggle-btn active">Show Moderate</button>
+                <button id="toggleBad" class="toggle-btn active">Show Bad</button>
+            </div>
+            <canvas id="feedbackChart"></canvas>
+        </div>
 
     </div>
 
     {% if show_security_modal %}
         {% include 'security_modal.html' %}
     {% endif %}
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     let btn = document.querySelector("#btn");
     let sidebar = document.querySelector(".sidebar");
@@ -219,6 +258,77 @@
         if ({{ show_security_modal|tojson }}) {
             window.onload = openSecurityPopup;
         }
+
+    // Graph for Feedback
+    // Get the chart context
+    const ctx = document.getElementById('feedbackChart').getContext('2d');
+
+    // Initial chart setup
+    const feedbackChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Good', 'Moderate', 'Bad'],
+            datasets: [{
+                label: 'Customers Ratings',
+                data: [{{ good_ratings }}, {{ moderate_ratings }}, {{ bad_ratings }}],
+                backgroundColor: [
+                    'rgba(65, 224, 108, 0.8)',   // green for 'Good'
+                    'rgba(240, 240, 93, 0.8)', // yellow for 'Moderate'
+                    'rgba(237, 138, 116, 0.8)'    // red for 'Bad'
+                ],
+                borderColor: [
+                    'rgba(0, 255, 0, 1)',
+                    'rgba(255, 255, 0, 1)',
+                    'rgba(255, 0, 0, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                tooltip: {
+                    enabled: true
+                }
+            }
+        }
+    });
+
+    // Function to update chart visibility based on toggle buttons
+    function updateChartVisibility() {
+        const toggleGood = document.getElementById('toggleGood').classList.contains('active');
+        const toggleModerate = document.getElementById('toggleModerate').classList.contains('active');
+        const toggleBad = document.getElementById('toggleBad').classList.contains('active');
+
+        feedbackChart.data.datasets[0].data = [
+            toggleGood ? {{ good_ratings }} : 0,
+            toggleModerate ? {{ moderate_ratings }} : 0,
+            toggleBad ? {{ bad_ratings }} : 0
+        ];
+        feedbackChart.update();
+    }
+
+    // Function to handle button clicks and toggle state
+    function toggleButton(button) {
+        button.classList.toggle('active');
+        button.classList.toggle('inactive');
+        updateChartVisibility();
+    }
+
+    // Add event listeners to toggle buttons
+    document.getElementById('toggleGood').addEventListener('click', function() {
+        toggleButton(this);
+    });
+    document.getElementById('toggleModerate').addEventListener('click', function() {
+        toggleButton(this);
+    });
+    document.getElementById('toggleBad').addEventListener('click', function() {
+        toggleButton(this);
+    });
 </script>
 
 {% include 'logout_modal.html' %}

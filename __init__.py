@@ -1423,6 +1423,11 @@ def dashboard():
     num_vehicles = db.session.query(Vehicle).count()
     num_feedbacks = db.session.query(Feedback).count()
 
+    # Calculate the number of each rating type
+    good_ratings = db.session.query(Feedback).filter_by(rating='good').count()
+    moderate_ratings = db.session.query(Feedback).filter_by(rating='moderate').count()
+    bad_ratings = db.session.query(Feedback).filter_by(rating='bad').count()
+
     # Set security_modal_shown flag if not set
     if 'security_modal_shown' not in session:
         session['security_modal_shown'] = True
@@ -1432,7 +1437,8 @@ def dashboard():
 
     return render_template('admin/dashboard.html', admin_username=admin_username,
                            num_customers=num_customers, num_vehicles=num_vehicles, num_feedbacks=num_feedbacks,
-                           show_security_modal=show_security_modal)
+                           show_security_modal=show_security_modal,
+                           good_ratings=good_ratings, moderate_ratings=moderate_ratings, bad_ratings=bad_ratings)
 
 
 @app.route('/system_admin_dashboard', methods=['GET', 'POST'])
@@ -1446,6 +1452,11 @@ def system_dashboard():
     num_admins = db.session.query(Admin).count()
     num_feedbacks = db.session.query(Feedback).count()
 
+    # Calculate the number of each rating type
+    good_ratings = db.session.query(Feedback).filter_by(rating='good').count()
+    moderate_ratings = db.session.query(Feedback).filter_by(rating='moderate').count()
+    bad_ratings = db.session.query(Feedback).filter_by(rating='bad').count()
+
     # Set security_modal_shown flag if not set
     if 'security_modal_shown' not in session:
         session['security_modal_shown'] = True
@@ -1455,7 +1466,8 @@ def system_dashboard():
 
     return render_template('admin/system_admin/system_dashboard.html', admin_username=admin_username,
                            num_customers=num_customers, num_vehicles=num_vehicles, num_admins=num_admins, num_feedbacks=num_feedbacks,
-                           show_security_modal=show_security_modal)
+                           show_security_modal=show_security_modal,
+                           good_ratings=good_ratings, moderate_ratings=moderate_ratings, bad_ratings=bad_ratings)
 
 
 @app.route('/sub_dashboard', methods=['GET', 'POST'])
@@ -1468,6 +1480,11 @@ def sub_dashboard():
     num_vehicles = db.session.query(Vehicle).count()
     num_feedbacks = db.session.query(Feedback).count()
 
+    # Calculate the number of each rating type
+    good_ratings = db.session.query(Feedback).filter_by(rating='good').count()
+    moderate_ratings = db.session.query(Feedback).filter_by(rating='moderate').count()
+    bad_ratings = db.session.query(Feedback).filter_by(rating='bad').count()
+
     # Set security_modal_shown flag if not set
     if 'security_modal_shown' not in session:
         session['security_modal_shown'] = True
@@ -1477,7 +1494,8 @@ def sub_dashboard():
 
     return render_template('admin/junior_admin/sub_dashboard.html', admin_username=admin_username,
                            num_customers=num_customers, num_vehicles=num_vehicles, num_feedbacks=num_feedbacks,
-                           show_security_modal=show_security_modal)
+                           show_security_modal=show_security_modal,
+                           good_ratings=good_ratings, moderate_ratings=moderate_ratings, bad_ratings=bad_ratings)
 
 
 @app.route('/manageCustomers', methods=['GET', 'POST'])
