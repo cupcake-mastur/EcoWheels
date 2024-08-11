@@ -333,9 +333,9 @@ def delete_feedback(feedback_id):  # Include feedback_id in the function signatu
         db.session.delete(feedback)  # Delete the specific feedback entry
         db.session.commit()
     if session['admin_role'] == 'system':
-        return redirect(url_for('system_MVehicles'))
+        return redirect(url_for('system_manageFeedback'))
     elif session['admin_role'] == 'general':
-        return redirect(url_for('MVehicles'))
+        return redirect(url_for('manageFeedback'))
     else:
         return redirect(url_for('ErrorPage'))
 
