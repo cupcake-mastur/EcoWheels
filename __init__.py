@@ -11,12 +11,15 @@ import string
 import secrets
 import time
 
+
 from flask import Flask, render_template, request, session, redirect, url_for, flash, current_app, jsonify, make_response, request, g
 from flask_wtf import CSRFProtect
+from wtforms import StringField, TextAreaField, SelectField
+from wtforms.validators import DataRequired, Email, AnyOf
 from flask_mail import Mail, Message
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm
+from Forms import CreateUserForm, UpdateProfileForm, LoginForm, OTPForm, RequestPasswordResetForm, ResetPasswordForm, AdminLoginForm, CreateVehicleForm, Feedbackform
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv, find_dotenv
 from datetime import datetime, timedelta, timezone
@@ -77,7 +80,7 @@ mail = Mail(app)
 otp_store = {}
 
 user_logged_in = False
-csrf = CSRFProtect(app)                                       
+csrf = CSRFProtect(app)
 limiter = Limiter(
     get_remote_address,
     app=app,
@@ -153,41 +156,64 @@ def models():
 
     return render_template("homepage/models.html" , vehicles=vehicles)
 
+class FeedbackForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    rating = SelectField('Rating', choices=[('good', 'Good'), ('moderate', 'Moderate'), ('bad', 'Bad')], validators=[DataRequired(), AnyOf(['good', 'moderate', 'bad'])])
+    feedback = TextAreaField('Feedback', validators=[DataRequired()])
+
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["20 per day", "30 per hour"]  # Adjust these limits as needed
+)
+
 @app.route('/Feedback', methods=['GET', 'POST'])
-@login_required
+@limiter.limit("20 per minute")  # Rate limit for the feedback submission
+@csrf.exempt
+#@login_required
 def feedback():
+    # Your feedback handling code here
     user_email = session.get('user_email')
     user = db.session.query(User).filter_by(email=user_email).first()
     if user:
-        username = user.username  # Update username if user is found
+        username = user.username
     else:
-        username = 'Anonymous'  # Replace with actual username if available
+        username = 'Anonymous'
+    FeedbackForm = Feedbackform(request.form)
 
     if request.method == 'POST':
-        email = request.form.get('email', 'default@example.com')
-        feedback_message = request.form['feedback']
-        rating = request.form['rating']
-
+        email = FeedbackForm.email.data
+        rating = FeedbackForm.rating.data
+        feedback_message = FeedbackForm.feedback.data
         try:
-            # Create a new Feedback entry
             new_feedback = Feedback(
                 username=username,
                 email=email,
                 feedback=feedback_message,
                 rating=rating
             )
-            # Add and commit the new feedback to the database
             db.session.add(new_feedback)
             db.session.commit()
+            flash('Thank you for your feedback!', 'success')
+            return redirect(url_for('thankyou'))
 
         except Exception as e:
             db.session.rollback()
+            flash('An error occurred. Please try again later.', 'error')
+    else:
+        if FeedbackForm.errors:
+            flash('Please correct the errors and try again.', 'error')
 
+    return render_template('homepage/Feedback.html', username=username, form=FeedbackForm)
 
-        flash('Thank you for your feedback!', 'success')
-        return redirect(url_for('thankyou'))
+from werkzeug.exceptions import TooManyRequests
 
-    return render_template('homepage/Feedback.html', username=username)
+@app.errorhandler(TooManyRequests)
+def ratelimit_error(e):
+    app.logger.warning(f"Rate limit exceeded for IP {request.remote_addr}.")
+    return render_template("error/ratelimit_exceeded.html"), 429
+
 
 
 def admin_login_required(f):
@@ -211,6 +237,29 @@ def manageFeedback():
     # Render the template with the feedback entries
     return render_template('admin/manageFeedback.html', admin_username=admin_username,
                            feedback_entries=feedback_entries)
+@app.route('/sub_manageFeedback')
+@admin_login_required
+#@role_required('junior')
+def sub_manageFeedback():
+    admin_username = session.get('admin_username')
+    user_email = session.get('user_email')
+    csrf_token = generate_csrf()  # Generate CSRF token
+    # Query the Feedback table to get all feedback entries
+
+    feedback_entries = db.session.query(Feedback).all()
+
+    # Render the template with the feedback entries
+    return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username,
+                           feedback_entries=feedback_entries, csrf_token=csrf_token)
+
+@app.route('/delete_feedback/<int:feedback_id>', methods=['POST'])
+def delete_feedback(feedback_id):  # Include feedback_id in the function signature
+    feedback = db.session.query(Feedback).get(feedback_id)  # Query the specific feedback entry by ID
+    if feedback:
+        db.session.delete(feedback)  # Delete the specific feedback entry
+        db.session.commit()
+    return redirect(url_for('sub_manageFeedback'))  # Redirect to the feedback management page
+
 
 @app.route('/thankyou')
 def thankyou():
@@ -1477,20 +1526,6 @@ def system_manageFeedback():
     return render_template('admin/system_admin/system_manageFeedback.html', admin_username=admin_username,
                            feedback_entries=feedback_entries)
 
-
-@app.route('/sub_manageFeedback')
-@admin_login_required
-@role_required('junior')
-def sub_manageFeedback():
-    admin_username = session.get('admin_username')
-
-    # Query the Feedback table to get all feedback entries
-
-    feedback_entries = db.session.query(Feedback).all()
-
-    # Render the template with the feedback entries
-    return render_template('admin/junior_admin/sub_manageFeedback.html', admin_username=admin_username,
-                           feedback_entries=feedback_entries)
 
 
 @app.route('/system_manageAdmin', methods=['GET', 'POST'])

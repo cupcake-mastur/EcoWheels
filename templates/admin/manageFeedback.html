@@ -225,8 +225,8 @@
 
                 <br><br>
 <!-- FILTER -->                                                               <!-- FILTER -->
-        <!-- STILL HAVE ISSUES FOR FILTER BUTTON...button leads to manageCustomers -->
-       <form method="post" action="{{ url_for('MCustomers') }}" class="filter-form">
+        <!-- STILL HAVE ISSUES FOR FILTER BUTTON...button leads to manageCustomers: {{ url_for('manageFeedback')}}-->
+       <form method="post" action="{{ url_for('feedback') }}" class="filter-form">
             <div class="filter-item">
                 <label for="username_filter">Customer ID:</label>
                 <input type="text" id="username_filter" name="username_filter" placeholder="Enter username">
@@ -257,9 +257,10 @@
             <th class="u-tablehead">Rating</th>
             <th class="u-tablehead">Feedback</th>
             <th class="u-tablehead">Timestamp</th>
+            <th class="u-tablehead">Actions</th>
         </tr>
         <tr>
-            <th colspan="5" style="border-bottom: 2px solid #000000;"></th>
+            <th colspan="6" style="border-bottom: 2px solid #000000;"></th>
         </tr>
     </thead>
     <tbody>
@@ -274,6 +275,7 @@
         {% endfor %}
     </tbody>
 </table>
+
 
 
     </div>

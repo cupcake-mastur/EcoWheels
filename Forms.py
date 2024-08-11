@@ -4,6 +4,13 @@ from wtforms import Form, EmailField, validators, PasswordField, StringField, In
 from wtforms.fields.simple import SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length, Regexp, NumberRange
 import re
+from wtforms import SelectField
+
+
+class Feedbackform(FlaskForm):
+    email = EmailField('Email', [validators.DataRequired(), validators.Email(), validators.Length(max=50)])
+    rating = SelectField('Rating', choices=[('good', 'Good'), ('moderate', 'Moderate'), ('bad', 'Bad')], validators=[DataRequired()])
+    feedback = TextAreaField('Feedback', validators=[DataRequired()])
 
 
 class RequestPasswordResetForm(FlaskForm):
