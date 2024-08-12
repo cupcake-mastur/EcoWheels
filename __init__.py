@@ -1806,7 +1806,7 @@ def system_logs():
                            , csrf_token=csrf_token, errors=errors, logs_backup_time=logs_backup_time)
 
 
-@app.route('/system_manageFeedback')
+@app.route('/system_manageFeedback', methods=['GET', 'POST'])
 @admin_login_required
 @admin_session_timeout_check
 @role_required('system')
@@ -1814,13 +1814,42 @@ def system_manageFeedback():
     admin_username = session.get('admin_username')
     user_email = session.get('user_email')
     csrf_token = generate_csrf()  # Generate CSRF token
-    # Query the Feedback table to get all feedback entries
+    accepted_ratings = ('good', 'moderate', 'bad')
+    errors = {}
 
-    feedback_entries = db.session.query(Feedback).all()
+    if request.method == 'POST':
+        # Get filter criteria from the form
+        customer_id = request.form.get('customer_id')
+        email = request.form.get('email')
+        rating = request.form.get('rating')
+
+        # Build the query with filters
+        query = db.session.query(Feedback)
+
+        if customer_id and is_valid_input(customer_id) and customer_id.isdigit():
+            query = query.filter(Feedback.id == int(customer_id))
+        elif customer_id:
+            errors['customer_id'] = "Invalid input for customer id"
+
+        if email and is_valid_input(email):
+            query = query.filter(Feedback.email.ilike(f"%{email}%"))
+        elif email:
+            errors['email'] = "Invalid input for email"
+
+        if rating and rating in accepted_ratings:
+            query = query.filter(Feedback.rating == rating)
+        elif rating:
+            errors['rating'] = "Invalid rating"
+
+        # Get all feedback entries based on filters
+        feedback_entries = query.all()
+    else:
+        # Query the Feedback table to get all feedback entries
+        feedback_entries = db.session.query(Feedback).all()
 
     # Render the template with the feedback entries
     return render_template('admin/system_admin/system_manageFeedback.html', admin_username=admin_username,
-                           feedback_entries=feedback_entries, csrf_token=csrf_token)
+                           feedback_entries=feedback_entries, csrf_token=csrf_token, errors=errors)
 
 
 

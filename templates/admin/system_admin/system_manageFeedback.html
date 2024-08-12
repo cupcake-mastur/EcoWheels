@@ -100,6 +100,7 @@
             padding-bottom: 3rem;
         }
 
+          /* Filter Form Styles */
         .filter-form {
             display: flex;
             gap: 1rem;
@@ -113,10 +114,11 @@
             margin-bottom: 0.5rem;
         }
         .filter-form input[type="text"],
-        .filter-form input[type="number"],
+        .filter-form input[type="datetime-local"],
+        .filter-form select,
         .filter-form button[type="submit"] {
             font-size: 1.05rem;
-            display: box;
+            display: block;
             width: 100%;
             padding: 0.75rem;
             box-sizing: border-box;
@@ -128,7 +130,8 @@
             margin-bottom: 1.2rem;
         }
         .filter-form input[type="text"]:focus,
-        .filter-form input[type="number"]:focus,
+        .filter-form input[type="datetime-local"]:focus,
+        .filter-form select:focus,
         .filter-form button[type="submit"]:focus {
             background: #ffffff;
             border-color: #aaaaaa;
@@ -158,6 +161,13 @@
             outline: none;
             cursor: pointer;
             background:rgb(7, 165, 96) ;
+        }
+
+        .alert-danger {
+            color: red;
+            font-size: 0.9rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -241,28 +251,44 @@
                 <br><br>
 <!-- FILTER -->                                                               <!-- FILTER -->
         <!-- STILL HAVE ISSUES FOR FILTER BUTTON...button leads to manageCustomers -->
-       <form method="post" action="{{ url_for('system_MCustomers') }}" class="filter-form">
+       <form method="post" action="{{ url_for('system_manageFeedback') }}" class="filter-form">
+           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="filter-item">
-                <label for="username_filter">Customer ID:</label>
-                <input type="text" id="username_filter" name="username_filter" placeholder="Enter username">
+                <label for="customer_id">Customer ID:</label>
+                <input type="text" id="customer_id" name="customer_id" placeholder="Enter Customer ID">
+                    {% if errors.customer_id %}
+                        <div class="alert alert-danger">{{ errors.customer_id }}</div>
+                    {% endif %}
             </div>
 
-
             <div class="filter-item">
-                <label for="email_filter">Email:</label>
-                <input type="text" id="email_filter" name="email_filter" placeholder="Enter email">
+                <label for="email">Email:</label>
+                <input type="text" id="email" name="email" placeholder="Enter Email">
+                    {% if errors.email %}
+                        <div class="alert alert-danger">{{ errors.email }}</div>
+                    {% endif %}
             </div>
 
             <div class="filter-item">
-                <label for="phone_number_filter">Rating:</label>
-                <input type="text" id="phone_number_filter" name="phone_number_filter" placeholder="Enter rating">
+                <label for="rating">Event Type:</label>
+                <select id="rating" name="rating">
+                    <option value="">All</option>
+                    <option value="good">Good</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="bad">Bad</option>
+                </select>
+                    {% if errors.rating%}
+                        <div class="alert alert-danger">{{ errors.rating }}</div>
+                    {% endif %}
             </div>
 
             <div class="filter-item">
                 <button type="submit" class="filter-item button-item">Filter</button>
             </div>
-
         </form>
+
+
+
 <!-- FEEBACK TABLE -->                                                            <!-- FEEBACK TABLE -->
 <table id="u-table" border="0">
     <thead>
