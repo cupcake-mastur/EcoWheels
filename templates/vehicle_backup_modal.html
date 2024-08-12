@@ -1,0 +1,173 @@
+<style>
+    /* Modal Background */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+        transition: opacity 0.3s ease-in-out; /* Smooth fade-in/out */
+    }
+
+    /* Modal Content */
+    .modal-content {
+        background-color: #ffffff;
+        margin: 10% auto; /* Center vertically and horizontally */
+        padding: 20px 30px;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 400px; /* Better suited for smaller screens */
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* Soft shadow for depth */
+        animation: slideIn 0.4s ease-out; /* Slide in animation */
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateY(-30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* Close Button */
+    .close {
+        color: #999;
+        float: right;
+        font-size: 24px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: #333;
+    }
+
+    /* Form Styling */
+    .modal-content h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: #333;
+        text-align: center;
+    }
+
+    .modal-content form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .modal-content label {
+        font-size: 1rem;
+        color: #555;
+    }
+
+    .modal-content input[type="password"],
+    .modal-content input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1rem;
+        box-sizing: border-box;
+    }
+
+    .modal-content input[type="password"]:focus,
+    .modal-content input[type="text"]:focus {
+        border-color: #58db79; /* Focused border color */
+        outline: none;
+        box-shadow: 0 0 5px rgba(124, 124, 255, 0.4); /* Subtle shadow on focus */
+    }
+
+    .vbackup-button {
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background: rgb(32, 150, 99);
+        color: white;
+        font-size: 1rem;
+        transition: background-color 0.3s ease;
+    }
+
+    .vbackup-button:hover {
+        background-color: rgb(24, 112, 75);
+    }
+    
+</style>
+
+    <div id="vbackupModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closevbackupModal()">&times;</span>
+            <h2>Backup Vehicles</h2>
+            <form id="backupForm">
+                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <label for="password">Admin Password:</label>
+                <input type="password" id="password" name="password" required>
+
+                <label for="totp_code">2FA Code:</label>
+                <input type="text" id="totp_code" name="totp_code" required>
+
+                <button type="button" class="vbackup-button" id="backupButton-sbm" onclick="verify_backup">Verify</button>
+            </form>
+            <br>
+            <div class="alert alert-danger" id="backup-status"></div>
+        </div>
+    </div>
+
+<script>
+    document.getElementById('backupButton-sbm').addEventListener('click', function() {
+        const password = document.getElementById('password').value;
+        const totpCode = document.getElementById('totp_code').value;
+
+        fetch('{{ url_for('verify_backup') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            },
+            body: new URLSearchParams({
+                'password': password,
+                'totp_code': totpCode
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => { throw new Error(data.message || 'An error occurred') });
+            }
+            return response.json();
+        })
+        .then(result => {
+            if (result.status) {
+                return fetch('{{ url_for('backup_vehicles') }}');
+            } else {
+                throw new Error('Verification failed. Please check your credentials and try again.');
+            }
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'backupVehicle.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            closevbackupModal();
+            document.getElementById('backupForm').reset(); // Clear the form fields
+        })
+        .catch(error => {
+            const statusElement = document.getElementById('backup-status');
+            statusElement.textContent = 'Error: ' + error.message;
+            statusElement.classList.add('alert', 'alert-danger'); // Apply the error styling
+        });
+    });
+</script>

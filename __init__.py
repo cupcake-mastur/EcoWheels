@@ -1999,6 +1999,26 @@ def admin_logout():
         return "Admin is not logged in."
 
 
+@app.route('/verify_backup', methods=['POST'])
+@admin_login_required
+@role_required('system')
+def verify_backup():
+    current_admin_username = session.get('admin_username')
+    admin_password = request.form.get('password')
+    totp_code = request.form.get('totp_code')
+
+    if not admin_password:
+        return jsonify({"status": False, "message": "Password is required"}), 400
+
+    current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
+
+    if current_admin and current_admin.check_password(admin_password):
+        totp = pyotp.TOTP(current_admin.totp_secret)
+        if totp.verify(totp_code) and is_valid_input(totp_code):
+            return jsonify({"status": True})
+    return jsonify({"status": False, "message": "Invalid credentials or verification failed"}), 400
+
+
 @app.route('/backup_vehicles', methods=['GET'])
 @admin_login_required
 @role_required('system')
