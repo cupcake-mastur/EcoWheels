@@ -381,12 +381,10 @@
             document.getElementById('vbackupModal').style.display = "none";
         }
 
-        // Close the modal when clicking outside of it
-        window.onclick = function(event) {
-            const modal = document.getElementById('vbackupModal');
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
+        function closelbackupModal() {
+        const modal = document.getElementById('vbackupModal');
+        const form = document.getElementById('vbackupForm');
+        const statusElement = document.getElementById('vbackup-status');
 }
 
     </script>

@@ -443,12 +443,10 @@
             document.getElementById('lbackupModal').style.display = "none";
         }
 
-        // Close the modal when clicking outside of it
-        window.onclick = function(event) {
-            const modal = document.getElementById('lbackupModal');
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
+        function closelbackupModal() {
+        const modal = document.getElementById('lbackupModal');
+        const form = document.getElementById('lbackupForm');
+        const statusElement = document.getElementById('lbackup-status');
 }
 </script>
     {% include 'logs_backup_modal.html' %}

@@ -530,11 +530,10 @@
         }
 
         // Close the modal when clicking outside of it
-        window.onclick = function(event) {
-            const modal = document.getElementById('cbackupModal');
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
+        function closelbackupModal() {
+        const modal = document.getElementById('cbackupModal');
+        const form = document.getElementById('cbackupForm');
+        const statusElement = document.getElementById('cbackup-status');
 }
     </script>
 {% include 'customer_backup_modal.html' %}
