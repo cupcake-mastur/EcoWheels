@@ -164,7 +164,7 @@ def home():
 
 
 @app.route('/models')
-# @login_required
+@login_required
 def models():
     vehicles = db.session.query(Vehicle).all()
 
@@ -1051,6 +1051,23 @@ def create_checkout_session():
     except Exception as e:
         return jsonify(error=str(e)), 400
         
+def payment_access_control(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = session.get('user_id')
+        
+        # Query to check if the current session user is authorized to access the payment process
+        if not user_id or not is_user_authorized_for_payment(user_id):
+            return abort(403)  # Deny access if the check fails
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def is_user_authorized_for_payment(user_id):
+    # Implement your logic to verify if the user is authorized
+    # For example, check if the user has a valid session or matches criteria for accessing payment resources
+    user = db.session.query(User).filter_by(id=user_id).first()
+    return user is not None  # Modify this according to your requirements
 
 # @app.route('/customer/history')
 # def customer_purchase_history():
