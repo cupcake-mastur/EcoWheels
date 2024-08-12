@@ -105,29 +105,43 @@
 </style>
 
     <div id="lbackupModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closelbackupModal()">&times;</span>
-            <h2>Backup Logs</h2>
-            <form id="backupForm">
-                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <label for="password">Admin Password:</label>
-                <input type="password" id="password" name="password" required>
+    <div class="modal-content">
+        <span class="close" onclick="closelbackupModal()">&times;</span>
+        <h2>Backup Logs</h2>
+        <form id="lbackupForm">
+             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <label for="lpassword">Admin Password:</label>
+            <input type="password" id="lpassword" name="password" required>
 
-                <label for="totp_code">2FA Code:</label>
-                <input type="text" id="totp_code" name="totp_code" required>
+            <label for="ltotp_code">2FA Code:</label>
+            <input type="text" id="ltotp_code" name="totp_code" required>
 
-                <button type="button" class="lbackup-button" id="backupButton-sbm" onclick="lerify_backup">Verify</button>
-            </form>
-            <br>
-            <div class="alert alert-danger" id="backup-status"></div>
-        </div>
+            <button type="button" class="lbackup-button" id="lbackupButton-sbm" onclick="verify_logs_backup()">Verify</button>
+        </form>
+        <br>
+        <div class="alert alert-danger" id="lbackup-status"></div>
     </div>
+</div>
 
 <script>
-        document.getElementById('backupButton-sbm').addEventListener('click', function() {
-        const password = document.getElementById('password').value;
-        const totpCode = document.getElementById('totp_code').value;
-        const statusElement = document.getElementById('backup-status');
+    function closelbackupModal() {
+        const modal = document.getElementById('lbackupModal');
+        const form = document.getElementById('lbackupForm');
+        const statusElement = document.getElementById('lbackup-status');
+
+        // Hide the modal
+        modal.style.display = 'none';
+
+        // Clear form fields and status message
+        form.reset();
+        statusElement.textContent = '';
+        statusElement.classList.remove('alert', 'alert-danger');
+    }
+
+    document.getElementById('lbackupButton-sbm').addEventListener('click', function() {
+        const password = document.getElementById('lpassword').value;
+        const totpCode = document.getElementById('ltotp_code').value;
+        const statusElement = document.getElementById('lbackup-status');
 
         // Clear previous status message
         statusElement.textContent = '';
@@ -166,8 +180,7 @@
             document.body.appendChild(a);
             a.click();
             a.remove();
-            closelbackupModal();
-            document.getElementById('backupForm').reset(); // Clear the form fields
+            closelbackupModal(); // Close the modal and reset the form
         })
         .catch(error => {
             statusElement.textContent = 'Error: ' + error.message;

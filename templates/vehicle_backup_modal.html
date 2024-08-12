@@ -124,54 +124,74 @@
     </div>
 
 <script>
-        document.getElementById('backupButton-sbm').addEventListener('click', function() {
-        const password = document.getElementById('password').value;
-        const totpCode = document.getElementById('totp_code').value;
-        const statusElement = document.getElementById('backup-status');
+        // Function to close the modal and reset the form
+function closevbackupModal() {
+    const modal = document.getElementById('vbackupModal');
+    const form = document.getElementById('backupForm');
+    const statusElement = document.getElementById('backup-status');
 
-        // Clear previous status message
-        statusElement.textContent = '';
-        statusElement.classList.remove('alert', 'alert-danger');
+    // Hide the modal
+    modal.style.display = 'none';
 
-        fetch('{{ url_for('verify_backup') }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-            },
-            body: new URLSearchParams({
-                'password': password,
-                'totp_code': totpCode
-            })
+    // Clear form fields and status message
+    form.reset();
+    statusElement.textContent = '';
+    statusElement.classList.remove('alert', 'alert-danger');
+}
+
+// Function to open the modal
+function openvbackupModal() {
+    document.getElementById('vbackupModal').style.display = 'block';
+}
+
+// Event listener for form submission
+document.getElementById('backupButton-sbm').addEventListener('click', function() {
+    const password = document.getElementById('password').value;
+    const totpCode = document.getElementById('totp_code').value;
+    const statusElement = document.getElementById('backup-status');
+
+    // Clear previous status message
+    statusElement.textContent = '';
+    statusElement.classList.remove('alert', 'alert-danger');
+
+    fetch('{{ url_for('verify_backup') }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        },
+        body: new URLSearchParams({
+            'password': password,
+            'totp_code': totpCode
         })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => { throw new Error(data.message || 'An error occurred') });
-            }
-            return response.json();
-        })
-        .then(result => {
-            if (result.status) {
-                return fetch('{{ url_for('backup_vehicles') }}');
-            } else {
-                throw new Error('Verification failed. Please check your credentials and try again.');
-            }
-        })
-        .then(response => response.blob())
-        .then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'backupVehicle.xlsx';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            closevbackupModal();
-            document.getElementById('backupForm').reset(); // Clear the form fields
-        })
-        .catch(error => {
-            statusElement.textContent = 'Error: ' + error.message;
-            statusElement.classList.add('alert', 'alert-danger'); // Apply the error styling
-        });
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => { throw new Error(data.message || 'An error occurred') });
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.status) {
+            return fetch('{{ url_for('backup_vehicles') }}');
+        } else {
+            throw new Error('Verification failed. Please check your credentials and try again.');
+        }
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'backupVehicle.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        closevbackupModal(); // Close the modal and reset the form
+    })
+    .catch(error => {
+        statusElement.textContent = 'Error: ' + error.message;
+        statusElement.classList.add('alert', 'alert-danger'); // Apply the error styling
     });
+});
 </script>
