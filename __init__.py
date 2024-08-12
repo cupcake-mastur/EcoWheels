@@ -33,6 +33,7 @@ from PIL import Image
 from model import *
 from flask_wtf.csrf import generate_csrf, CSRFError
 from werkzeug.exceptions import BadRequest
+from urllib.parse import unquote
 import json
 import qrcode
 import pyotp
@@ -148,23 +149,6 @@ def handle_csrf_error(e):
 def home():
     return render_template("homepage/homepage.html")
 
-@app.route('/chatbot')
-def chatbot_page():
-    return render_template("customer/chatbot.html")
-
-class SimpleChatBot:
-    def __init__(self):
-        self.responses = {
-            "hello": "Hello! How can I help you today?",
-            "help": "You can ask me about our services, or say 'bye' to end the chat.",
-            "bye": "Goodbye! Have a great day!"
-        }
-
-    def get_response(self, message):
-        # Normalize the message to lowercase to simplify matching
-        message = message.lower().strip()
-        return self.responses.get(message, "Sorry, I didn't understand that.")
-    
 
 # @app.route('/product_page')
 # @login_required
@@ -210,7 +194,6 @@ limiter = Limiter(
 
 @app.route('/Feedback', methods=['GET', 'POST'])
 @limiter.limit("20 per minute")  # Rate limit for the feedback submission
-@csrf.exempt
 #@login_required
 def feedback():
     # Your feedback handling code here
@@ -246,14 +229,6 @@ def feedback():
             flash('Please correct the errors and try again.', 'error')
 
     return render_template('homepage/Feedback.html', username=username, form=FeedbackForm)
-
-from werkzeug.exceptions import TooManyRequests
-
-@app.errorhandler(TooManyRequests)
-def ratelimit_error(e):
-    app.logger.warning(f"Rate limit exceeded for IP {request.remote_addr}.")
-    return render_template("error/ratelimit_exceeded.html"), 429
-
 
 
 def admin_login_required(f):
@@ -484,7 +459,7 @@ def sign_up():
                 is_pwned, count = is_password_pwned(suffix, response_text)
                 
                 if is_pwned:
-                    error = f"Password found {count} times in data breaches.\n Please choose a different password to enhance your security."
+                    error = f"Your password has been detected in previous data breaches.\n For your security, please select a different password."
 
                 else:
                     hashed_password = generate_password_hash(password)
@@ -2181,7 +2156,7 @@ SUSPICIOUS_PATTERNS = [
     r"update\s+set",
     r"select\s+from\s+information_schema.tables",
     r"union\s+all\s+select",
-    r"cmd\s*=",
+    r"cmd\s*=\s*[\S]+",
     r"wget",
     r"curl",
     r"nc\s+-e",
@@ -2238,12 +2213,21 @@ def log_and_check_request():
     query_params = request.args.to_dict()
     form_data = request.form.to_dict()
 
-    request_data = f"Query Params: {query_params}, Form Data: {form_data}"
+    # Decode the parameters
+    decoded_params = {key: unquote(value) for key, value in query_params.items()}
+    decoded_form_data = {key: unquote(value) for key, value in form_data.items()}
+
+    # Combine the decoded data
+    request_data = f"Query Params: {decoded_params}, Form Data: {decoded_form_data}"
+
+    # Only log the request data if it's not empty
+    if decoded_params or decoded_form_data:
+        app.logger.info(f"Decoded Request Data: {request_data}")
 
     for pattern in SUSPICIOUS_PATTERNS:
         if re.search(pattern, request_data, re.IGNORECASE):
-            app.logger.warning(f"Suspicious activity detected from {ip_src}: {request_data}")
-            abort(403) 
+            app.logger.warning(f"Suspicious activity detected from {ip_src}: pattern '{pattern}' detected")
+            abort(403)
 
 
 if __name__ == '__main__':
