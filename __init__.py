@@ -1365,13 +1365,13 @@ def qr_code():
     return send_file(buf, mimetype='image/png')
 
 
-def is_valid_input(input_str):
-    """
-    Check if the input string contains only allowed characters.
-    """
-    # Define a regular expression to match allowed characters
-    allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
-    return bool(allowed_chars_pattern.match(input_str))
+# def is_valid_input(input_str):
+#     """
+#     Check if the input string contains only allowed characters.
+#     """
+#     # Define a regular expression to match allowed characters
+#     allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
+#     return bool(allowed_chars_pattern.match(input_str))
 
 
 def save_image_file(form_file):
