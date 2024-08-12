@@ -1353,6 +1353,7 @@ def save_image_file(form_file):
 def createVehicle():
     create_vehicle_form = CreateVehicleForm()
     if request.method == 'POST' and create_vehicle_form.validate_on_submit():
+        product_id = create_vehicle_form.product_id.data
         brand = create_vehicle_form.brand.data
         model = create_vehicle_form.model.data
         price = create_vehicle_form.price.data
@@ -1367,10 +1368,10 @@ def createVehicle():
             file = None
 
         try:
-            new_vehicle = Vehicle(brand=brand, model=model, selling_price=price, image=file, description=description)
+            new_vehicle = Vehicle(product_id=product_id, brand=brand, model=model, selling_price=price, image=file, description=description)
             db.session.add(new_vehicle)
             db.session.commit()
-            log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_role"]} admin {session["admin_username"]}.')
+            log_event('Create Vehicle', f'New vehicle created: {product_id} {brand} {model} by {session["admin_role"]} admin {session["admin_username"]}.')
             return redirect(url_for('MVehicles'))
         except Exception:
             db.session.rollback()
@@ -1385,6 +1386,7 @@ def createVehicle():
 def system_createVehicle():
     create_vehicle_form = CreateVehicleForm()
     if request.method == 'POST' and create_vehicle_form.validate_on_submit():
+        product_id = create_vehicle_form.product_id.data
         brand = create_vehicle_form.brand.data
         model = create_vehicle_form.model.data
         price = create_vehicle_form.price.data
@@ -1399,10 +1401,10 @@ def system_createVehicle():
             file = None
 
         try:
-            new_vehicle = Vehicle(brand=brand, model=model, selling_price=price, image=file, description=description)
+            new_vehicle = Vehicle(product_id=product_id,brand=brand, model=model, selling_price=price, image=file, description=description)
             db.session.add(new_vehicle)
             db.session.commit()
-            log_event('Create Vehicle', f'New vehicle created: {brand} {model} by {session["admin_role"]} admin {session["admin_username"]}.')
+            log_event('Create Vehicle', f'New vehicle created: {product_id} {brand} {model} by {session["admin_role"]} admin {session["admin_username"]}.')
             return redirect(url_for('system_MVehicles'))
         except Exception:
             db.session.rollback()
