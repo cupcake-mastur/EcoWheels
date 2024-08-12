@@ -20,9 +20,9 @@
 
         <h1 class="form__title">Create Vehicle</h1>
 
-         <div class="form__input-group">
-            <label for="v-product_id">Brand</label>
-            {{ form.product_id(class="form__input", id="v-product_id", autofocus=true, placeholder="Enter Product id") }}
+ <div class="form__input-group">
+            <label for="v-product_id">Product ID</label>
+            {{ form.product_id(class="form__input", id="v-product_id", autofocus=true, placeholder="Enter Product ID (e.g. prod_Qdy9UouJPdgmor)") }}
             {% if form.product_id.errors %}
                 <div class="form__input--error-message">
                     {% for error in form.product_id.errors %}

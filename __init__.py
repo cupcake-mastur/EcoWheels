@@ -556,8 +556,8 @@ def login():
     login_form = LoginForm(request.form)
 
     if request.method == 'POST' and login_form.validate():
-        email = login_form.email.data
-        password = login_form.password.data
+        email = html.escape(login_form.email.data)
+        password = html.escape(login_form.password.data)
         user = db.session.query(User).filter_by(email=email).first()
         recaptcha_response = request.form.get('g-recaptcha-response')
         
