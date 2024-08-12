@@ -284,6 +284,14 @@ def admin_session_timeout_check(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def is_valid_input(input_str):
+    """
+    Check if the input string contains only allowed characters.
+    """
+    # Define a regular expression to match allowed characters
+    allowed_chars_pattern = re.compile(r'^[\w.@+-]+$')
+    return bool(allowed_chars_pattern.match(input_str))
+
 def role_required(*roles):
     def wrapper(f):
         @wraps(f)
