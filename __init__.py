@@ -302,7 +302,7 @@ def manageFeedback():
         query = db.session.query(Feedback)
 
         if customer_id and is_valid_input(customer_id) and customer_id.isdigit():
-            query = query.filter(Feedback.id == int(customer_id))
+            query = query.filter(Feedback.user_id == int(customer_id))
         elif customer_id:
             errors['customer_id'] = "Invalid input for customer id"
 
@@ -345,7 +345,7 @@ def sub_manageFeedback():
         query = db.session.query(Feedback)
 
         if customer_id and is_valid_input(customer_id) and customer_id.isdigit():
-            query = query.filter(Feedback.id == int(customer_id))
+            query = query.filter(Feedback.user_id == int(customer_id))
         elif customer_id:
             errors['customer_id'] = "Invalid input for customer id"
 
@@ -1873,7 +1873,7 @@ def system_manageFeedback():
         query = db.session.query(Feedback)
 
         if customer_id and is_valid_input(customer_id) and customer_id.isdigit():
-            query = query.filter(Feedback.id == int(customer_id))
+            query = query.filter(Feedback.user_id == int(customer_id))
         elif customer_id:
             errors['customer_id'] = "Invalid input for customer id"
 
