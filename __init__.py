@@ -2005,6 +2005,7 @@ def admin_logout():
 def verify_backup():
     current_admin_username = session.get('admin_username')
     admin_password = request.form.get('password')
+    role = session.get('admin_role')
     totp_code = request.form.get('totp_code')
 
     if not admin_password:
@@ -2012,10 +2013,11 @@ def verify_backup():
 
     current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
 
-    if current_admin and current_admin.check_password(admin_password):
+    if current_admin and current_admin.check_password(admin_password) and is_valid_input(admin_password):
         totp = pyotp.TOTP(current_admin.totp_secret)
         if totp.verify(totp_code) and is_valid_input(totp_code):
             return jsonify({"status": True})
+    log_event('Backup', f'Attempted Backed up of database by {role} admin {current_admin_username}')
     return jsonify({"status": False, "message": "Invalid credentials or verification failed"}), 400
 
 
