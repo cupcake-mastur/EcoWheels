@@ -100,6 +100,10 @@ class AdminLoginForm(FlaskForm):
 
 
 class CreateVehicleForm(FlaskForm):
+    product_id = StringField('Product_id', validators=[
+        DataRequired(message="Product id is required."),
+        Regexp(r'^[A-Za-z]+$', message="Product id can only contain alphabetic characters without spaces.")
+    ])
     brand = StringField('Brand', validators=[
         DataRequired(message="Brand is required."),
         Regexp(r'^[A-Za-z\s]+$', message="Brand can only contain alphabetic characters and spaces.")
