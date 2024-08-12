@@ -21,6 +21,18 @@
         <h1 class="form__title">Create Vehicle</h1>
 
         <div class="form__input-group">
+            <label for="v-product_id">Product id</label>
+            {{ form.product_id(class="form__input", id="v-product_id", autofocus=true, placeholder="Enter Product id") }}
+            {% if form.product_id.errors %}
+                <div class="form__input--error-message">
+                    {% for error in form.product_id.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form__input-group">
             <label for="v-brand">Brand</label>
             {{ form.brand(class="form__input", id="v-brand", autofocus=true, placeholder="Enter Brand") }}
             {% if form.brand.errors %}
