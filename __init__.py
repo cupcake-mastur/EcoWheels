@@ -524,6 +524,7 @@ def sign_up():
 
                 else:
                     hashed_password = generate_password_hash(password)
+                    print(f"Generated password hash: {hashed_password}") 
 
                     new_user = User(full_name=full_name, username=username, email=email, phone_number=phone_number,
                                     password_hash=hashed_password)
@@ -570,6 +571,8 @@ def login():
             return render_template("customer/login.html", form=login_form, error=error)
 
         if user:
+            print(f"Stored password hash: {user.password_hash}")  # DEBUG: Print the stored hash
+            print(f"Entered password: {password}")  # DEBUG: Print the entered password
             current_time = datetime.now(SGT)
 
             if user.lockout_until and user.lockout_until.tzinfo is None:
@@ -590,6 +593,7 @@ def login():
                     db.session.commit()
 
                 if check_password_hash(user.password_hash, password):
+                    print("Password matched!")  # DEBUG: Confirm password match
                     user.failed_attempts = 0
                     user.lockout_until = None
                     db.session.commit()
@@ -603,6 +607,7 @@ def login():
 
                     return redirect(url_for('verify_otp'))
                 else:
+                    print("Password did not match.")  # DEBUG: Indicate a mismatch
                     user.failed_attempts += 1
 
                     if user.failed_attempts >= 3:
