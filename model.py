@@ -29,7 +29,9 @@ class Feedback(db.Model):
     feedback = db.Column(db.Text, nullable=False)
     rating = db.Column(db.Enum('good', 'moderate', 'bad', name='rating_enum'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    #timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Add user_id as a foreign key to link to the User table
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     def __repr__(self):
         return f"<Feedback id={self.id} username={self.username} rating={self.rating}>"

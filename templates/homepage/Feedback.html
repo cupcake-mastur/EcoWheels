@@ -35,8 +35,8 @@
 <div class="container-Feedback">
     <h1>Feedback</h1>
     <p>Logged in as: {{ username }}</p>
-    <form method="POST" action="{{ url_for('feedback') }}" onsubmit="return validateForm()>
-        {{ form.hidden_tag() }}
+    <form method="POST" action="{{ url_for('feedback') }}" onsubmit="return validateForm()">
+        {{ form.csrf_token }}
         <br>
         <div>
             {{ form.email.label }}<br>

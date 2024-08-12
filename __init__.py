@@ -191,45 +191,47 @@ limiter = Limiter(
     app=app,
     default_limits=["20 per day", "30 per hour"]  # Adjust these limits as needed
 )
-
 @app.route('/Feedback', methods=['GET', 'POST'])
-@limiter.limit("20 per minute")  # Rate limit for the feedback submission
-#@login_required
+@login_required  # Ensure only logged-in users can access this route
+@limiter.limit("20 per minute")
 def feedback():
-    # Your feedback handling code here
+    form = FeedbackForm()
     user_email = session.get('user_email')
     user = db.session.query(User).filter_by(email=user_email).first()
-    if user:
-        username = user.username
-    else:
-        username = 'Anonymous'
-    FeedbackForm = Feedbackform(request.form)
+
+    if not user:
+        flash('You must be logged in to submit feedback.', 'error')
+        return redirect(url_for('login'))
+
+    username = user.username
+    user_id = user.id  # Ensure user_id is always set
 
     if request.method == 'POST':
-        email = FeedbackForm.email.data
-        rating = FeedbackForm.rating.data
-        feedback_message = FeedbackForm.feedback.data
-        try:
-            new_feedback = Feedback(
-                username=username,
-                email=email,
-                feedback=feedback_message,
-                rating=rating
-            )
-            db.session.add(new_feedback)
-            db.session.commit()
-            flash('Thank you for your feedback!', 'success')
-            return redirect(url_for('thankyou'))
+        if form.validate_on_submit():
+            email = form.email.data
+            rating = form.rating.data
+            feedback_message = form.feedback.data
 
-        except Exception as e:
-            db.session.rollback()
-            flash('An error occurred. Please try again later.', 'error')
-    else:
-        if FeedbackForm.errors:
+            try:
+                new_feedback = Feedback(
+                    username=username,
+                    email=email,
+                    feedback=feedback_message,
+                    rating=rating,
+                    user_id=user_id  # Enforce user_id
+                )
+                db.session.add(new_feedback)
+                db.session.commit()
+                flash('Thank you for your feedback!', 'success')
+                return redirect(url_for('thankyou'))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f'An error occurred. Please try again later. Error: {str(e)}', 'error')
+        else:
             flash('Please correct the errors and try again.', 'error')
 
-    return render_template('homepage/Feedback.html', username=username, form=FeedbackForm)
-
+    return render_template('homepage/Feedback.html', username=username, form=form, user_id=user_id)
 
 def admin_login_required(f):
     @wraps(f)
@@ -300,7 +302,7 @@ def manageFeedback():
         query = db.session.query(Feedback)
 
         if customer_id and is_valid_input(customer_id) and customer_id.isdigit():
-            query = query.filter(Feedback.id == int(customer_id))
+            query = query.filter(Feedback.user_id == int(customer_id))
         elif customer_id:
             errors['customer_id'] = "Invalid input for customer id"
 
@@ -343,7 +345,7 @@ def sub_manageFeedback():
         query = db.session.query(Feedback)
 
         if customer_id and is_valid_input(customer_id) and customer_id.isdigit():
-            query = query.filter(Feedback.id == int(customer_id))
+            query = query.filter(Feedback.user_id == int(customer_id))
         elif customer_id:
             errors['customer_id'] = "Invalid input for customer id"
 
@@ -1871,7 +1873,7 @@ def system_manageFeedback():
         query = db.session.query(Feedback)
 
         if customer_id and is_valid_input(customer_id) and customer_id.isdigit():
-            query = query.filter(Feedback.id == int(customer_id))
+            query = query.filter(Feedback.user_id == int(customer_id))
         elif customer_id:
             errors['customer_id'] = "Invalid input for customer id"
 
