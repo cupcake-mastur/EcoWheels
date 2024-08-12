@@ -448,21 +448,6 @@
             });
         });
 
-                  document.getElementById('backupButton').addEventListener('click', function() {
-            fetch('{{ url_for('backup_customers') }}')
-                .then(response => response.blob())
-                .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'backupCustomers.xlsx';
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                })
-                .catch(error => console.log('Error downloading the backup:', error));
-        });
-
         document.querySelectorAll('.unlock-button').forEach(button => {
             button.addEventListener('click', function () {
                 const customerId = this.getAttribute('data-customer-id');
@@ -530,7 +515,29 @@
                 document.getElementById('purchaseHistoryContent').innerHTML = '<p>Error loading data.</p>';
             });
         }
+
+        // Open the Customer Backup Modal when the "Download Customers Backup" button is clicked
+        document.getElementById('backupButton').addEventListener('click', function() {
+            opencbackup();
+        });
+
+        function opencbackup() {
+            document.getElementById('cbackupModal').style.display = "block";
+        }
+
+        function closecbackupModal() {
+            document.getElementById('cbackupModal').style.display = "none";
+        }
+
+        // Close the modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('cbackupModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+}
     </script>
+{% include 'customer_backup_modal.html' %}
 {% include 'logout_modal.html' %}
 </body>
 </html>

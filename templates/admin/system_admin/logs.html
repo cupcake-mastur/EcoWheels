@@ -430,22 +430,28 @@
         });
     });
 
-    document.getElementById('backupButton').addEventListener('click', function() {
-            fetch('{{ url_for('backup_logs') }}')
-                .then(response => response.blob())
-                .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'backupLogs.xlsx';
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                })
-                .catch(error => console.log('Error downloading the backup:', error));
+    // Open the Logs Backup Modal when the "Download Logs Backup" button is clicked
+        document.getElementById('backupButton').addEventListener('click', function() {
+            openlbackup();
         });
 
+        function openlbackup() {
+            document.getElementById('lbackupModal').style.display = "block";
+        }
+
+        function closelbackupModal() {
+            document.getElementById('lbackupModal').style.display = "none";
+        }
+
+        // Close the modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('lbackupModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+}
 </script>
-{% include 'logout_modal.html' %}
+    {% include 'logs_backup_modal.html' %}
+    {% include 'logout_modal.html' %}
 </body>
 </html>

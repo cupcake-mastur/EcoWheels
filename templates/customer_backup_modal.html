@@ -87,7 +87,7 @@
         box-shadow: 0 0 5px rgba(124, 124, 255, 0.4); /* Subtle shadow on focus */
     }
 
-    .vbackup-button {
+    .cbackup-button {
         padding: 10px;
         border: none;
         border-radius: 5px;
@@ -98,16 +98,16 @@
         transition: background-color 0.3s ease;
     }
 
-    .vbackup-button:hover {
+    .cbackup-button:hover {
         background-color: rgb(24, 112, 75);
     }
 
 </style>
 
-    <div id="vbackupModal" class="modal">
+    <div id="cbackupModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closevbackupModal()">&times;</span>
-            <h2>Backup Vehicles</h2>
+            <span class="close" onclick="closecbackupModal()">&times;</span>
+            <h2>Backup Customers</h2>
             <form id="backupForm">
                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <label for="password">Admin Password:</label>
@@ -116,7 +116,7 @@
                 <label for="totp_code">2FA Code:</label>
                 <input type="text" id="totp_code" name="totp_code" required>
 
-                <button type="button" class="vbackup-button" id="backupButton-sbm" onclick="verify_backup">Verify</button>
+                <button type="button" class="cbackup-button" id="backupButton-sbm" onclick="verify_backup">Verify</button>
             </form>
             <br>
             <div class="alert alert-danger" id="backup-status"></div>
@@ -152,7 +152,7 @@
         })
         .then(result => {
             if (result.status) {
-                return fetch('{{ url_for('backup_vehicles') }}');
+                return fetch('{{ url_for('backup_customers') }}');
             } else {
                 throw new Error('Verification failed. Please check your credentials and try again.');
             }
@@ -162,11 +162,11 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'backupVehicle.xlsx';
+            a.download = 'backupCustomer.xlsx';
             document.body.appendChild(a);
             a.click();
             a.remove();
-            closevbackupModal();
+            closecbackupModal();
             document.getElementById('backupForm').reset(); // Clear the form fields
         })
         .catch(error => {

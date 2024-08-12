@@ -1934,7 +1934,7 @@ def system_manageAdmin():
 
         if request.method == 'POST':
             admin_id = request.form.get('admin_id')
-            admin_to_unsuspend = Admin.query.filter_by(id=admin_id).first()
+            admin_to_unsuspend = db.session.query(Admin).filter_by(id=admin_id).first()
             if admin_to_unsuspend:
                 admin_to_unsuspend.is_suspended = False
                 db.session.commit()
