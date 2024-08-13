@@ -140,6 +140,11 @@ def ratelimit_error(e):
     return render_template("customer/rate_limit_exceeded.html"), 429
 
 
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template('customer/403.html'), 403
+
+
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
     return render_template('error_msg.html', reason=e.description), 400
@@ -391,6 +396,7 @@ def thankyou():
 
 
 @app.route('/visit', methods=['POST'])
+@limiter.limit("20 per minute")
 @csrf.exempt
 @login_required
 def visit():
@@ -428,6 +434,7 @@ def get_user_id_from_email(email):
 
 
 @app.route('/check_session')
+@limiter.limit("20 per minute")
 def check_session():
     # Log the current state of the session for debugging
     app.logger.info("Session data: %s", session)
@@ -476,7 +483,6 @@ def sign_up():
     error = None
     create_user_form = CreateUserForm(request.form)
     if request.method == 'POST' and create_user_form.validate():
-        # Extract data from form submission
         full_name = create_user_form.full_name.data
         username = create_user_form.username.data
         email = create_user_form.email.data
@@ -484,7 +490,6 @@ def sign_up():
         password = create_user_form.password.data
         confirm_password = create_user_form.confirm_password.data
 
-        # Check if the user already exists
         user_exists = db.session.query(exists().where(User.username == username)).scalar()
         email_exists = db.session.query(exists().where(User.email == email)).scalar()
         phone_number_exists = db.session.query(exists().where(User.phone_number == phone_number)).scalar()
@@ -500,7 +505,6 @@ def sign_up():
         elif len(str(phone_number)) != 8:
             error = "Phone number must be 8 digits."
         else:
-            # Validate special characters
             special_chars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?"
 
             if any(char in special_chars for char in full_name) or any(char in special_chars for char in username):
@@ -571,8 +575,8 @@ def login():
             return render_template("customer/login.html", form=login_form, error=error)
 
         if user:
-            print(f"Stored password hash: {user.password_hash}")  # DEBUG: Print the stored hash
-            print(f"Entered password: {password}")  # DEBUG: Print the entered password
+            print(f"Stored password hash: {user.password_hash}")  
+            print(f"Entered password: {password}")  
             current_time = datetime.now(SGT)
 
             if user.lockout_until and user.lockout_until.tzinfo is None:
@@ -593,7 +597,7 @@ def login():
                     db.session.commit()
 
                 if check_password_hash(user.password_hash, password):
-                    print("Password matched!")  # DEBUG: Confirm password match
+                    print("Password matched!") 
                     user.failed_attempts = 0
                     user.lockout_until = None
                     db.session.commit()
@@ -607,7 +611,7 @@ def login():
 
                     return redirect(url_for('verify_otp'))
                 else:
-                    print("Password did not match.")  # DEBUG: Indicate a mismatch
+                    print("Password did not match.")
                     user.failed_attempts += 1
 
                     if user.failed_attempts >= 3:
@@ -635,7 +639,7 @@ def login():
 
 def get_lockout_duration(lockout_count):
     if lockout_count == 1:
-        return timedelta(seconds=30) # Set to short time's for testing
+        return timedelta(seconds=30) 
     elif lockout_count == 2:
         return timedelta(seconds=40)
     elif lockout_count == 3:
@@ -675,7 +679,7 @@ def verify_otp():
     error = None
     otp_form = OTPForm(request.form)
 
-    user_email = session.get('unverified_user_email')  # Adjust as per your session setup
+    user_email = session.get('unverified_user_email')  
 
     if not user_email:
         return redirect(url_for('login'))
