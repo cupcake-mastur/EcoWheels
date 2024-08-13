@@ -2321,17 +2321,15 @@ SUSPICIOUS_PATTERNS = [
 @app.before_request
 def log_and_check_request():
     ip_src = request.remote_addr
-    query_params = request.args.to_dict()
+    query_params = request.args.to_dict() 
     form_data = request.form.to_dict()
 
-    # Decode the parameters
+    # Decodes the URL-encoded values in the query params + form data
     decoded_params = {key: unquote(value) for key, value in query_params.items()}
     decoded_form_data = {key: unquote(value) for key, value in form_data.items()}
 
-    # Combine the decoded data
     request_data = f"Query Params: {decoded_params}, Form Data: {decoded_form_data}"
 
-    # Only log the request data if it's not empty
     if decoded_params or decoded_form_data:
         app.logger.info(f"Decoded Request Data: {request_data}")
 
