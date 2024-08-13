@@ -2008,7 +2008,7 @@ def verify_backup():
     role = session.get('admin_role')
     totp_code = request.form.get('totp_code')
 
-    if not admin_password:
+    if not admin_password or not is_valid_input(admin_password):
         return jsonify({"status": False, "message": "Password is required"}), 400
 
     current_admin = db.session.query(Admin).filter_by(username=current_admin_username).first()
