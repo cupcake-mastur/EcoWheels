@@ -259,6 +259,7 @@ def admin_session_timeout_check(f):
             session.pop('admin_username', None)
             session.pop('admin_role', None)
             session.pop('admin_last_activity', None)
+            session.pop('security_modal_shown', None)
             log_event("Logout", f"Inactivity for 15 minutes led to {admin_username}'s session timeout")
             return redirect(url_for('admin_log_in'))
 
